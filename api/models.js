@@ -34,6 +34,8 @@ const PROVIDERS_CONFIG = {
     needsKey: 'MISTRAL_API_KEY',
     models: [
       { id: 'mistral-small-latest', label: 'Mistral Small', free: true },
+      { id: 'mistral-large-latest', label: 'Mistral Large', free: true },
+      { id: 'codestral-latest', label: 'Codestral', free: true },
     ],
     default: 'mistral-small-latest',
   },
