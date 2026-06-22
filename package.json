@@ -1,21 +1,21 @@
 {
   "name": "articles-immeit",
-  "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
+  "version": "2.0.0",
+  "description": "Générateur d'articles LinkedIn pour IMMEIT — maintenance industrielle, fiabilité, GMAO",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "db:init": "psql $DATABASE_URL -f db/schema.sql"
   },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.0"
+  },
+  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/taphaniangrio-cell/articles-immeit.git"
   },
-  "keywords": [],
+  "keywords": ["immeit", "linkedin", "articles", "maintenance", "gmao"],
   "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/taphaniangrio-cell/articles-immeit/issues"
-  },
-  "homepage": "https://github.com/taphaniangrio-cell/articles-immeit#readme"
+  "license": "ISC"
 }
