@@ -5,8 +5,7 @@ const PROVIDERS_CONFIG = {
     models: [
       { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B', free: true },
       { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B', free: true },
-      { id: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B', free: true },
-      { id: 'gemma2-9b-it', label: 'Gemma 2 9B', free: true },
+      { id: 'llama-3.2-3b-preview', label: 'Llama 3.2 3B', free: true },
     ],
     default: 'llama-3.3-70b-versatile',
   },
