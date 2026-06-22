@@ -30,18 +30,18 @@ const PROVIDERS_CONFIG = {
       { id: 'mistralai/mistral-small-3.1-24b-instruct', label: 'Mistral Small 3.1', free: true },
       { id: 'deepseek/deepseek-chat', label: 'DeepSeek V3', free: true },
       { id: 'openai/gpt-4o-mini', label: 'GPT-4o Mini', free: false },
+      { id: 'anthropic/claude-3-haiku-20240307', label: 'Claude 3 Haiku', free: true },
     ],
     default: 'meta-llama/llama-3.3-70b-instruct',
   },
   anthropic: {
-    label: 'Anthropic Claude (payant)',
+    label: 'Anthropic Claude (pas de crédits)',
     needsKey: 'ANTHROPIC_API_KEY',
     models: [
-      { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4', free: false },
+      { id: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku (le moins cher)', free: false },
       { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet', free: false },
-      { id: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku', free: false },
     ],
-    default: 'claude-sonnet-4-20250514',
+    default: 'claude-3-haiku-20240307',
   },
 };
 

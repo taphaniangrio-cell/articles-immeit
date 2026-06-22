@@ -31,6 +31,9 @@ header{display:flex;justify-content:space-between;align-items:center;margin-bott
 .header-right{display:flex;align-items:center;gap:8px}
 .badge{display:inline-block;background:#e0e7ff;color:var(--primary);padding:2px 10px;border-radius:12px;font-size:.72rem;font-weight:600}
 .quota-badge{font-size:.72rem;color:var(--text2)}
+.ai-selector-inline{display:flex;align-items:center;gap:4px}
+.ai-selector-inline select{width:auto;padding:4px 6px;font-size:.74rem;max-width:140px}
+.ai-selector-inline .key-status{font-size:.68rem;padding:0}
 
 .filters{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
 .filter-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:.8rem;cursor:pointer;transition:all .15s}

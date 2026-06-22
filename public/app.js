@@ -20,7 +20,7 @@ const newsModal = $('news-modal'), modalClose = $('modal-close'), btnAiPick = $(
 const regenBox = $('regen-box'), regenFeedback = $('regen-feedback')
 const wordCount = $('word-count'), editorStatus = $('editor-status'), editorTitle = $('editor-title')
 const articleList = $('article-list')
-const aiProvider = $('ai-provider'), aiModel = $('ai-model'), aiKeyStatus = $('ai-key-status')
+const aiProvider = $('ai-provider-main'), aiModel = $('ai-model-main'), aiKeyStatus = $('ai-key-status-main')
 
 function toast(msg) {
   const t = $('toast')

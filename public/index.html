@@ -31,7 +31,11 @@
         <span class="badge">IMMEIT</span>
       </div>
       <div class="header-right">
-        <span id="quota-display" class="quota-badge"></span>
+        <div class="ai-selector-inline">
+          <select id="ai-provider-main"></select>
+          <select id="ai-model-main"></select>
+          <span id="ai-key-status-main" class="key-status"></span>
+        </div>
         <button id="btn-new" class="btn-primary">+ Nouvel article</button>
         <button id="btn-logout" class="btn-outline" title="Déconnexion">Déconnexion</button>
       </div>
@@ -78,15 +82,6 @@
         </div>
 
         <div class="editor-sidebar">
-          <div class="field">
-            <label>Fournisseur IA</label>
-            <select id="ai-provider"></select>
-          </div>
-          <div class="field">
-            <label>Modèle</label>
-            <select id="ai-model"></select>
-          </div>
-          <div id="ai-key-status" class="key-status">—</div>
           <div class="field">
             <label>Source</label>
             <div id="edit-source" class="source-display">—</div>
