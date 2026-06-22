@@ -51,7 +51,9 @@ articles-immeit/
 1. Créer un projet sur Vercel lié à ce repo
 2. Ajouter les variables d'environnement dans Vercel :
    - `GROQ_API_KEY` — clé API Groq (gratuit, par défaut)
-   - `OPENROUTER_API_KEY` — clé API OpenRouter (alternative gratuite)
+   - `OPENROUTER_API_KEY` — clé API OpenRouter (28+ modèles gratuits)
+   - `CEREBRAS_API_KEY` — clé API Cerebras (ultra-rapide, gratuit)
+   - `MISTRAL_API_KEY` — clé API Mistral (1B tokens/mois gratuit)
    - `DATABASE_URL` — URL de connexion Vercel Postgres
    - `ADMIN_PASSWORD` — mot de passe d'accès à l'outil
 3. `git push` → déploiement automatique
