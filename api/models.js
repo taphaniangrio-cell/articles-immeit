@@ -9,38 +9,17 @@ const PROVIDERS_CONFIG = {
     ],
     default: 'llama-3.3-70b-versatile',
   },
-  gemini: {
-    label: 'Google Gemini (gratuit)',
-    needsKey: 'GEMINI_API_KEY',
-    models: [
-      { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash', free: true },
-      { id: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite', free: true },
-      { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', free: true },
-      { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', free: true },
-    ],
-    default: 'gemini-2.0-flash',
-  },
   openrouter: {
     label: 'OpenRouter (gratuit)',
     needsKey: 'OPENROUTER_API_KEY',
     models: [
       { id: 'meta-llama/llama-3.3-70b-instruct', label: 'Llama 3.3 70B', free: true },
-      { id: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash', free: true },
+      { id: 'anthropic/claude-3-haiku-20240307', label: 'Claude 3 Haiku', free: true },
       { id: 'mistralai/mistral-small-3.1-24b-instruct', label: 'Mistral Small 3.1', free: true },
       { id: 'deepseek/deepseek-chat', label: 'DeepSeek V3', free: true },
-      { id: 'openai/gpt-4o-mini', label: 'GPT-4o Mini', free: false },
-      { id: 'anthropic/claude-3-haiku-20240307', label: 'Claude 3 Haiku', free: true },
+      { id: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash', free: true },
     ],
     default: 'meta-llama/llama-3.3-70b-instruct',
-  },
-  anthropic: {
-    label: 'Anthropic Claude (pas de crédits)',
-    needsKey: 'ANTHROPIC_API_KEY',
-    models: [
-      { id: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku (le moins cher)', free: false },
-      { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet', free: false },
-    ],
-    default: 'claude-3-haiku-20240307',
   },
 };
 

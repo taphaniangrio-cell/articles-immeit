@@ -13,7 +13,7 @@ articles-immeit/
 ├── api/
 │   ├── auth.js        # POST /api/auth — authentification
 │   ├── news.js        # GET  /api/news — RSS sectoriel filtré
-│   ├── generate.js    # POST /api/generate — appel Claude
+│   ├── generate.js    # POST /api/generate — appel IA (Groq/OpenRouter)
 │   └── articles.js    # CRUD /api/articles — articles PostgreSQL
 ├── public/
 │   ├── index.html
@@ -50,10 +50,10 @@ articles-immeit/
 
 1. Créer un projet sur Vercel lié à ce repo
 2. Ajouter les variables d'environnement dans Vercel :
-   - `ANTHROPIC_API_KEY` — clé API Anthropic (Claude)
+   - `GROQ_API_KEY` — clé API Groq (gratuit, par défaut)
+   - `OPENROUTER_API_KEY` — clé API OpenRouter (alternative gratuite)
    - `DATABASE_URL` — URL de connexion Vercel Postgres
    - `ADMIN_PASSWORD` — mot de passe d'accès à l'outil
-   - `SESSION_SECRET` — secret pour les sessions
 3. `git push` → déploiement automatique
 4. Initialiser la base : `psql $DATABASE_URL -f db/schema.sql`
 
