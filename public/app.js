@@ -30,6 +30,7 @@ const wordCount = $('word-count'), editorStatus = $('editor-status'), editorTitl
 const articleList = $('article-list'), statusBar = $('status-bar')
 const charCount = $('char-count'), saveIndicator = $('save-indicator')
 const hashtagSuggestions = $('hashtag-suggestions')
+const editImage = $('edit-image')
 const aiProvider = $('ai-provider-main'), aiModel = $('ai-model-main'), aiKeyStatus = $('ai-key-status-main')
 
 const SUGGESTED_HASHTAGS = [
@@ -84,6 +85,15 @@ function loadAiSettings(forceProvider) {
 function saveAiSettings(provider, model) {
   localStorage.setItem('immeit_ai_provider', provider)
   if (model) localStorage.setItem(`immeit_ai_model_${provider}`, model)
+}
+
+function showArticleImage(url, photographer, photographerUrl) {
+  const el = editImage
+  if (!url) { el.innerHTML = '—'; return }
+  el.innerHTML = `<div class="image-preview">
+    <img src="${esc(url)}" alt="Illustration" loading="lazy" onerror="this.parentElement.innerHTML='—'">
+    ${photographer ? `<a href="${esc(photographerUrl || '#')}" target="_blank" rel="noopener" class="image-credit">📷 ${esc(photographer)}</a>` : ''}
+  </div>`
 }
 
 async function loadAvailableModels() {
@@ -183,6 +193,7 @@ function showEditor(article) {
     editorStatus.textContent = article.statut
     editorStatus.className = 'badge ' + statusClass(article.statut)
     editSource.textContent = article.source_news_titre ? esc(article.source_news_titre) : '—'
+    showArticleImage(article.image_url, article.image_photographer, article.image_photographer_url)
     editIaInfo.textContent = article.ia_provider
       ? `${article.ia_provider} / ${article.ia_model || '—'} · ${article.generation_type === 'custom' ? 'sujet: ' + (article.custom_subject || '') : 'actualité: ' + (article.source_news_titre || '')}`
       : '—'
@@ -550,13 +561,14 @@ btnRegenGo.addEventListener('click', async () => {
     editTitre.value = art.titre_interne || ''
     editCorps.value = `Accroche A :\n${art.accroche_a || ''}\n\nAccroche B :\n${art.accroche_b || ''}\n\n${art.corps || ''}`
     editHashtags.value = (art.hashtags || []).join(' ')
+    showArticleImage(art.image_url, art.image_photographer, art.image_photographer_url)
     updateWords()
     updateCharCount()
     renderHashtagSuggestions()
     if (editingId) {
       await api(`/articles?id=${editingId}`, {
         method: 'PUT',
-        body: JSON.stringify({ titre_interne: art.titre_interne, corps: editCorps.value, hashtags: art.hashtags || [], ia_provider: currentIaMeta.provider, ia_model: currentIaMeta.model, generation_type: currentIaMeta.generation_type, statut: 'brouillon' }),
+        body: JSON.stringify({ titre_interne: art.titre_interne, corps: editCorps.value, hashtags: art.hashtags || [], image_url: art.image_url || null, image_photographer: art.image_photographer || null, image_photographer_url: art.image_photographer_url || null, ia_provider: currentIaMeta.provider, ia_model: currentIaMeta.model, generation_type: currentIaMeta.generation_type, statut: 'brouillon' }),
       })
       editorStatus.textContent = 'brouillon'
       editorStatus.className = 'badge s-brouillon'
@@ -615,6 +627,7 @@ btnCustomGenerate.addEventListener('click', async () => {
     editTitre.value = art.titre_interne || sujet
     editCorps.value = `Accroche A :\n${art.accroche_a || ''}\n\nAccroche B :\n${art.accroche_b || ''}\n\n${art.corps || ''}`
     editHashtags.value = (art.hashtags || []).join(' ')
+    showArticleImage(art.image_url, art.image_photographer, art.image_photographer_url)
     updateWords()
     updateCharCount()
     renderHashtagSuggestions()
@@ -655,6 +668,7 @@ async function generateFromNews(news) {
     editTitre.value = art.titre_interne || ''
     editCorps.value = `Accroche A :\n${art.accroche_a || ''}\n\nAccroche B :\n${art.accroche_b || ''}\n\n${art.corps || ''}`
     editHashtags.value = (art.hashtags || []).join(' ')
+    showArticleImage(art.image_url, art.image_photographer, art.image_photographer_url)
     updateWords()
     updateCharCount()
     renderHashtagSuggestions()

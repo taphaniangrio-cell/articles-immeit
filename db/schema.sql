@@ -27,3 +27,6 @@ ALTER TABLE articles ADD COLUMN IF NOT EXISTS ia_provider TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS ia_model TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS generation_type TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS custom_subject TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS image_photographer TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS image_photographer_url TEXT;
