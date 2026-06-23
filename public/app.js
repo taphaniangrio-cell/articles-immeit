@@ -12,6 +12,7 @@ let isDirty = false
 let autoSaveTimer = null
 let isGenerating = false
 const PAGE_SIZE = 10
+const LINKEDIN_TARGET = 1500
 
 const $ = id => document.getElementById(id)
 
@@ -33,6 +34,7 @@ const charCount = $('char-count'), saveIndicator = $('save-indicator')
 const hashtagSuggestions = $('hashtag-suggestions')
 const editImage = $('edit-image')
 const aiProvider = $('ai-provider-main'), aiModel = $('ai-model-main'), aiKeyStatus = $('ai-key-status-main')
+const btnPreview = $('btn-preview'), linkedinPreview = $('linkedin-preview'), liPreviewBody = $('li-preview-body'), btnClosePreview = $('btn-close-preview')
 
 const SUGGESTED_HASHTAGS = [
   '#MaintenanceIndustrielle', '#GMAO', '#Fiabilite', '#MaintenancePredictive',
@@ -41,11 +43,32 @@ const SUGGESTED_HASHTAGS = [
   '#ImmEIT', '#ConseilMaintenance', '#Optimisation',
 ]
 
-function toast(msg) {
-  const t = $('toast')
-  t.textContent = msg
-  t.classList.remove('hidden')
-  setTimeout(() => t.classList.add('hidden'), 2600)
+// --- TOAST SYSTEM (Q-04) ---
+function showToast(message, type = 'success', duration = 3000) {
+  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' }
+  const colors = { success: '#065F46', error: '#991B1B', warning: '#92400E', info: '#0A66C2' }
+
+  const existing = document.querySelector('.toast-custom')
+  if (existing) existing.remove()
+
+  const toast = document.createElement('div')
+  toast.className = 'toast-custom'
+  toast.style.cssText = `
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 9999;
+    background: ${colors[type]}; color: #fff;
+    padding: 12px 24px; border-radius: 10px;
+    font-size: 14px; font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,.2);
+    display: flex; align-items: center; gap: 8px;
+    animation: slideIn .25s ease;
+    font-family: 'Inter', sans-serif;
+  `
+  toast.innerHTML = `<span>${icons[type]}</span><span>${message}</span>`
+  document.body.appendChild(toast)
+  setTimeout(() => {
+    toast.style.animation = 'fadeOut .3s ease forwards'
+    setTimeout(() => toast.remove(), 300)
+  }, duration)
 }
 
 function esc(s) {
@@ -282,16 +305,16 @@ function updateStatusBar(statut) {
 function updateEditorButtons(statut) {
   const hide = el => el.classList.add('hidden')
   const show = el => el.classList.remove('hidden')
-  ;[btnSave, btnValidate, btnCopy, btnRegen, btnArchive, btnRestore, btnDelete].forEach(hide)
+  ;[btnSave, btnValidate, btnCopy, btnRegen, btnArchive, btnRestore, btnDelete, btnPreview].forEach(hide)
   btnSave.disabled = false
   btnValidate.disabled = false
 
   if (statut === 'brouillon_nouveau') {
     show(btnSave); show(btnRegen); show(btnDelete); btnValidate.disabled = true
   } else if (statut === 'brouillon' || statut === 'en_revision') {
-    show(btnSave); show(btnValidate); show(btnRegen); show(btnDelete)
+    show(btnSave); show(btnValidate); show(btnRegen); show(btnDelete); show(btnPreview)
   } else if (statut === 'valide' || statut === 'publie') {
-    show(btnCopy); show(btnArchive); show(btnRegen)
+    show(btnCopy); show(btnArchive); show(btnRegen); show(btnPreview)
   } else if (statut === 'archive') {
     show(btnRestore); show(btnDelete)
   }
@@ -343,21 +366,41 @@ window.addEventListener('beforeunload', e => {
 
 editTitre.addEventListener('input', markDirty)
 editCorps.addEventListener('input', () => { markDirty(); updateWords(); updateCharCount() })
-editHashtags.addEventListener('input', () => { markDirty(); renderHashtagSuggestions() })
+editHashtags.addEventListener('input', markDirty)
+
+// --- AUTO-FORMAT HASHTAGS ON BLUR (Q-07) ---
+function formatHashtags(input) {
+  return input
+    .split(/[\s,;]+/)
+    .filter(Boolean)
+    .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
+    .filter(tag => /^#[a-zA-ZÀ-ÿ0-9_]+$/.test(tag))
+    .join(' ')
+}
+
+editHashtags.addEventListener('blur', (e) => {
+  e.target.value = formatHashtags(e.target.value)
+  renderHashtagSuggestions()
+})
 
 // LOAD ARTICLES
-async function loadArticles() {
-  try {
-    const params = new URLSearchParams()
-    if (filter) params.set('statut', filter)
-    params.set('limit', '100')
-    const data = await api(`/articles?${params}`)
+function loadArticles() {
+  showSkeleton(articleList)
+  const params = new URLSearchParams()
+  if (filter) params.set('statut', filter)
+  params.set('limit', '100')
+  api(`/articles?${params}`).then(data => {
     articles = data.articles || []
     currentPage = 1
     renderArticles()
-  } catch {
+  }).catch(() => {
     articleList.innerHTML = '<div class="empty">Erreur de chargement</div>'
-  }
+  })
+}
+
+// --- SKELETON LOADER (L-06) ---
+function showSkeleton(container) {
+  container.innerHTML = Array(5).fill('<div class="skeleton skeleton-card"></div>').join('')
 }
 
 // RENDER
@@ -413,10 +456,18 @@ document.querySelectorAll('.filter-btn').forEach(b => {
   })
 })
 
-// WORD COUNT + CHAR COUNT
+// --- WORD COUNT ENRICHED (L-04) ---
 function updateWords() {
-  const w = editCorps.value.trim() ? editCorps.value.trim().split(/\s+/).length : 0
-  wordCount.textContent = w + ' mots'
+  const text = editCorps.value
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0
+  const chars = text.length
+  const pct = Math.min(100, Math.round(words / LINKEDIN_TARGET * 100))
+  const color = words < 800 ? '#F59E0B' : words <= 2000 ? '#10B981' : '#EF4444'
+
+  wordCount.innerHTML = `
+    <span style="color:${color};font-weight:600">${words} mots</span>
+    <span style="color:var(--color-text-light)"> · ${chars} car. · ${pct}% cible LinkedIn</span>
+  `
 }
 
 function updateCharCount() {
@@ -463,7 +514,7 @@ btnSave.addEventListener('click', async () => {
   try {
     if (editingId) {
       await api(`/articles?id=${editingId}`, { method: 'PUT', body: JSON.stringify(data) })
-      toast('Article enregistré')
+      showToast('Article enregistré', 'success')
       isDirty = false
       setSaveStatus('✓ Sauvegardé', 'saved')
     } else {
@@ -484,10 +535,10 @@ btnSave.addEventListener('click', async () => {
       updateEditorButtons('brouillon')
       isDirty = false
       setSaveStatus('✓ Sauvegardé', 'saved')
-      toast('Article créé')
+      showToast('Article créé', 'success')
     }
     await loadArticles()
-  } catch (err) { toast('Erreur: ' + err.message) }
+  } catch (err) { showToast('Erreur: ' + err.message, 'error') }
 })
 
 // VALIDATE
@@ -503,28 +554,30 @@ btnValidate.addEventListener('click', async () => {
     updateEditorButtons('valide')
     updateStatusBar('valide')
     isDirty = false
-    toast('Article validé')
+    showToast('Article validé', 'success')
     await loadArticles()
-  } catch (err) { toast('Erreur: ' + err.message) }
+  } catch (err) { showToast('Erreur: ' + err.message, 'error') }
 })
 
-// COPY — formaté pour LinkedIn
+// --- FORMAT FOR LINKEDIN (Q-03) ---
 function formatForLinkedIn(text) {
   return text
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/__([^_]+)__/g, '$1')
-    .replace(/#{1,6}\s/g, '')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/^[-•]\s+/gm, '• ')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/\n{4,}/g, '\n\n\n')
     .trim()
 }
 
 btnCopy.addEventListener('click', async () => {
   let text = formatForLinkedIn(editCorps.value)
-  const h = editHashtags.value.split(/\s+/).filter(h => h)
+  const h = Array.isArray(editHashtags.value) ? editHashtags.value : editHashtags.value.split(/\s+/).filter(h => h)
   if (h.length) text += '\n\n' + h.join(' ')
 
   if (text.length > 3000) {
-    toast(`⚠ Attention: ${text.length} car. (max 3000 recommandé)`)
+    showToast(`⚠ ${text.length} car. (max 3000 recommandé)`, 'warning')
   }
 
   try {
@@ -540,8 +593,23 @@ btnCopy.addEventListener('click', async () => {
       updateStatusBar('publie')
       await loadArticles()
     }
-    toast('Copié pour LinkedIn !')
-  } catch { toast('Erreur de copie') }
+    showToast('Copié pour LinkedIn !', 'success')
+  } catch { showToast('Erreur de copie', 'error') }
+})
+
+// --- LINKEDIN PREVIEW (Q-05) ---
+btnPreview.addEventListener('click', () => {
+  const formatted = formatForLinkedIn(editCorps.value)
+  liPreviewBody.innerHTML = formatted.replace(/\n/g, '<br>')
+  linkedinPreview.classList.remove('hidden')
+})
+
+btnClosePreview.addEventListener('click', () => {
+  linkedinPreview.classList.add('hidden')
+})
+
+linkedinPreview.addEventListener('click', (e) => {
+  if (e.target === linkedinPreview) linkedinPreview.classList.add('hidden')
 })
 
 // ARCHIVE
@@ -553,9 +621,9 @@ btnArchive.addEventListener('click', async () => {
     editorStatus.className = 'badge s-archive'
     updateEditorButtons('archive')
     statusBar.classList.add('hidden')
-    toast('Article archivé')
+    showToast('Article archivé', 'info')
     await loadArticles()
-  } catch (err) { toast('Erreur: ' + err.message) }
+  } catch (err) { showToast('Erreur: ' + err.message, 'error') }
 })
 
 // RESTORE
@@ -567,9 +635,9 @@ btnRestore.addEventListener('click', async () => {
     editorStatus.className = 'badge s-brouillon'
     updateEditorButtons('brouillon')
     updateStatusBar('brouillon')
-    toast('Article restauré en brouillon')
+    showToast('Article restauré en brouillon', 'info')
     await loadArticles()
-  } catch (err) { toast('Erreur: ' + err.message) }
+  } catch (err) { showToast('Erreur: ' + err.message, 'error') }
 })
 
 // DELETE
@@ -578,10 +646,17 @@ btnDelete.addEventListener('click', async () => {
   if (!confirm('Supprimer définitivement cet article ? Cette action est irréversible.')) return
   try {
     await api(`/articles?id=${editingId}`, { method: 'DELETE' })
-    toast('Article supprimé')
+    showToast('Article supprimé', 'info')
     editingId = null
     showMain()
-  } catch (err) { toast('Erreur: ' + err.message) }
+  } catch (err) { showToast('Erreur: ' + err.message, 'error') }
+})
+
+// --- REGEN SUGGESTIONS CHIPS (Q-02) ---
+document.querySelectorAll('.regen-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    regenFeedback.value = chip.dataset.hint
+  })
 })
 
 // REGENERATE
@@ -589,7 +664,7 @@ btnRegen.addEventListener('click', () => regenBox.classList.toggle('hidden'))
 
 btnRegenGo.addEventListener('click', async () => {
   const news = currentNews || regenNews
-  if (!news) { toast('Aucune actualité source'); return }
+  if (!news) { showToast('Aucune actualité source', 'warning'); return }
   const feedback = regenFeedback.value
   btnRegenGo.disabled = true
   btnRegenGo.textContent = 'Génération...'
@@ -619,10 +694,16 @@ btnRegenGo.addEventListener('click', async () => {
     }
     regenBox.classList.add('hidden')
     regenFeedback.value = ''
-    toast('Article régénéré')
-  } catch (err) { toast('Erreur: ' + err.message) }
+    showToast('Article régénéré', 'success')
+  } catch (err) { showToast('Erreur: ' + err.message, 'error') }
   finally { btnRegenGo.disabled = false; btnRegenGo.textContent = 'Confirmer la régénération' }
 })
+
+// --- EXTRACT TITLE FROM CONTENT (Q-08) ---
+function extractTitle(body) {
+  const firstLine = body.split('\n').find(l => l.trim().length > 0) ?? ''
+  return firstLine.replace(/^#+\s*/, '').slice(0, 80)
+}
 
 // NEW ARTICLE
 btnNew.addEventListener('click', async () => {
@@ -661,6 +742,7 @@ function setGenerating(loading) {
     overlay.classList.remove('hidden')
     btnCustomGenerate.disabled = true
     btnCustomGenerate.textContent = 'Génération...'
+    Object.assign(btnCustomGenerate.style, { minHeight: '44px' })
   } else {
     overlay.classList.add('hidden')
     btnCustomGenerate.disabled = false
@@ -671,7 +753,7 @@ function setGenerating(loading) {
 btnCustomGenerate.addEventListener('click', async () => {
   if (isGenerating) return
   const sujet = customPrompt.value.trim()
-  if (!sujet || sujet.length < 3) { toast('Indique un sujet (min. 3 caractères)'); return }
+  if (!sujet || sujet.length < 3) { showToast('Indique un sujet (min. 3 caractères)', 'warning'); return }
   setGenerating(true)
   try {
     const data = await api('/generate', {
@@ -688,11 +770,14 @@ btnCustomGenerate.addEventListener('click', async () => {
     updateWords()
     updateCharCount()
     renderHashtagSuggestions()
+    if (!art.titre_interne) {
+      editTitre.value = extractTitle(editCorps.value) || sujet
+    }
     currentNews = null
     customPrompt.value = ''
     newsModal.classList.add('hidden')
-    toast('Article généré !')
-  } catch (err) { toast('Erreur: ' + err.message) }
+    showToast('Article généré !', 'success')
+  } catch (err) { showToast('Erreur: ' + err.message, 'error') }
   finally { setGenerating(false) }
 })
 
@@ -705,10 +790,10 @@ btnAiPick.addEventListener('click', async () => {
   try {
     const data = await api('/news')
     const items = data.news || []
-    if (!items.length) { toast('Aucune actualité'); return }
+    if (!items.length) { showToast('Aucune actualité', 'warning'); return }
     currentNews = items[Math.floor(Math.random() * items.length)]
     generateFromNews(currentNews)
-  } catch (err) { toast('Erreur: ' + err.message) }
+  } catch (err) { showToast('Erreur: ' + err.message, 'error') }
 })
 
 modalClose.addEventListener('click', () => {
@@ -734,10 +819,13 @@ async function generateFromNews(news) {
     updateWords()
     updateCharCount()
     renderHashtagSuggestions()
+    if (!art.titre_interne) {
+      editTitre.value = extractTitle(editCorps.value)
+    }
     currentNews = news
     newsModal.classList.add('hidden')
-    toast('Article généré !')
-  } catch (err) { toast('Erreur: ' + err.message) }
+    showToast('Article généré !', 'success')
+  } catch (err) { showToast('Erreur: ' + err.message, 'error') }
   finally { setGenerating(false) }
 }
 

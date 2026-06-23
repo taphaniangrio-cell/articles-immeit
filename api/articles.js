@@ -1,8 +1,14 @@
 const db = require('../lib/db');
+const rateLimit = require('../lib/rateLimit');
 
 module.exports = async (req, res) => {
   const { method } = req;
   const { id } = req.query;
+
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  if (method !== 'GET' && !rateLimit(ip, 'articles', { max: 30, windowMs: 60_000 })) {
+    return res.status(429).json({ error: 'Trop de requêtes. Réessaie dans 1 minute.' });
+  }
 
   try {
     switch (method) {
@@ -39,6 +45,7 @@ module.exports = async (req, res) => {
         return res.status(405).json({ error: 'Méthode non autorisée' });
     }
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(`[ARTICLES] ${method} error:`, err.message);
+    return res.status(500).json({ error: 'Erreur interne. Réessaie.' });
   }
 };

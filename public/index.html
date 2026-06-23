@@ -2,12 +2,23 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0A66C2">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="IMMEIT Articles">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Générateur d'articles LinkedIn — IMMEIT</title>
-<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 <div id="app">
@@ -124,6 +135,7 @@
         <button id="btn-save" class="btn-primary">Enregistrer</button>
         <button id="btn-validate" class="btn-success">Valider</button>
         <button id="btn-copy" class="btn-primary">Copier pour LinkedIn</button>
+        <button id="btn-preview" class="btn-outline">👁 Aperçu LinkedIn</button>
         <button id="btn-regen" class="btn-outline">Régénérer avec IA</button>
         <button id="btn-archive" class="btn-archive">Archiver</button>
         <button id="btn-restore" class="btn-outline">Restaurer en brouillon</button>
@@ -133,7 +145,23 @@
       <div id="regen-box" class="field hidden">
         <label>Consignes pour la régénération</label>
         <textarea id="regen-feedback" rows="3" placeholder="Plus court, plus technique, autre angle..."></textarea>
+        <div class="regen-suggestions">
+          <span class="regen-chip" data-hint="Rends l'accroche plus percutante">⚡ Accroche</span>
+          <span class="regen-chip" data-hint="Ajoute un exemple concret africain">🌍 Exemple local</span>
+          <span class="regen-chip" data-hint="Raccourcis de 20%">✂️ Raccourcir</span>
+          <span class="regen-chip" data-hint="Rends le ton plus expert">🎓 Plus expert</span>
+          <span class="regen-chip" data-hint="Améliore l'appel à l'action final">📣 CTA fort</span>
+        </div>
         <button id="btn-regen-go" class="btn-primary">Confirmer la régénération</button>
+      </div>
+
+      <!-- LinkedIn Preview Panel -->
+      <div id="linkedin-preview" class="linkedin-preview hidden">
+        <div class="li-preview-header">
+          <h3>👁 Aperçu LinkedIn</h3>
+          <button id="btn-close-preview" class="btn-outline">&times;</button>
+        </div>
+        <div class="li-preview-body" id="li-preview-body"></div>
       </div>
     </div>
   </div>
@@ -175,6 +203,6 @@
   <!-- Toast -->
   <div id="toast" class="toast hidden"></div>
 </div>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

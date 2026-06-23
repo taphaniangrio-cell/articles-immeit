@@ -8,14 +8,20 @@
     "db:init": "psql $DATABASE_URL -f db/schema.sql"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.0"
+    "@neondatabase/serverless": "^0.10.0",
+    "bcryptjs": "^3.0.3"
   },
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/taphaniangrio-cell/articles-immeit.git"
   },
-  "keywords": ["immeit", "linkedin", "articles", "maintenance", "gmao"],
+  "keywords": [
+    "immeit",
+    "linkedin",
+    "articles",
+    "maintenance",
+    "gmao"
+  ],
   "author": "",
   "license": "ISC"
 }

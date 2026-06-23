@@ -31,3 +31,14 @@ ALTER TABLE articles ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS image_photographer TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS image_photographer_url TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS image_options TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS versions JSONB DEFAULT '[]'::jsonb;
+
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN NEW.date_modification = NOW(); RETURN NEW; END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS articles_updated_at ON articles;
+CREATE TRIGGER articles_updated_at
+BEFORE UPDATE ON articles
+FOR EACH ROW EXECUTE FUNCTION update_updated_at();
