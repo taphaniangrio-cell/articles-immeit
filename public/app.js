@@ -350,16 +350,35 @@ function showLogin() {
 function showMain() {
   appContainer.classList.remove('hidden')
   loginScreen.classList.add('hidden')
-  editorScreen.classList.add('hidden')
   mainScreen.classList.remove('hidden')
+  editorScreen.classList.remove('hidden')
+  resetEditor()
   currentPage = 1
   loadAvailableModels()
   loadArticles()
 }
 
+function resetEditor() {
+  editingId = null
+  editorStatus.textContent = 'Sélectionnez un article'
+  editorStatus.className = 'badge s-brouillon'
+  editTitre.value = ''
+  editCorps.value = ''
+  editHashtags.value = ''
+  editSource.textContent = '—'
+  editIaInfo.textContent = '—'
+  editDates.textContent = '—'
+  setArticleImages([], null)
+  updateEditorButtons('brouillon_nouveau')
+  updateStatusBar('brouillon')
+  updateWords()
+  updateCharCount()
+  renderHashtagSuggestions()
+  isDirty = false
+  setSaveStatus('—')
+}
+
 function showEditor(article) {
-  mainScreen.classList.add('hidden')
-  editorScreen.classList.remove('hidden')
   editingId = article ? article.id : null
   regenNews = null
 
