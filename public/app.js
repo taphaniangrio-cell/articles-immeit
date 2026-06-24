@@ -49,28 +49,41 @@ let articleImages = []
 let selectedImageIndex = -1
 
 function showToast(message, type = 'success', duration = 3000) {
-  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' }
-  const colors = { success: '#065F46', error: '#991B1B', warning: '#92400E', info: '#0A66C2' }
+  const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' }
   const existing = document.querySelector('.toast-custom')
-  if (existing) existing.remove()
+  if (existing) {
+    existing.style.animation = 'fadeOut .2s ease forwards'
+    setTimeout(() => existing.remove(), 200)
+  }
   const toast = document.createElement('div')
   toast.className = 'toast-custom'
-  toast.style.cssText = `
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 9999;
-    background: ${colors[type]}; color: #fff;
-    padding: 12px 24px; border-radius: 10px;
-    font-size: 14px; font-weight: 600;
-    box-shadow: 0 4px 20px rgba(0,0,0,.2);
-    display: flex; align-items: center; gap: 8px;
-    animation: slideIn .25s ease;
-    font-family: 'Inter', sans-serif;
-  `
-  toast.innerHTML = `<span>${icons[type]}</span><span>${message}</span>`
+  toast.dataset.type = type
+  toast.innerHTML = `<span>${icons[type] || 'ℹ'}</span><span>${message}</span>`
   document.body.appendChild(toast)
   setTimeout(() => {
-    toast.style.animation = 'fadeOut .3s ease forwards'
-    setTimeout(() => toast.remove(), 300)
+    toast.style.animation = 'fadeOut .2s ease forwards'
+    setTimeout(() => toast.remove(), 200)
   }, duration)
+}
+
+function getBadgeClass(status) {
+  const map = { brouillon: 's-brouillon', en_revision: 's-en_revision', valide: 's-valide', publie: 's-publie', archive: 's-archive' }
+  return map[status] || 's-brouillon'
+}
+
+function formatDateRelative(isoString) {
+  if (!isoString) return '—'
+  const date = new Date(isoString)
+  const now = new Date()
+  const diffMin = Math.floor((now - date) / 60000)
+  if (diffMin < 1) return "À l'instant"
+  if (diffMin < 60) return `Il y a ${diffMin} min`
+  const diffH = Math.floor(diffMin / 60)
+  if (diffH < 24) return `Il y a ${diffH}h`
+  const diffD = Math.floor(diffH / 24)
+  if (diffD === 1) return 'Hier'
+  if (diffD < 7) return `Il y a ${diffD} jours`
+  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function esc(s) {
