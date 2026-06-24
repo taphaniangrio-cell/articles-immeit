@@ -1150,16 +1150,15 @@ button:disabled {
   gap: 4px;
   padding: var(--space-3) var(--space-3) 0;
   overflow-x: auto;
-  scrollbar-width: none;
   flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
 }
-.tabs::-webkit-scrollbar { display: none; }
 .tab {
-  padding: var(--space-1) var(--space-3);
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-pill);
   border: none;
   background: transparent;
-  font-size: var(--text-xs);
+  font-size: 10px;
   font-weight: var(--weight-medium);
   color: var(--clr-text-secondary);
   cursor: pointer;
