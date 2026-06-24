@@ -95,6 +95,21 @@
             <input type="text" id="edit-titre" placeholder="Titre interne (non publié)">
           </div>
           <div class="field">
+            <label>Illustrations</label>
+            <div id="edit-image-area" class="image-area">
+              <div id="edit-images" class="images-inline"></div>
+              <div class="image-toolbar">
+                <button id="btn-add-image" class="btn-outline btn-sm">+ Ajouter une image</button>
+                <button id="btn-replace-image" class="btn-outline btn-sm hidden" title="Remplacer">🔄 Remplacer</button>
+                <button id="btn-remove-image" class="btn-outline btn-sm hidden" title="Supprimer">🗑 Supprimer</button>
+              </div>
+              <div id="image-search-box" class="image-search-box hidden">
+                <input type="text" id="image-search-input" placeholder="Rechercher une image...">
+                <div id="image-search-results" class="image-search-results"></div>
+              </div>
+            </div>
+          </div>
+          <div class="field">
             <label>Corps de l'article <span id="char-count" class="char-count"></span></label>
             <textarea id="edit-corps" rows="14" placeholder="Contenu de l'article..."></textarea>
             <span class="word-count" id="word-count">0 mots</span>
@@ -122,11 +137,6 @@
           <div class="field">
             <label>Sauvegarde</label>
             <div id="save-indicator" class="save-indicator">—</div>
-          </div>
-          <div class="field">
-            <label>Illustration</label>
-            <div id="edit-image" class="image-display">—</div>
-            <div id="image-gallery" class="image-gallery hidden"></div>
           </div>
         </div>
       </div>

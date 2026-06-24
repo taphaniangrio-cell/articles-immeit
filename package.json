@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "node server.mjs",
+    "local": "start.bat",
     "db:init": "psql $DATABASE_URL -f db/schema.sql"
   },
   "dependencies": {

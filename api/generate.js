@@ -35,6 +35,7 @@ module.exports = async (req, res) => {
       titre_interne: article.titre_interne,
       hashtags: article.hashtags,
       corps: article.corps,
+      image_keywords: article.image_keywords,
     });
 
     const primary = images[0] || null;

@@ -32,7 +32,9 @@ const wordCount = $('word-count'), editorStatus = $('editor-status'), editorTitl
 const articleList = $('article-list'), statusBar = $('status-bar')
 const charCount = $('char-count'), saveIndicator = $('save-indicator')
 const hashtagSuggestions = $('hashtag-suggestions')
-const editImage = $('edit-image')
+const editImages = $('edit-images'), editImageArea = $('edit-image-area')
+const btnAddImage = $('btn-add-image'), btnReplaceImage = $('btn-replace-image'), btnRemoveImage = $('btn-remove-image')
+const imageSearchBox = $('image-search-box'), imageSearchInput = $('image-search-input'), imageSearchResults = $('image-search-results')
 const aiProvider = $('ai-provider-main'), aiModel = $('ai-model-main'), aiKeyStatus = $('ai-key-status-main')
 const btnPreview = $('btn-preview'), linkedinPreview = $('linkedin-preview'), liPreviewBody = $('li-preview-body'), btnClosePreview = $('btn-close-preview')
 
@@ -43,14 +45,14 @@ const SUGGESTED_HASHTAGS = [
   '#ImmEIT', '#ConseilMaintenance', '#Optimisation',
 ]
 
-// --- TOAST SYSTEM (Q-04) ---
+let articleImages = []
+let selectedImageIndex = -1
+
 function showToast(message, type = 'success', duration = 3000) {
   const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' }
   const colors = { success: '#065F46', error: '#991B1B', warning: '#92400E', info: '#0A66C2' }
-
   const existing = document.querySelector('.toast-custom')
   if (existing) existing.remove()
-
   const toast = document.createElement('div')
   toast.className = 'toast-custom'
   toast.style.cssText = `
@@ -100,7 +102,6 @@ function hasSession() {
   return document.cookie.includes('session=') || localStorage.getItem('immeit_token')
 }
 
-// SETTINGS IA
 function loadAiSettings(forceProvider) {
   const provider = forceProvider || localStorage.getItem('immeit_ai_provider') || 'groq'
   return { provider, model: localStorage.getItem(`immeit_ai_model_${provider}`) || '' }
@@ -111,93 +112,191 @@ function saveAiSettings(provider, model) {
   if (model) localStorage.setItem(`immeit_ai_model_${provider}`, model)
 }
 
-let currentImageOptions = []
-let currentImageUrl = null
-let currentImagePhotographer = null
-let currentImagePhotographerUrl = null
-
-function showArticleImage(url, photographer, photographerUrl, options) {
-  currentImageOptions = options || []
-  currentImageUrl = url
-  currentImagePhotographer = photographer
-  currentImagePhotographerUrl = photographerUrl
-  const el = editImage
-  if (!url) { el.innerHTML = '—'; $('image-gallery').classList.add('hidden'); return }
-  el.innerHTML = `<div class="image-preview">
-    <img src="${esc(url)}" alt="Illustration" loading="lazy" onerror="this.parentElement.innerHTML='—'">
-    ${photographer ? `<a href="${esc(photographerUrl || '#')}" target="_blank" rel="noopener" class="image-credit">📷 ${esc(photographer)}</a>` : ''}
-  </div>`
-  renderImageGallery(url, options)
-}
-
-function renderImageGallery(selectedUrl, options) {
-  const gallery = $('image-gallery')
-  if (!options || options.length < 2) { gallery.classList.add('hidden'); return }
-  gallery.classList.remove('hidden')
-  gallery.innerHTML = options.map((opt, i) => {
-    const active = opt.url === selectedUrl ? ' active' : ''
-    const idx = i + 1
-    return `<div class="gallery-thumb${active}" data-url="${esc(opt.url)}" data-photographer="${esc(opt.photographer || '')}" data-photographer-url="${esc(opt.photographer_url || '')}">
-      <img src="${esc(opt.thumbnail || opt.url)}" alt="Option ${idx}" loading="lazy">
-      <span class="gallery-idx">${idx}</span>
-    </div>`
-  }).join('')
-  gallery.querySelectorAll('.gallery-thumb').forEach(el => {
-    el.addEventListener('click', () => {
-      const url = el.dataset.url
-      const photographer = el.dataset.photographer
-      const photographerUrl = el.dataset.photographerUrl
-      showArticleImage(url, photographer, photographerUrl, options)
-      markDirty()
-    })
-  })
-}
-
+// --- AI MODEL SELECTOR ---
 async function loadAvailableModels() {
   try {
     const data = await api('/models')
-    availableModels = data.models
-    populateAiSelector()
-  } catch {}
-}
+    availableModels = data.models || {}
+    const providerSel = aiProvider
+    const modelSel = aiModel
+    providerSel.innerHTML = ''
+    const savedProvider = localStorage.getItem('immeit_ai_provider') || 'groq'
 
-function populateAiSelector() {
-  if (!availableModels) return
-  const settings = loadAiSettings()
-  aiProvider.innerHTML = Object.entries(availableModels)
-    .map(([key, val]) => `<option value="${key}"${key === settings.provider ? ' selected' : ''}>${val.label}${!val.enabled ? ` (${val.needsKey || 'clé'} manquante)` : ''}</option>`)
-    .join('')
-  updateModelList()
-}
+    for (const [key, prov] of Object.entries(availableModels)) {
+      const opt = document.createElement('option')
+      opt.value = key
+      opt.textContent = prov.label + (prov.enabled ? '' : ' ⚠ clé manquante')
+      providerSel.appendChild(opt)
+    }
 
-function updateModelList() {
-  const prov = aiProvider.value
-  const provData = availableModels?.[prov]
-  if (!provData) return
-  const settings = loadAiSettings(prov)
-  let found = false
-  aiModel.innerHTML = provData.models.map(m => {
-    const selected = m.id === settings.model || (!settings.model && m.id === provData.default)
-    if (selected) found = true
-    return `<option value="${m.id}"${selected ? ' selected' : ''}>${m.label}${m.free ? ' ★ gratuit' : ''}</option>`
-  }).join('')
-  if (!found && aiModel.options.length > 0) aiModel.value = aiModel.options[0].value
-  if (provData.enabled) {
-    aiKeyStatus.textContent = '✓ Clé configurée'
-    aiKeyStatus.className = 'key-ok'
-  } else {
-    aiKeyStatus.textContent = `⚠ ${provData.needsKey || 'Clé'} manquante`
-    aiKeyStatus.className = 'key-missing'
+    providerSel.value = savedProvider
+    updateModelList(savedProvider)
+    updateKeyStatus(savedProvider)
+
+    providerSel.addEventListener('change', () => {
+      const p = providerSel.value
+      localStorage.setItem('immeit_ai_provider', p)
+      updateModelList(p)
+      updateKeyStatus(p)
+    })
+  } catch {
+    aiProvider.innerHTML = '<option value="">Erreur</option>'
+    aiModel.innerHTML = '<option value="">—</option>'
   }
-  saveAiSettings(prov, aiModel.value)
 }
 
-aiProvider.addEventListener('change', updateModelList)
-aiModel.addEventListener('change', () => saveAiSettings(aiProvider.value, aiModel.value))
+function updateModelList(providerKey) {
+  const prov = availableModels?.[providerKey]
+  const modelSel = aiModel
+  modelSel.innerHTML = ''
+  if (!prov || !prov.models) {
+    modelSel.innerHTML = '<option value="">—</option>'
+    return
+  }
+  const savedModel = localStorage.getItem(`immeit_ai_model_${providerKey}`)
+  for (const m of prov.models) {
+    const opt = document.createElement('option')
+    opt.value = m.id
+    opt.textContent = m.label
+    modelSel.appendChild(opt)
+  }
+  if (savedModel && prov.models.some(m => m.id === savedModel)) {
+    modelSel.value = savedModel
+  } else if (prov.default) {
+    modelSel.value = prov.default
+  }
+}
 
-function getSelectedModel() { return aiModel.value || '' }
+function updateKeyStatus(providerKey) {
+  const prov = availableModels?.[providerKey]
+  aiKeyStatus.textContent = prov?.enabled ? '✓' : '✗'
+  aiKeyStatus.className = 'key-status ' + (prov?.enabled ? 'key-ok' : 'key-missing')
+}
 
-// LOGIN
+function getSelectedModel() {
+  return aiModel.value || null
+}
+
+// --- IMAGE MANAGEMENT ---
+function renderImages() {
+  const el = editImages
+  if (!articleImages.length) {
+    el.innerHTML = '<div class="images-empty">Aucune illustration</div>'
+    btnReplaceImage.classList.add('hidden')
+    btnRemoveImage.classList.add('hidden')
+    selectedImageIndex = -1
+    return
+  }
+  el.innerHTML = articleImages.map((img, i) => {
+    const sel = i === selectedImageIndex ? ' selected' : ''
+    return `<div class="image-item${sel}" data-idx="${i}">
+      <img src="${esc(img.thumbnail || img.url)}" alt="${esc(img.alt || 'Illustration ' + (i+1))}" loading="lazy" onerror="this.parentElement.classList.add('broken')">
+      <span class="image-item-idx">${i + 1}</span>
+      ${img.photographer ? `<a href="${esc(img.photographer_url || '#')}" target="_blank" rel="noopener" class="image-item-credit">📷 ${esc(img.photographer)}</a>` : ''}
+    </div>`
+  }).join('')
+
+  el.querySelectorAll('.image-item').forEach(item => {
+    item.addEventListener('click', () => {
+      selectedImageIndex = parseInt(item.dataset.idx)
+      renderImages()
+      btnReplaceImage.classList.remove('hidden')
+      btnRemoveImage.classList.remove('hidden')
+      markDirty()
+    })
+  })
+
+  if (selectedImageIndex === -1 || selectedImageIndex >= articleImages.length) {
+    selectedImageIndex = articleImages.length - 1
+    btnReplaceImage.classList.remove('hidden')
+    btnRemoveImage.classList.remove('hidden')
+    renderImages()
+  }
+}
+
+function addImage(url, thumbnail, photographer, photographerUrl, alt) {
+  articleImages.push({ url, thumbnail, photographer, photographer_url: photographerUrl, alt: alt || '' })
+  selectedImageIndex = articleImages.length - 1
+  renderImages()
+  markDirty()
+}
+
+function removeSelectedImage() {
+  if (selectedImageIndex < 0 || selectedImageIndex >= articleImages.length) return
+  articleImages.splice(selectedImageIndex, 1)
+  selectedImageIndex = Math.min(selectedImageIndex, articleImages.length - 1)
+  renderImages()
+  markDirty()
+}
+
+btnAddImage.addEventListener('click', () => {
+  imageSearchBox.classList.remove('hidden')
+  imageSearchInput.value = ''
+  imageSearchInput.focus()
+  imageSearchResults.innerHTML = ''
+})
+
+btnReplaceImage.addEventListener('click', () => {
+  imageSearchBox.classList.remove('hidden')
+  imageSearchInput.value = ''
+  imageSearchInput.focus()
+  imageSearchResults.innerHTML = ''
+})
+
+btnRemoveImage.addEventListener('click', removeSelectedImage)
+
+imageSearchInput.addEventListener('input', async () => {
+  const q = imageSearchInput.value.trim()
+  if (q.length < 3) { imageSearchResults.innerHTML = ''; return }
+  try {
+    const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=6&orientation=landscape`, {
+      headers: { Authorization: 'ujXlp9entJwq92GR2hmYIsyfqjLFiSnS8xhc8YMIImTLjK11JsKd2PB2' },
+    })
+    if (!res.ok) { imageSearchResults.innerHTML = '<div class="empty">Erreur recherche</div>'; return }
+    const data = await res.json()
+    const photos = data.photos || []
+    if (!photos.length) { imageSearchResults.innerHTML = '<div class="empty">Aucun résultat</div>'; return }
+    imageSearchResults.innerHTML = photos.map(p => `
+      <div class="search-result-item" data-url="${esc(p.src.large || p.src.medium)}" data-thumb="${esc(p.src.small || p.src.tiny)}" data-photographer="${esc(p.photographer)}" data-photographer-url="${esc(p.photographer_url)}" data-alt="${esc(p.alt || '')}">
+        <img src="${esc(p.src.small || p.src.tiny)}" alt="${esc(p.alt || '')}" loading="lazy">
+        <div class="search-result-overlay">+</div>
+      </div>
+    `).join('')
+    imageSearchResults.querySelectorAll('.search-result-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const img = {
+          url: el.dataset.url,
+          thumbnail: el.dataset.thumb,
+          photographer: el.dataset.photographer,
+          photographer_url: el.dataset.photographerUrl,
+          alt: el.dataset.alt,
+        }
+        if (selectedImageIndex >= 0 && selectedImageIndex < articleImages.length) {
+          articleImages[selectedImageIndex] = img
+        } else {
+          articleImages.push(img)
+          selectedImageIndex = articleImages.length - 1
+        }
+        renderImages()
+        imageSearchBox.classList.add('hidden')
+        markDirty()
+      })
+    })
+  } catch { imageSearchResults.innerHTML = '<div class="empty">Erreur réseau</div>' }
+})
+
+function setArticleImages(images, primaryUrl) {
+  articleImages = []
+  if (images && images.length) {
+    articleImages = images.slice()
+  } else if (primaryUrl) {
+    articleImages = [{ url: primaryUrl, thumbnail: primaryUrl, photographer: '', photographer_url: '', alt: '' }]
+  }
+  selectedImageIndex = articleImages.length > 0 ? 0 : -1
+  renderImages()
+}
+
+// --- LOGIN ---
 loginForm.addEventListener('submit', async e => {
   e.preventDefault()
   loginError.classList.add('hidden')
@@ -217,7 +316,6 @@ btnLogout.addEventListener('click', () => {
   showLogin()
 })
 
-// NAVIGATION
 function showLogin() {
   loginScreen.classList.remove('hidden')
   mainScreen.classList.add('hidden')
@@ -250,7 +348,6 @@ function showEditor(article) {
     editorStatus.textContent = article.statut
     editorStatus.className = 'badge ' + statusClass(article.statut)
     editSource.textContent = article.source_news_titre ? esc(article.source_news_titre) : '—'
-    showArticleImage(article.image_url, article.image_photographer, article.image_photographer_url, article.image_options)
     editIaInfo.textContent = article.ia_provider
       ? `${article.ia_provider} / ${article.ia_model || '—'} · ${article.generation_type === 'custom' ? 'sujet: ' + (article.custom_subject || '') : 'actualité: ' + (article.source_news_titre || '')}`
       : '—'
@@ -259,9 +356,19 @@ function showEditor(article) {
       article.date_validation ? 'Validé: ' + fmtDate(article.date_validation) : '',
       article.date_publication ? 'Publié: ' + fmtDate(article.date_publication) : '',
     ].filter(Boolean).join('\n') || '—'
+
+    currentIaMeta = {
+      provider: article.ia_provider || null,
+      model: article.ia_model || null,
+      generation_type: article.generation_type || null,
+      custom_subject: article.custom_subject || null,
+    }
+
     if (article.source_news_titre) {
       regenNews = { titre: article.source_news_titre, url: article.source_news_url || '', resume: (article.corps || '').slice(0, 200), source: article.source_news_source || '' }
     }
+
+    setArticleImages(article.image_options || (article.image_url ? [{ url: article.image_url, thumbnail: article.image_url, photographer: article.image_photographer || '', photographer_url: article.image_photographer_url || '', alt: '' }] : []), article.image_url)
     updateEditorButtons(article.statut)
     updateStatusBar(article.statut)
   } else {
@@ -276,6 +383,7 @@ function showEditor(article) {
     editDates.textContent = '—'
     editorStatus.textContent = 'brouillon'
     editorStatus.className = 'badge s-brouillon'
+    setArticleImages(currentIaMeta?.image_options || [], null)
     updateEditorButtons('brouillon_nouveau')
     updateStatusBar('brouillon')
   }
@@ -322,7 +430,6 @@ function updateEditorButtons(statut) {
 
 btnBack.addEventListener('click', () => showMain())
 
-// AUTO-SAVE
 function markDirty() {
   if (!editingId) return
   isDirty = true
@@ -340,16 +447,17 @@ async function autoSave() {
   if (!isDirty || !editingId) return
   setSaveStatus('⏳ Sauvegarde...', 'saving')
   try {
+    const imageOptions = articleImages.length ? articleImages : null
     await api(`/articles?id=${editingId}`, {
       method: 'PUT',
       body: JSON.stringify({
         titre_interne: editTitre.value,
         corps: editCorps.value,
         hashtags: editHashtags.value.split(/\s+/).filter(h => h),
-        image_url: currentImageUrl,
-        image_photographer: currentImagePhotographer,
-        image_photographer_url: currentImagePhotographerUrl,
-        image_options: currentImageOptions.length ? currentImageOptions : null,
+        image_url: articleImages[0]?.url || null,
+        image_photographer: articleImages[0]?.photographer || null,
+        image_photographer_url: articleImages[0]?.photographer_url || null,
+        image_options: imageOptions,
       }),
     })
     isDirty = false
@@ -368,7 +476,6 @@ editTitre.addEventListener('input', markDirty)
 editCorps.addEventListener('input', () => { markDirty(); updateWords(); updateCharCount() })
 editHashtags.addEventListener('input', markDirty)
 
-// --- AUTO-FORMAT HASHTAGS ON BLUR (Q-07) ---
 function formatHashtags(input) {
   return input
     .split(/[\s,;]+/)
@@ -383,7 +490,6 @@ editHashtags.addEventListener('blur', (e) => {
   renderHashtagSuggestions()
 })
 
-// LOAD ARTICLES
 function loadArticles() {
   showSkeleton(articleList)
   const params = new URLSearchParams()
@@ -398,12 +504,10 @@ function loadArticles() {
   })
 }
 
-// --- SKELETON LOADER (L-06) ---
 function showSkeleton(container) {
   container.innerHTML = Array(5).fill('<div class="skeleton skeleton-card"></div>').join('')
 }
 
-// RENDER
 function renderArticles() {
   if (articles.length === 0) {
     articleList.innerHTML = '<div class="empty">Aucun article trouvé</div>'
@@ -424,8 +528,9 @@ function renderArticles() {
       </div>
       <div class="meta">
         <span>${fmtDate(a.date_creation)}</span>
-        ${a.ia_provider ? `<span class="ia-badge">${esc(a.ia_provider)} / ${esc(a.ia_model || '—')} · ${a.generation_type === 'custom' ? 'sujet: ' + esc(a.custom_subject || '') : 'actualité: ' + esc(a.source_news_titre || '').slice(0, 40)}</span>` : ''}
+        ${a.ia_provider ? `<span class="ia-badge">${esc(a.ia_provider)} / ${esc(a.ia_model || '—')} · ${a.generation_type === 'custom' ? 'sujet: ' + esc(a.custom_subject || '').slice(0, 40) : 'actualité: ' + esc(a.source_news_titre || '').slice(0, 40)}</span>` : ''}
       </div>
+      ${a.image_url ? `<div class="article-card-img"><img src="${esc(a.image_url)}" alt="" loading="lazy" onerror="this.parentElement.remove()"></div>` : ''}
     </div>`).join('')
 
   articleList.querySelectorAll('.article-card').forEach(c => {
@@ -446,7 +551,6 @@ function renderArticles() {
 btnPrev.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderArticles() } })
 btnNext.addEventListener('click', () => { const t = Math.ceil(articles.length / PAGE_SIZE); if (currentPage < t) { currentPage++; renderArticles() } })
 
-// FILTERS
 document.querySelectorAll('.filter-btn').forEach(b => {
   b.addEventListener('click', () => {
     document.querySelectorAll('.filter-btn').forEach(x => x.classList.remove('active'))
@@ -456,7 +560,6 @@ document.querySelectorAll('.filter-btn').forEach(b => {
   })
 })
 
-// --- WORD COUNT ENRICHED (L-04) ---
 function updateWords() {
   const text = editCorps.value
   const words = text.trim() ? text.trim().split(/\s+/).length : 0
@@ -478,7 +581,6 @@ function updateCharCount() {
   if (len > 3000) charCount.classList.add('over')
 }
 
-// HASHTAG SUGGESTIONS
 function renderHashtagSuggestions() {
   const current = editHashtags.value.split(/\s+/).filter(h => h).map(h => h.toLowerCase())
   let html = ''
@@ -502,14 +604,15 @@ function renderHashtagSuggestions() {
 
 // SAVE
 btnSave.addEventListener('click', async () => {
+  const imageOptions = articleImages.length ? articleImages : null
   const data = {
     titre_interne: editTitre.value,
     corps: editCorps.value,
     hashtags: editHashtags.value.split(/\s+/).filter(h => h),
-    image_url: currentImageUrl,
-    image_photographer: currentImagePhotographer,
-    image_photographer_url: currentImagePhotographerUrl,
-    image_options: currentImageOptions.length ? currentImageOptions : null,
+    image_url: articleImages[0]?.url || null,
+    image_photographer: articleImages[0]?.photographer || null,
+    image_photographer_url: articleImages[0]?.photographer_url || null,
+    image_options: imageOptions,
   }
   try {
     if (editingId) {
@@ -541,7 +644,6 @@ btnSave.addEventListener('click', async () => {
   } catch (err) { showToast('Erreur: ' + err.message, 'error') }
 })
 
-// VALIDATE
 btnValidate.addEventListener('click', async () => {
   if (!editingId) return
   try {
@@ -559,7 +661,7 @@ btnValidate.addEventListener('click', async () => {
   } catch (err) { showToast('Erreur: ' + err.message, 'error') }
 })
 
-// --- FORMAT FOR LINKEDIN (Q-03) ---
+// --- FORMAT FOR LINKEDIN (improved) ---
 function formatForLinkedIn(text) {
   return text
     .replace(/^#{1,6}\s+/gm, '')
@@ -569,6 +671,38 @@ function formatForLinkedIn(text) {
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/\n{4,}/g, '\n\n\n')
     .trim()
+}
+
+function renderLinkedInPreview(text) {
+  const lines = text.split('\n')
+  let html = ''
+  let inList = false
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmed = line.trim()
+
+    if (!trimmed) {
+      if (inList) { html += '</ul>'; inList = false }
+      html += '<div class="li-spacer"></div>'
+      continue
+    }
+
+    const bulletMatch = trimmed.match(/^[•\-]\s+(.*)/)
+    if (bulletMatch) {
+      if (!inList) { html += '<ul class="li-list">'; inList = true }
+      html += `<li>${esc(bulletMatch[1])}</li>`
+      continue
+    }
+
+    if (inList) { html += '</ul>'; inList = false }
+
+    const bolded = trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    html += `<p class="li-paragraph">${esc(bolded.replace(/\*\*(.+?)\*\*/g, '$1'))}</p>`
+  }
+  if (inList) html += '</ul>'
+
+  return html
 }
 
 btnCopy.addEventListener('click', async () => {
@@ -597,10 +731,22 @@ btnCopy.addEventListener('click', async () => {
   } catch { showToast('Erreur de copie', 'error') }
 })
 
-// --- LINKEDIN PREVIEW (Q-05) ---
+// --- LINKEDIN PREVIEW (improved) ---
 btnPreview.addEventListener('click', () => {
-  const formatted = formatForLinkedIn(editCorps.value)
-  liPreviewBody.innerHTML = formatted.replace(/\n/g, '<br>')
+  let bodyHtml = ''
+
+  if (articleImages.length > 0) {
+    bodyHtml += `<div class="li-cover"><img src="${esc(articleImages[0].url)}" alt="Illustration" onerror="this.parentElement.remove()"></div>`
+  }
+
+  bodyHtml += renderLinkedInPreview(editCorps.value)
+
+  const h = editHashtags.value.split(/\s+/).filter(h => h)
+  if (h.length) {
+    bodyHtml += `<div class="li-hashtags">${h.map(t => `<span class="li-hashtag">${esc(t)}</span>`).join(' ')}</div>`
+  }
+
+  liPreviewBody.innerHTML = bodyHtml
   linkedinPreview.classList.remove('hidden')
 })
 
@@ -612,7 +758,6 @@ linkedinPreview.addEventListener('click', (e) => {
   if (e.target === linkedinPreview) linkedinPreview.classList.add('hidden')
 })
 
-// ARCHIVE
 btnArchive.addEventListener('click', async () => {
   if (!editingId) return
   try {
@@ -626,7 +771,6 @@ btnArchive.addEventListener('click', async () => {
   } catch (err) { showToast('Erreur: ' + err.message, 'error') }
 })
 
-// RESTORE
 btnRestore.addEventListener('click', async () => {
   if (!editingId) return
   try {
@@ -640,7 +784,6 @@ btnRestore.addEventListener('click', async () => {
   } catch (err) { showToast('Erreur: ' + err.message, 'error') }
 })
 
-// DELETE
 btnDelete.addEventListener('click', async () => {
   if (!editingId) return
   if (!confirm('Supprimer définitivement cet article ? Cette action est irréversible.')) return
@@ -652,40 +795,61 @@ btnDelete.addEventListener('click', async () => {
   } catch (err) { showToast('Erreur: ' + err.message, 'error') }
 })
 
-// --- REGEN SUGGESTIONS CHIPS (Q-02) ---
+// REGEN CHIPS
 document.querySelectorAll('.regen-chip').forEach(chip => {
   chip.addEventListener('click', () => {
     regenFeedback.value = chip.dataset.hint
   })
 })
 
-// REGENERATE
 btnRegen.addEventListener('click', () => regenBox.classList.toggle('hidden'))
 
 btnRegenGo.addEventListener('click', async () => {
   const news = currentNews || regenNews
-  if (!news) { showToast('Aucune actualité source', 'warning'); return }
+  const customSubject = currentIaMeta?.custom_subject || null
+  if (!news && !customSubject) { showToast('Aucune actualité source ou sujet disponible pour la régénération', 'warning'); return }
   const feedback = regenFeedback.value
   btnRegenGo.disabled = true
   btnRegenGo.textContent = 'Génération...'
   try {
     const data = await api('/generate', {
       method: 'POST',
-      body: JSON.stringify({ news, feedback, provider: aiProvider.value, model: getSelectedModel() }),
+      body: JSON.stringify({
+        ...(news ? { news } : {}),
+        ...(customSubject ? { customPrompt: customSubject } : {}),
+        feedback,
+        provider: aiProvider.value,
+        model: getSelectedModel(),
+      }),
     })
     currentIaMeta = data.ia
+    currentIaMeta.image_options = data.article?.image_options || []
     const art = data.article
     editTitre.value = art.titre_interne || ''
     editCorps.value = `Accroche A :\n${art.accroche_a || ''}\n\nAccroche B :\n${art.accroche_b || ''}\n\n${art.corps || ''}`
     editHashtags.value = (art.hashtags || []).join(' ')
-    showArticleImage(art.image_url, art.image_photographer, art.image_photographer_url, art.image_options)
+    setArticleImages(art.image_options || [], art.image_url)
     updateWords()
     updateCharCount()
     renderHashtagSuggestions()
     if (editingId) {
+      const imageOptions = articleImages.length ? articleImages : null
       await api(`/articles?id=${editingId}`, {
         method: 'PUT',
-        body: JSON.stringify({ titre_interne: art.titre_interne, corps: editCorps.value, hashtags: art.hashtags || [], image_url: art.image_url || null, image_photographer: art.image_photographer || null, image_photographer_url: art.image_photographer_url || null, image_options: art.image_options || null, ia_provider: currentIaMeta.provider, ia_model: currentIaMeta.model, generation_type: currentIaMeta.generation_type, statut: 'brouillon' }),
+        body: JSON.stringify({
+          titre_interne: art.titre_interne,
+          corps: editCorps.value,
+          hashtags: art.hashtags || [],
+          image_url: articleImages[0]?.url || null,
+          image_photographer: articleImages[0]?.photographer || null,
+          image_photographer_url: articleImages[0]?.photographer_url || null,
+          image_options: imageOptions,
+          ia_provider: currentIaMeta.provider,
+          ia_model: currentIaMeta.model,
+          generation_type: currentIaMeta.generation_type,
+          custom_subject: customSubject,
+          statut: 'brouillon',
+        }),
       })
       editorStatus.textContent = 'brouillon'
       editorStatus.className = 'badge s-brouillon'
@@ -699,7 +863,6 @@ btnRegenGo.addEventListener('click', async () => {
   finally { btnRegenGo.disabled = false; btnRegenGo.textContent = 'Confirmer la régénération' }
 })
 
-// --- EXTRACT TITLE FROM CONTENT (Q-08) ---
 function extractTitle(body) {
   const firstLine = body.split('\n').find(l => l.trim().length > 0) ?? ''
   return firstLine.replace(/^#+\s*/, '').slice(0, 80)
@@ -761,12 +924,13 @@ btnCustomGenerate.addEventListener('click', async () => {
       body: JSON.stringify({ customPrompt: sujet, feedback: '', provider: aiProvider.value, model: getSelectedModel() }),
     })
     currentIaMeta = data.ia
+    currentIaMeta.image_options = data.article?.image_options || []
     const art = data.article
     showEditor(null)
     editTitre.value = art.titre_interne || sujet
     editCorps.value = `Accroche A :\n${art.accroche_a || ''}\n\nAccroche B :\n${art.accroche_b || ''}\n\n${art.corps || ''}`
     editHashtags.value = (art.hashtags || []).join(' ')
-    showArticleImage(art.image_url, art.image_photographer, art.image_photographer_url, art.image_options)
+    setArticleImages(art.image_options || [], art.image_url)
     updateWords()
     updateCharCount()
     renderHashtagSuggestions()
@@ -810,12 +974,13 @@ async function generateFromNews(news) {
       body: JSON.stringify({ news, feedback: '', provider: aiProvider.value, model: getSelectedModel() }),
     })
     currentIaMeta = data.ia
+    currentIaMeta.image_options = data.article?.image_options || []
     const art = data.article
     showEditor(null)
     editTitre.value = art.titre_interne || ''
     editCorps.value = `Accroche A :\n${art.accroche_a || ''}\n\nAccroche B :\n${art.accroche_b || ''}\n\n${art.corps || ''}`
     editHashtags.value = (art.hashtags || []).join(' ')
-    showArticleImage(art.image_url, art.image_photographer, art.image_photographer_url, art.image_options)
+    setArticleImages(art.image_options || [], art.image_url)
     updateWords()
     updateCharCount()
     renderHashtagSuggestions()
