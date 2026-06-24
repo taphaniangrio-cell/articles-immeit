@@ -1,7 +1,12 @@
 const { fetchNews } = require('../lib/rss-fetcher');
 const rateLimit = require('../lib/rateLimit');
+const { requireAuth } = require('../lib/auth');
+const { log } = require('../lib/logger');
+const cors = require('../lib/cors');
 
-module.exports = async (req, res) => {
+module.exports = requireAuth(async (req, res) => {
+  if (cors(res, req)) return;
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
@@ -16,7 +21,7 @@ module.exports = async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300');
     return res.status(200).json({ news });
   } catch (err) {
-    console.error('[NEWS] Error:', err.message);
+    log('error', 'news_error', { error: err.message });
     return res.status(500).json({ error: 'Erreur lors du chargement des actualités.' });
   }
-};
+});

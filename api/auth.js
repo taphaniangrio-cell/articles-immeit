@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('../lib/rateLimit');
+const { createSession, destroySession } = require('../lib/auth');
+const { log } = require('../lib/logger');
 
 function generateToken() {
   return crypto.randomBytes(48).toString('hex');
@@ -16,7 +18,17 @@ module.exports = async (req, res) => {
     return res.status(429).json({ error: 'Trop de tentatives. Réessaie dans 1 minute.' });
   }
 
-  const { password } = req.body;
+  const { password, action } = req.body;
+
+  if (action === 'logout') {
+    const cookie = req.headers?.cookie || '';
+    const token = cookie.split(';').map(c => c.trim()).find(c => c.startsWith('session='))?.split('=')[1]?.trim();
+    if (token) destroySession(token);
+    log('info', 'logout', { ip });
+    res.setHeader('Set-Cookie', 'session=; HttpOnly; Path=/; Max-Age=0');
+    return res.status(200).json({ success: true });
+  }
+
   const adminPassword = process.env.ADMIN_PASSWORD;
   const passwordHash = process.env.PASSWORD_HASH;
 
@@ -32,12 +44,15 @@ module.exports = async (req, res) => {
   }
 
   if (!ok) {
+    log('warn', 'login_failed', { ip });
     return res.status(401).json({ error: 'Mot de passe incorrect' });
   }
 
   const token = generateToken();
-  const isDev = process.env.VERCEL_ENV !== 'production';
+  createSession(token);
+  log('info', 'login_ok', { ip });
 
+  const isDev = process.env.VERCEL_ENV !== 'production';
   res.setHeader('Set-Cookie', `session=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}${isDev ? '' : '; Secure'}`);
 
   return res.status(200).json({ success: true, token });

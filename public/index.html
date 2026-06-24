@@ -18,143 +18,132 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
-<div id="app">
 
-  <!-- Écran de connexion -->
-  <div id="login-screen" class="screen">
-    <div class="card">
-      <img src="logo-immeit.webp" alt="IMMEIT" class="logo-login">
-      <p class="subtitle">Générateur d'articles LinkedIn</p>
-      <form id="login-form">
-        <label for="login-password">Mot de passe</label>
-        <input type="password" id="login-password" placeholder="Mot de passe" required>
-        <button type="submit" class="btn-primary">Se connecter</button>
-      </form>
-      <p id="login-error" class="error hidden"></p>
-    </div>
+<!-- LOGIN -->
+<div id="login-screen" class="login-page hidden">
+  <div class="login-card">
+    <img src="logo-immeit.webp" alt="IMMEIT" class="login-card__logo">
+    <h1 class="login-card__title">Articles LinkedIn</h1>
+    <p class="login-card__subtitle">Plateforme de publication IMMEIT</p>
+    <form id="login-form" class="login-form">
+      <label class="meta-field__label" for="login-password">Mot de passe</label>
+      <input type="password" id="login-password" class="login-input" placeholder="••••••••" autocomplete="current-password" required>
+      <button type="submit" class="login-btn">Se connecter</button>
+      <div id="login-error" class="hidden" style="color:var(--clr-danger);font-size:var(--text-sm);text-align:center;"></div>
+    </form>
   </div>
+</div>
 
-  <!-- Écran principal -->
-  <div id="main-screen" class="screen hidden">
-    <header>
-      <div class="header-left">
-        <img src="logo-immeit.webp" alt="IMMEIT" class="logo-header">
-        <h1>Articles LinkedIn</h1>
-      </div>
-      <div class="header-right">
-        <div class="ai-selector-inline">
-          <select id="ai-provider-main"></select>
-          <select id="ai-model-main"></select>
-          <span id="ai-key-status-main" class="key-status"></span>
-        </div>
-        <div class="header-actions">
-          <span class="header-divider"></span>
-          <button id="btn-new" class="btn-primary">+ Nouvel article</button>
-          <button id="btn-logout" class="btn-logout" title="Déconnexion">⎋ Déconnexion</button>
-        </div>
-      </div>
-    </header>
+<!-- APP -->
+<div id="app" class="app hidden">
 
-    <div class="filters">
-      <button class="filter-btn active" data-filter="">Tous</button>
-      <button class="filter-btn" data-filter="brouillon">Brouillon</button>
-      <button class="filter-btn" data-filter="en_revision">En révision</button>
-      <button class="filter-btn" data-filter="valide">Validé</button>
-      <button class="filter-btn" data-filter="publie">Publié</button>
-      <button class="filter-btn" data-filter="archive">Archivé</button>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar__logo">
+      <img src="logo-immeit.webp" alt="IMMEIT">
+      <span class="sidebar__logo-text">Articles</span>
     </div>
+    <nav class="sidebar__nav">
+      <div class="sidebar__ai-selector">
+        <select id="ai-provider-main"></select>
+        <select id="ai-model-main"></select>
+        <span id="ai-key-status-main" class="key-status"></span>
+      </div>
+      <button id="btn-new" class="sidebar__btn-new">+ Nouvel article</button>
+    </nav>
+    <div class="sidebar__footer">
+      <button id="btn-logout" class="sidebar__logout">Déconnexion</button>
+    </div>
+  </aside>
 
+  <!-- LISTE ARTICLES -->
+  <section id="main-screen" class="article-list-section">
+    <div class="tabs">
+      <button class="tab active" data-filter="">Tous</button>
+      <button class="tab" data-filter="brouillon">Brouillon</button>
+      <button class="tab" data-filter="en_revision">En révision</button>
+      <button class="tab" data-filter="valide">Validé</button>
+      <button class="tab" data-filter="publie">Publié</button>
+      <button class="tab" data-filter="archive">Archivé</button>
+    </div>
     <div id="article-list" class="article-list"><div class="empty">Chargement...</div></div>
     <div id="pagination" class="pagination hidden">
-      <button id="btn-prev" class="btn-outline">&larr; Précédent</button>
-      <span id="page-info"></span>
-      <button id="btn-next" class="btn-outline">Suivant &rarr;</button>
+      <button id="btn-prev" class="btn btn--ghost">&larr; Précédent</button>
+      <span id="page-info" class="pagination-info"></span>
+      <button id="btn-next" class="btn btn--ghost">Suivant &rarr;</button>
     </div>
-  </div>
+  </section>
 
-  <!-- Écran éditeur -->
-  <div id="editor-screen" class="screen hidden">
-    <header>
-      <div class="header-left">
-        <button id="btn-back" class="btn-outline">&larr; Retour</button>
-        <h2 id="editor-title">Nouvel article</h2>
-      </div>
-      <span id="editor-status" class="badge"></span>
-    </header>
-
+  <!-- ÉDITEUR -->
+  <main id="editor-screen" class="editor hidden">
+    <div class="editor__header">
+      <span id="btn-back" class="editor__back-btn">&larr; Retour</span>
+      <input type="text" id="edit-titre" class="editor__title-input" placeholder="Titre interne…">
+      <span id="editor-status" class="badge s-brouillon">Brouillon</span>
+    </div>
     <div id="status-bar" class="status-bar hidden"></div>
+    <div class="editor__body">
 
-    <div class="editor-body">
-      <div class="editor-layout">
-        <div class="editor-main">
-          <div class="field">
-            <label>Titre interne</label>
-            <input type="text" id="edit-titre" placeholder="Titre interne (non publié)">
+      <!-- Illustrations -->
+      <div class="field">
+        <label>Illustrations</label>
+        <div id="edit-image-area" class="image-area">
+          <div id="edit-images" class="images-inline"></div>
+          <div class="image-toolbar">
+            <button id="btn-add-image" class="btn btn--ghost btn-sm">+ Ajouter</button>
+            <button id="btn-replace-image" class="btn btn--ghost btn-sm hidden">🔄 Remplacer</button>
+            <button id="btn-remove-image" class="btn btn--ghost btn-sm hidden">🗑 Supprimer</button>
           </div>
-          <div class="field">
-            <label>Illustrations</label>
-            <div id="edit-image-area" class="image-area">
-              <div id="edit-images" class="images-inline"></div>
-              <div class="image-toolbar">
-                <button id="btn-add-image" class="btn-outline btn-sm">+ Ajouter une image</button>
-                <button id="btn-replace-image" class="btn-outline btn-sm hidden" title="Remplacer">🔄 Remplacer</button>
-                <button id="btn-remove-image" class="btn-outline btn-sm hidden" title="Supprimer">🗑 Supprimer</button>
-              </div>
-              <div id="image-search-box" class="image-search-box hidden">
-                <input type="text" id="image-search-input" placeholder="Rechercher une image...">
-                <div id="image-search-results" class="image-search-results"></div>
-              </div>
-            </div>
-          </div>
-          <div class="field">
-            <label>Corps de l'article <span id="char-count" class="char-count"></span></label>
-            <textarea id="edit-corps" rows="14" placeholder="Contenu de l'article..."></textarea>
-            <span class="word-count" id="word-count">0 mots</span>
-          </div>
-          <div class="field">
-            <label>Hashtags</label>
-            <input type="text" id="edit-hashtags" placeholder="#maintenance #GMAO #fiabilite">
-            <div id="hashtag-suggestions" class="hashtag-suggestions"></div>
-          </div>
-        </div>
-
-        <div class="editor-sidebar">
-          <div class="field">
-            <label>Source</label>
-            <div id="edit-source" class="source-display">—</div>
-          </div>
-          <div class="field">
-            <label>IA · Modèle</label>
-            <div id="edit-ia-info" class="source-display">—</div>
-          </div>
-          <div class="field">
-            <label>Dates</label>
-            <div id="edit-dates" class="source-display">—</div>
-          </div>
-          <div class="field">
-            <label>Sauvegarde</label>
-            <div id="save-indicator" class="save-indicator">—</div>
+          <div id="image-search-box" class="image-search-box hidden">
+            <input type="text" id="image-search-input" placeholder="Rechercher une image…">
+            <div id="image-search-results" class="image-search-results"></div>
           </div>
         </div>
       </div>
 
-      <div class="editor-actions">
-        <button id="btn-save" class="btn-primary">↓ Enregistrer</button>
-        <button id="btn-validate" class="btn-success">✓ Valider</button>
-        <button id="btn-copy" class="btn-copy-lined">⌘ Copier LinkedIn</button>
-        <button id="btn-preview" class="btn-outline">👁 Aperçu</button>
-        <button id="btn-regen" class="btn-ai">✦ Régénérer</button>
-        <button id="btn-archive" class="btn-archive">Archiver</button>
-        <button id="btn-restore" class="btn-outline">Restaurer</button>
-        <button id="btn-delete" class="btn-danger">Supprimer</button>
+      <!-- Corps -->
+      <div class="field">
+        <label>Corps de l'article <span id="char-count" class="char-count"></span></label>
+        <textarea id="edit-corps" placeholder="Rédigez ou collez le corps…"></textarea>
+        <div id="word-count" class="word-count">0 mots</div>
       </div>
 
-      <div id="regen-box" class="field hidden">
-        <label>Consignes pour la régénération</label>
-        <textarea id="regen-feedback" rows="3" placeholder="Plus court, plus technique, autre angle..."></textarea>
+      <!-- Hashtags -->
+      <div class="field">
+        <label>Hashtags</label>
+        <input type="text" id="edit-hashtags" placeholder="#maintenance #GMAO">
+        <div id="hashtag-suggestions" class="hashtag-suggestions"></div>
+      </div>
+
+      <!-- Metas -->
+      <div class="editor__meta-panel">
+        <div class="meta-field">
+          <span class="meta-field__label">Source</span>
+          <div id="edit-source" class="meta-field__value meta-field__value--muted">—</div>
+        </div>
+        <div class="meta-field">
+          <span class="meta-field__label">IA · Modèle</span>
+          <div id="edit-ia-info" class="meta-field__value meta-field__value--muted">—</div>
+        </div>
+        <div class="meta-field">
+          <span class="meta-field__label">Dates</span>
+          <div id="edit-dates" class="meta-field__value meta-field__value--muted">—</div>
+        </div>
+        <div class="meta-field">
+          <span class="meta-field__label">Sauvegarde</span>
+          <div id="save-indicator" class="meta-field__value meta-field__value--muted">—</div>
+        </div>
+      </div>
+
+      <!-- Régénération -->
+      <div id="regen-box" class="hidden">
+        <div class="field">
+          <label>Consignes</label>
+          <textarea id="regen-feedback" style="min-height:100px;" placeholder="Plus court, plus technique…"></textarea>
+        </div>
         <div class="regen-suggestions">
           <span class="regen-chip" data-hint="Rends l'accroche plus percutante">⚡ Accroche</span>
           <span class="regen-chip" data-hint="Ajoute un exemple concret africain">🌍 Exemple local</span>
@@ -162,57 +151,76 @@
           <span class="regen-chip" data-hint="Rends le ton plus expert">🎓 Plus expert</span>
           <span class="regen-chip" data-hint="Améliore l'appel à l'action final">📣 CTA fort</span>
         </div>
-        <button id="btn-regen-go" class="btn-primary">Confirmer la régénération</button>
+        <button id="btn-regen-go" class="btn btn--primary" style="margin-top:8px;width:100%;">Confirmer</button>
       </div>
 
-      <!-- LinkedIn Preview Panel -->
-      <div id="linkedin-preview" class="linkedin-preview hidden">
-        <div class="li-preview-header">
-          <h3>👁 Aperçu LinkedIn</h3>
-          <button id="btn-close-preview" class="btn-outline">&times;</button>
-        </div>
-        <div class="li-preview-body" id="li-preview-body"></div>
+    </div>
+
+    <!-- Action bar -->
+    <div class="action-bar">
+      <div class="action-bar__primary">
+        <button id="btn-save" class="btn btn--primary"><span class="btn__icon">↓</span> Enregistrer</button>
+        <button id="btn-validate" class="btn btn--secondary"><span class="btn__icon">✓</span> Valider</button>
+        <button id="btn-copy" class="btn btn--linkedin"><span class="btn__icon">⌘</span> Copier LinkedIn</button>
+        <button id="btn-preview" class="btn btn--ghost">👁 Aperçu</button>
+        <button id="btn-regen" class="btn btn--ai"><span class="btn__icon">✦</span> Régénérer</button>
+      </div>
+      <div class="action-bar__secondary">
+        <button id="btn-archive" class="btn btn--ghost">Archiver</button>
+        <button id="btn-restore" class="btn btn--ghost hidden">Restaurer</button>
+        <button id="btn-delete" class="btn btn--danger">Supprimer</button>
       </div>
     </div>
-  </div>
+  </main>
 
-  <!-- Modale de sélection d'actualité -->
-  <div id="news-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Nouvel article</h2>
-        <div class="modal-header-actions">
-          <button id="modal-close" class="btn-outline">&times;</button>
-        </div>
-      </div>
-      <div class="modal-body">
-        <div class="custom-prompt-section">
-          <label for="custom-prompt">Écris un sujet libre (mot-clé, titre, phrase)</label>
-          <div class="custom-prompt-row">
-            <input type="text" id="custom-prompt" placeholder="Ex: maintenance predictive GMAO, fiabilite pompes industrielles...">
-            <button id="btn-custom-generate" class="btn-primary">Générer</button>
-          </div>
-          <div class="custom-prompt-divider">
-            <span>— ou choisis une actualité —</span>
-          </div>
-        </div>
-        <div id="news-list"><div class="empty">Recherche des actualités...</div></div>
-        <div class="modal-ai-pick">
-          <button id="btn-ai-pick" class="btn-outline">🎲 Laisser l'IA choisir</button>
-        </div>
-      </div>
-      <div id="modal-loading" class="modal-loading hidden">
-        <div class="modal-loading-content">
-          <div class="spinner"></div>
-          <p>Génération de l'article en cours...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast -->
-  <div id="toast" class="toast hidden"></div>
 </div>
-<script src="app.js?v=7"></script>
+
+<!-- MODAL NOUVEL ARTICLE -->
+<div id="news-modal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Nouvel article <span class="ia-badge">✦ IA</span></h2>
+      <div class="modal-header-actions">
+        <button id="modal-close" class="btn-outline">&times;</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="custom-prompt-section">
+        <label for="custom-prompt">Sujet libre</label>
+        <div class="custom-prompt-row">
+          <input type="text" id="custom-prompt" placeholder="Ex: maintenance predictive, GMAO…">
+          <button id="btn-custom-generate" class="btn-primary">Générer</button>
+        </div>
+      </div>
+      <div class="custom-prompt-divider"><span>— ou choisis une actualité —</span></div>
+      <div id="news-list" class="news-list"><div class="empty">Recherche des actualités…</div></div>
+      <div class="modal-ai-pick">
+        <button id="btn-ai-pick" class="btn-outline" style="width:100%;">🎲 Laisser l'IA choisir</button>
+      </div>
+    </div>
+    <div id="modal-loading" class="modal-loading hidden">
+      <div class="modal-loading-content">
+        <div class="spinner"></div>
+        <p>Génération en cours…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APERÇU LINKEDIN -->
+<div id="linkedin-preview" class="modal hidden" style="z-index:1100;">
+  <div class="modal-content" style="max-width:600px;">
+    <div class="modal-header">
+      <h2>👁 Aperçu LinkedIn</h2>
+      <div class="modal-header-actions">
+        <button id="btn-close-preview" class="btn-outline">&times;</button>
+      </div>
+    </div>
+    <div class="li-preview-body" id="li-preview-body"></div>
+  </div>
+</div>
+
+<script src="store.js?v=1"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

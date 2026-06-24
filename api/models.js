@@ -1,3 +1,6 @@
+const { requireAuth } = require('../lib/auth');
+const cors = require('../lib/cors');
+
 const PROVIDERS_CONFIG = {
   groq: {
     label: 'Groq (ultra-rapide)',
@@ -41,7 +44,9 @@ const PROVIDERS_CONFIG = {
   },
 };
 
-module.exports = async (req, res) => {
+module.exports = requireAuth(async (req, res) => {
+  if (cors(res, req)) return;
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
@@ -62,6 +67,6 @@ module.exports = async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.status(200).json({ models });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Erreur interne. Réessaie.' });
   }
-};
+});

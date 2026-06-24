@@ -2,8 +2,13 @@ const { generateArticle } = require('../lib/ai-client');
 const { findImagesForArticle } = require('../lib/image-fetcher');
 const rateLimit = require('../lib/rateLimit');
 const sanitizeInput = require('../lib/sanitize');
+const { requireAuth } = require('../lib/auth');
+const { log } = require('../lib/logger');
+const cors = require('../lib/cors');
 
-module.exports = async (req, res) => {
+module.exports = requireAuth(async (req, res) => {
+  if (cors(res, req)) return;
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
   }
@@ -40,6 +45,8 @@ module.exports = async (req, res) => {
 
     const primary = images[0] || null;
 
+    log('info', 'article_generated', { provider: resolvedProvider, model: resolvedModel, type: generationType });
+
     return res.status(200).json({
       article: { ...article, image_url: primary?.url || null, image_photographer: primary?.photographer || null, image_photographer_url: primary?.photographer_url || null, image_options: images },
       ia: {
@@ -50,7 +57,7 @@ module.exports = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('[GENERATE] Error:', err.message);
+    log('error', 'generate_error', { error: err.message });
     if (err.message === 'QUOTA') {
       return res.status(429).json({ error: 'Quota API dépassé. Réessaie plus tard ou change de fournisseur.' });
     }
@@ -59,4 +66,4 @@ module.exports = async (req, res) => {
     }
     return res.status(500).json({ error: 'Erreur interne. Réessaie.' });
   }
-};
+});

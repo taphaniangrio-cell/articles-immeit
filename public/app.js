@@ -16,7 +16,7 @@ const LINKEDIN_TARGET = 1500
 
 const $ = id => document.getElementById(id)
 
-const loginScreen = $('login-screen'), mainScreen = $('main-screen'), editorScreen = $('editor-screen')
+const appContainer = $('app'), loginScreen = $('login-screen'), mainScreen = $('main-screen'), editorScreen = $('editor-screen')
 const loginForm = $('login-form'), loginPassword = $('login-password'), loginError = $('login-error')
 const editTitre = $('edit-titre'), editCorps = $('edit-corps'), editHashtags = $('edit-hashtags')
 const editSource = $('edit-source'), editIaInfo = $('edit-ia-info'), editDates = $('edit-dates')
@@ -28,7 +28,7 @@ const btnPrev = $('btn-prev'), btnNext = $('btn-next'), pageInfo = $('page-info'
 const newsModal = $('news-modal'), modalClose = $('modal-close'), btnAiPick = $('btn-ai-pick')
 const customPrompt = $('custom-prompt'), btnCustomGenerate = $('btn-custom-generate')
 const regenBox = $('regen-box'), regenFeedback = $('regen-feedback')
-const wordCount = $('word-count'), editorStatus = $('editor-status'), editorTitle = $('editor-title')
+const wordCount = $('word-count'), editorStatus = $('editor-status')
 const articleList = $('article-list'), statusBar = $('status-bar')
 const charCount = $('char-count'), saveIndicator = $('save-indicator')
 const hashtagSuggestions = $('hashtag-suggestions')
@@ -104,15 +104,22 @@ async function api(path, options = {}) {
   const sep = path.includes('?') ? '&' : '?'
   const res = await fetch(`${API_BASE}${path}${sep}_=${Date.now()}`, {
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     ...options,
   })
+  if (res.status === 401) {
+    localStorage.removeItem('immeit_token')
+    document.cookie = 'session=; Path=/; Max-Age=0'
+    showLogin()
+    throw new Error('Session expirée. Veuillez vous reconnecter.')
+  }
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
   return data
 }
 
 function hasSession() {
-  return document.cookie.includes('session=') || localStorage.getItem('immeit_token')
+  return !!localStorage.getItem('immeit_token')
 }
 
 function loadAiSettings(forceProvider) {
@@ -323,13 +330,16 @@ loginForm.addEventListener('submit', async e => {
   }
 })
 
-btnLogout.addEventListener('click', () => {
+btnLogout.addEventListener('click', async () => {
+  try {
+    await api('/auth', { method: 'POST', body: JSON.stringify({ action: 'logout' }) })
+  } catch {}
   localStorage.removeItem('immeit_token')
-  document.cookie = 'session=; Path=/; Max-Age=0'
   showLogin()
 })
 
 function showLogin() {
+  appContainer.classList.add('hidden')
   loginScreen.classList.remove('hidden')
   mainScreen.classList.add('hidden')
   editorScreen.classList.add('hidden')
@@ -338,6 +348,7 @@ function showLogin() {
 }
 
 function showMain() {
+  appContainer.classList.remove('hidden')
   loginScreen.classList.add('hidden')
   editorScreen.classList.add('hidden')
   mainScreen.classList.remove('hidden')
@@ -353,7 +364,6 @@ function showEditor(article) {
   regenNews = null
 
   if (article) {
-    editorTitle.textContent = '#' + article.id + ' — ' + (article.titre_interne || '(sans titre)')
     editTitre.value = article.titre_interne || ''
     editCorps.value = article.corps || ''
     const h = article.hashtags || []
@@ -385,7 +395,6 @@ function showEditor(article) {
     updateEditorButtons(article.statut)
     updateStatusBar(article.statut)
   } else {
-    editorTitle.textContent = 'Nouvel article'
     editTitre.value = ''
     editCorps.value = ''
     editHashtags.value = ''
@@ -564,9 +573,9 @@ function renderArticles() {
 btnPrev.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderArticles() } })
 btnNext.addEventListener('click', () => { const t = Math.ceil(articles.length / PAGE_SIZE); if (currentPage < t) { currentPage++; renderArticles() } })
 
-document.querySelectorAll('.filter-btn').forEach(b => {
+document.querySelectorAll('.tab').forEach(b => {
   b.addEventListener('click', () => {
-    document.querySelectorAll('.filter-btn').forEach(x => x.classList.remove('active'))
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'))
     b.classList.add('active')
     filter = b.dataset.filter
     loadArticles()

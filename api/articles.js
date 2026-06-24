@@ -1,7 +1,12 @@
 const db = require('../lib/db');
 const rateLimit = require('../lib/rateLimit');
+const { requireAuth } = require('../lib/auth');
+const { log } = require('../lib/logger');
+const cors = require('../lib/cors');
 
-module.exports = async (req, res) => {
+module.exports = requireAuth(async (req, res) => {
+  if (cors(res, req)) return;
+
   const { method } = req;
   const { id } = req.query;
 
@@ -45,7 +50,7 @@ module.exports = async (req, res) => {
         return res.status(405).json({ error: 'Méthode non autorisée' });
     }
   } catch (err) {
-    console.error(`[ARTICLES] ${method} error:`, err.message);
+    log('error', 'articles_error', { method, id: id || null, error: err.message });
     return res.status(500).json({ error: 'Erreur interne. Réessaie.' });
   }
-};
+});
