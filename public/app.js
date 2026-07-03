@@ -60,6 +60,11 @@ const dashLoading = $('dash-loading'), dashError = $('dash-error'), dashErrorTex
 const dashUpdateInfo = $('dash-update-info')
 const shellTitle = $('shell-title')
 
+const excelToDate = val => {
+  const num = parseFloat(String(val).replace(',', '.'))
+  if (!isNaN(num) && num > 40000 && num < 60000) return new Date(Math.round((num - 25569) * 86400000))
+  return null
+}
 
 const SUGGESTED_HASHTAGS = [
   '#MaintenanceIndustrielle', '#GMAO', '#Fiabilite', '#MaintenancePredictive',
@@ -92,21 +97,6 @@ function showToast(message, type = 'success', duration = 3000) {
 function getBadgeClass(status) {
   const map = { brouillon: 's-brouillon', en_revision: 's-en_revision', valide: 's-valide', publie: 's-publie', archive: 's-archive' }
   return map[status] || 's-brouillon'
-}
-
-function formatDateRelative(isoString) {
-  if (!isoString) return '—'
-  const date = new Date(isoString)
-  const now = new Date()
-  const diffMin = Math.floor((now - date) / 60000)
-  if (diffMin < 1) return "À l'instant"
-  if (diffMin < 60) return `Il y a ${diffMin} min`
-  const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24) return `Il y a ${diffH}h`
-  const diffD = Math.floor(diffH / 24)
-  if (diffD === 1) return 'Hier'
-  if (diffD < 7) return `Il y a ${diffD} jours`
-  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function esc(s) {
@@ -619,11 +609,10 @@ function loadArticles() {
   api(`/articles?${params}`).then(data => {
     articles = data.articles || []
     currentPage = 1
-    renderArticles()
     if (!editingId && articles.length > 0) {
       showEditor(articles[0])
-      renderArticles()
     }
+    renderArticles()
   }).catch(() => {
     articleList.innerHTML = '<div class="empty">Erreur de chargement</div>'
   })
@@ -872,7 +861,7 @@ function renderLinkedInPreview(text) {
 
 btnCopy.addEventListener('click', async () => {
   let text = formatForLinkedIn(editCorps.value)
-  const h = Array.isArray(editHashtags.value) ? editHashtags.value : editHashtags.value.split(/\s+/).filter(h => h)
+  const h = editHashtags.value.split(/\s+/).filter(h => h)
   if (h.length) text += '\n\n' + h.join(' ')
 
   if (text.length > 3000) {
@@ -1207,19 +1196,19 @@ async function loadDashboard() {
   dashLoading.classList.remove('hidden')
   dashError.classList.add('hidden')
   btnDashRefresh.disabled = true
-  dashUpdateInfo.textContent = '🔄 Chargement…'
+  dashUpdateInfo.textContent = 'Chargement…'
 
   try {
     const data = await api('/dashboard')
     dashData = data
     window._lastSyncTime = Date.now()
     renderDashboard(data)
-    dashUpdateInfo.textContent = `🔄 À l'instant`
+    dashUpdateInfo.textContent = 'À l\'instant'
     startSyncTimer()
   } catch (err) {
     dashError.classList.remove('hidden')
     dashErrorText.textContent = err.message || 'Erreur de chargement du tableau de bord'
-    dashUpdateInfo.textContent = '⚠ Erreur'
+    dashUpdateInfo.textContent = 'Erreur'
   } finally {
     dashLoading.classList.add('hidden')
     btnDashRefresh.disabled = false
@@ -1229,7 +1218,7 @@ async function loadDashboard() {
 btnDashSync.addEventListener('click', async () => {
   if (btnDashSync.classList.contains('syncing')) return
   btnDashSync.classList.add('syncing')
-  btnDashSync.textContent = '☁ Sync…'
+  btnDashSync.textContent = 'Sync…'
   try {
     const result = await api('/sync', { method: 'POST' })
     if (result.success && result.count > 0) {
@@ -1242,7 +1231,7 @@ btnDashSync.addEventListener('click', async () => {
     showToast('Erreur synchronisation: ' + err.message, 'error')
   } finally {
     btnDashSync.classList.remove('syncing')
-    btnDashSync.textContent = '☁ Sync'
+    btnDashSync.textContent = 'Sync'
   }
 })
 
@@ -1266,10 +1255,10 @@ function startSyncTimer() {
     const lastSync = window._lastSyncTime
     if (!lastSync) { dashUpdateInfo.textContent = ''; return }
     const elapsed = Math.floor((Date.now() - lastSync) / 1000)
-    if (elapsed < 5) dashUpdateInfo.textContent = '🔄 À l\'instant'
-    else if (elapsed < 60) dashUpdateInfo.textContent = '🔄 Synchronisé il y a ' + elapsed + 's'
-    else if (elapsed < 3600) dashUpdateInfo.textContent = '🔄 Synchronisé il y a ' + Math.floor(elapsed / 60) + ' min'
-    else dashUpdateInfo.textContent = '🔄 Synchronisé à ' + new Date(lastSync).toLocaleTimeString('fr-FR')
+    if (elapsed < 5)     dashUpdateInfo.textContent = 'À l\'instant'
+    else if (elapsed < 60) dashUpdateInfo.textContent = 'Mis à jour il y a ' + elapsed + 's'
+    else if (elapsed < 3600) dashUpdateInfo.textContent = 'Mis à jour il y a ' + Math.floor(elapsed / 60) + ' min'
+    else dashUpdateInfo.textContent = 'Mis à jour à ' + new Date(lastSync).toLocaleTimeString('fr-FR')
   }
   tick()
   window._syncTimerInterval = setInterval(tick, 30000)
@@ -1286,7 +1275,7 @@ function renderDashboard(data) {
   if (hasSPData) {
     displayHeaders = sharepoint.headers
     displayItems = sharepoint.items
-    displayStats = sharepoint.stats
+    displayStats = computeClientStats(sharepoint.headers, sharepoint.items)
   } else if (hasSynced) {
     displayHeaders = synced.headers
     displayItems = synced.items
@@ -1294,45 +1283,71 @@ function renderDashboard(data) {
   }
 
   if (!displayStats) {
-    dashContent.innerHTML = '<div class="dash-empty-state"><div class="dash-empty-icon">⏳</div><p>En attente de synchronisation SharePoint. Clique sur <strong>☁ Sync</strong> pour récupérer les données.</p></div>'
+    dashContent.innerHTML = '<div class="dash-empty-state"><div class="dash-empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><p>En attente de synchronisation SharePoint. Clique sur <strong>Sync</strong> pour récupérer les données.</p></div>'
     return
   }
 
   const s = displayStats
-  const total = s.total
 
-  const filteredItems = displayItems
+  var statsArea = document.createElement('div')
+  statsArea.id = 'dash-stats-area'
+  dashContent.appendChild(statsArea)
 
-  // ─── HEALTH SCORE ──────────────────────────────────────────
-  const avgConf = Math.round((s.tauxConf1 + s.tauxConfDem) / 2)
-  const score = Math.round((avgConf + s.duree.zeroPct + (s.ecart.avg <= 0 ? 100 : Math.max(0, 100 - s.ecart.avg * 10))) / 3)
-  const healthCls = score >= 80 ? 'good' : score >= 55 ? 'mid' : 'bad'
-  const healthLabel = score >= 80 ? 'Bon' : score >= 55 ? 'Moyen' : 'À améliorer'
-  const healthTitle = score >= 80 ? 'Tableau de bord opérationnel'
-    : score >= 55 ? 'Quelques points d\'attention'
-    : 'Actions correctives nécessaires'
-  const healthDesc = score >= 80
-    ? `Les indicateurs sont au vert. ${s.total} demandes traitées avec ${s.tauxConf1}% de conformité et ${s.duree.zeroPct}% de traitement en J+0.`
-    : score >= 55
-    ? `Conformité à ${avgConf}% — ${s.duree.zeroPct}% des demandes sont traitées en J+0. ${s.ecart.avg > 0 ? 'Écart moyen de ' + s.ecart.avg + 'j à améliorer.' : 'Délais sous contrôle.'}`
-    : `La conformité (${avgConf}%) et les délais (${s.duree.zeroPct}% J+0) nécessitent une attention prioritaire.`
+  var _baseHeaders = displayHeaders
+  var _baseItems = displayItems
 
-  const health = document.createElement('div')
-  health.className = 'dash-health'
-  health.innerHTML = `
-    <div class="dash-health-score ${healthCls}">${score}</div>
-    <div class="dash-health-info">
-      <div class="dash-health-label">Score de santé · ${healthLabel}</div>
-      <div class="dash-health-title">${healthTitle}</div>
-      <div class="dash-health-desc">${healthDesc}</div>
-    </div>
-  `
-  dashContent.appendChild(health)
+  function buildStatsSections(stats, items) {
+    statsArea.innerHTML = ''
+    var total = stats.total
 
-  // ─── KPI CARDS (compact, 5 max) ──────────────────────────
-  const conf1Color = s.tauxConf1 >= 80 ? '#10B981' : s.tauxConf1 >= 60 ? '#F59E0B' : '#EF4444'
-  const dureeColor = s.duree.zeroPct >= 90 ? '#10B981' : s.duree.zeroPct >= 70 ? '#F59E0B' : '#EF4444'
-  const ecartColor = s.ecart.avg <= 0 ? '#10B981' : s.ecart.avg <= 3 ? '#F59E0B' : '#EF4444'
+    // ─── DATE RANGE BAR ────────────────────────────────────────
+    var dateBar = document.createElement('div')
+    dateBar.className = 'dash-date-bar'
+    dateBar.innerHTML = '<span class="dash-date-bar-label">Période</span>' +
+      '<input type="date" id="dash-date-start" class="dash-date-input" value="' + (dateStartVal || '') + '">' +
+      '<span class="dash-date-bar-sep">→</span>' +
+      '<input type="date" id="dash-date-end" class="dash-date-input" value="' + (dateEndVal || '') + '">' +
+      '<button class="btn btn--ghost btn-sm dash-date-clear" id="dash-date-clear">Réinitialiser</button>'
+    statsArea.appendChild(dateBar)
+    // Bind events for top date inputs
+    var topStart = dateBar.querySelector('#dash-date-start')
+    var topEnd = dateBar.querySelector('#dash-date-end')
+    var topClear = dateBar.querySelector('#dash-date-clear')
+    topStart.addEventListener('change', function() { dateStartVal = this.value; applyGlobalFilters() })
+    topEnd.addEventListener('change', function() { dateEndVal = this.value; applyGlobalFilters() })
+    topClear.addEventListener('click', function() { topStart.value = ''; topEnd.value = ''; dateStartVal = ''; dateEndVal = ''; applyGlobalFilters() })
+
+    // ─── HEALTH SCORE ──────────────────────────────────────────
+    const avgConf = Math.round((stats.tauxConf1 + stats.tauxConfDem) / 2)
+    const score = Math.round((avgConf + stats.duree.zeroPct + (stats.ecart.avg <= 0 ? 100 : Math.max(0, 100 - stats.ecart.avg * 10))) / 3)
+    const healthCls = score >= 80 ? 'good' : score >= 55 ? 'mid' : 'bad'
+    const healthLabel = score >= 80 ? 'Bon' : score >= 55 ? 'Moyen' : 'À améliorer'
+    const healthTitle = score >= 80 ? 'Tableau de bord opérationnel'
+      : score >= 55 ? 'Quelques points d\'attention'
+      : 'Actions correctives nécessaires'
+    const healthDesc = score >= 80
+      ? `Les indicateurs sont au vert. Conf. 1ère diffusion (IMMEIT) : ${stats.tauxConf1}% · Conf. vérification (P2M) : ${stats.tauxConfDem}% · ${stats.duree.zeroPct}% traités en J+0.`
+      : score >= 55
+      ? `Conf. 1ère diffusion : ${stats.tauxConf1}% · Conf. vérification P2M : ${stats.tauxConfDem}% · ${stats.duree.zeroPct}% J+0. ${stats.ecart.avg > 0 ? 'Écart moyen ' + stats.ecart.avg + 'j à réduire.' : 'Délais sous contrôle.'}`
+      : `Conf. 1ère diffusion : ${stats.tauxConf1}% · Conf. vérification P2M : ${stats.tauxConfDem}% · Délais : ${stats.duree.zeroPct}% J+0 — actions prioritaires requises.`
+
+    const health = document.createElement('div')
+    health.className = 'dash-health'
+    health.innerHTML = `
+      <div class="dash-health-score ${healthCls}">${score}</div>
+      <div class="dash-health-info">
+        <div class="dash-health-label">Score de santé · ${healthLabel}</div>
+        <div class="dash-health-title">${healthTitle}</div>
+        <div class="dash-health-desc">${healthDesc}</div>
+      </div>
+    `
+    statsArea.appendChild(health)
+
+    // ─── KPI CARDS (5) ─────────────────────────────────────────
+    const conf1Color = stats.tauxConf1 >= 80 ? '#10B981' : stats.tauxConf1 >= 60 ? '#F59E0B' : '#EF4444'
+    const confDemColor = stats.tauxConfDem >= 80 ? '#10B981' : stats.tauxConfDem >= 60 ? '#F59E0B' : '#EF4444'
+    const dureeColor = stats.duree.zeroPct >= 90 ? '#10B981' : stats.duree.zeroPct >= 70 ? '#F59E0B' : '#EF4444'
+    const ecartColor = stats.ecart.avg <= 0 ? '#10B981' : stats.ecart.avg <= 3 ? '#F59E0B' : '#EF4444'
 
   const kpis = document.createElement('div')
   kpis.className = 'dash-kpi-grid'
@@ -1348,9 +1363,17 @@ function renderDashboard(data) {
     <div class="dash-kpi-card" style="--accent:${conf1Color}">
       <div class="dash-kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
       <div class="dash-kpi-body">
-        <span class="dash-kpi-label">Conformité</span>
-        <span class="dash-kpi-value" data-target="${avgConf}">${avgConf}<span style="font-size:.55em;margin-left:1px">%</span></span>
-        <span class="dash-kpi-sub">moyenne 1ère diff. + demande</span>
+        <span class="dash-kpi-label">Conf. 1ère diffusion</span>
+        <span class="dash-kpi-value" data-target="${s.tauxConf1}">${s.tauxConf1}<span style="font-size:.55em;margin-left:1px">%</span></span>
+        <span class="dash-kpi-sub">IMMEIT → rapport reçu conforme</span>
+      </div>
+    </div>
+    <div class="dash-kpi-card" style="--accent:${confDemColor}">
+      <div class="dash-kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21.5 11.5A10 10 0 1 1 12 2a10 10 0 0 1 9.5 6.69"/></svg></div>
+      <div class="dash-kpi-body">
+        <span class="dash-kpi-label">Conf. vérification</span>
+        <span class="dash-kpi-value" data-target="${s.tauxConfDem}">${s.tauxConfDem}<span style="font-size:.55em;margin-left:1px">%</span></span>
+        <span class="dash-kpi-sub">P2M → travail IMMEIT conforme</span>
       </div>
     </div>
     <div class="dash-kpi-card" style="--accent:${dureeColor}">
@@ -1369,212 +1392,251 @@ function renderDashboard(data) {
         <span class="dash-kpi-sub">${s.ecart.avg <= 0 ? 'avance' : 'retard'} moyen</span>
       </div>
     </div>
-    <div class="dash-kpi-card" style="--accent:#8B5CF6">
-      <div class="dash-kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-      <div class="dash-kpi-body">
-        <span class="dash-kpi-label">Échéance</span>
-        <span class="dash-kpi-value" data-target="${s.echeance.avg}">${s.echeance.avg}<span style="font-size:.55em;margin-left:1px">j</span></span>
-        <span class="dash-kpi-sub">délai contractuel moyen</span>
-      </div>
-    </div>
   `
-  dashContent.appendChild(kpis)
+    statsArea.appendChild(kpis)
 
-  const kpiValues = kpis.querySelectorAll('.dash-kpi-value[data-target]')
-  kpiValues.forEach((el, i) => {
-    const target = parseFloat(el.dataset.target)
-    if (isNaN(target)) return
-    const textNode = [...el.childNodes].find(n => n.nodeType === 3)
-    if (textNode) textNode.textContent = '0'
-    else el.textContent = '0'
-    setTimeout(() => countUp(el, target, 500), i * 80)
-  })
-  // ─── FILTER PANEL ──────────────────────────────────────────
-  const fnorm = x => x.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '')
-  const fh = name => {
-    const n = fnorm(name)
-    const match = displayHeaders.find(x => fnorm(x) === n || x === name)
-    return match ? fnorm(match) : ''
+    const kpiValues = kpis.querySelectorAll('.dash-kpi-value[data-target]')
+    kpiValues.forEach((el, i) => {
+      const target = parseFloat(el.dataset.target)
+      if (isNaN(target)) return
+      const textNode = [...el.childNodes].find(n => n.nodeType === 3)
+      if (textNode) textNode.textContent = '0'
+      else el.textContent = '0'
+      setTimeout(() => countUp(el, target, 500), i * 80)
+    })
+    // ─── INSIGHTS ──────────────────────────────────────────────
+    const insights = []
+    if (stats.avancementDist.length > 0) {
+      const enCours = stats.avancementDist.find(a => /en.cours/i.test(a.label))
+      if (enCours) insights.push(`<span class="dash-insight"><span class="dash-insight-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="dash-insight-text"><strong>${enCours.count} demandes</strong> sont en cours de traitement</span></span>`)
+    }
+    if (stats.monthlyTrend && stats.monthlyTrend.length >= 2) {
+      const last = stats.monthlyTrend[stats.monthlyTrend.length - 1]
+      const prev = stats.monthlyTrend[stats.monthlyTrend.length - 2]
+      const trend = last.count > prev.count ? 'en hausse' : last.count < prev.count ? 'en baisse' : 'stable'
+      insights.push(`<span class="dash-insight"><span class="dash-insight-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="dash-insight-text">Activit\u00e9 ${trend} (${last.count} demandes en ${last.month})</span></span>`)
+    }
+    if (insights.length > 0) {
+      const insWrap = document.createElement('div')
+      insWrap.className = 'dash-insights'
+      insWrap.innerHTML = insights.join('')
+      statsArea.appendChild(insWrap)
+    }
+
+    // ─── SECTION : CONFORMITÉ ─────────────────────────────────
+    if (stats.conf1Dist.length > 0 || stats.confDemDist.length > 0) {
+      const confGrid = document.createElement('div')
+      confGrid.className = 'dash-charts-grid'
+      if (stats.conf1Dist.length > 0) confGrid.appendChild(createDonutChart('Conformité 1ère diffusion', stats.conf1Dist, confColors))
+      if (stats.confDemDist.length > 0) confGrid.appendChild(createDonutChart('Conformité demande', stats.confDemDist, confColors))
+      if (confGrid.children.length > 0) {
+        const section = document.createElement('div')
+        section.className = 'dash-section'
+        section.innerHTML = `<div class="dash-section-header"><h3>Conformité</h3><span class="dash-section-toggle open" id="dash-toggle-conf">▼</span></div><div class="dash-section-body" id="dash-body-conf"></div>`
+        section.querySelector('.dash-section-body').appendChild(confGrid)
+        section.querySelector('.dash-section-header').addEventListener('click', () => {
+          const body = section.querySelector('.dash-section-body')
+          const toggle = section.querySelector('.dash-section-toggle')
+          body.classList.toggle('collapsed')
+          toggle.classList.toggle('open')
+        })
+        statsArea.appendChild(section)
+      }
+    }
+
+    // ─── SECTION : STOCKAGE ────────────────────────────────────
+    if (stats.stockageDist && stats.stockageDist.length > 0 && stats.stockageAdvesoDist && stats.stockageAdvesoDist.length > 0) {
+      var stockageGrid = document.createElement('div')
+      stockageGrid.className = 'dash-charts-grid'
+      stockageGrid.appendChild(createDonutChart('Stockage DOCINFO', stats.stockageDist.filter(function(d) { return d.count > 0 && d.label.trim() }), stockageColors))
+      stockageGrid.appendChild(createDonutChart('Stockage ADVESO', stats.stockageAdvesoDist.filter(function(d) { return d.count > 0 && d.label.trim() }), stockageColors))
+      var stockageSection = document.createElement('div')
+      stockageSection.className = 'dash-section'
+      stockageSection.innerHTML = '<div class="dash-section-header"><h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Stockage</h3><span class="dash-section-toggle open" id="dash-toggle-stockage">▼</span></div><div class="dash-section-body" id="dash-body-stockage"></div>'
+      stockageSection.querySelector('.dash-section-body').appendChild(stockageGrid)
+      stockageSection.querySelector('.dash-section-header').addEventListener('click', function() {
+        var body = stockageSection.querySelector('.dash-section-body')
+        var toggle = stockageSection.querySelector('.dash-section-toggle')
+        body.classList.toggle('collapsed')
+        toggle.classList.toggle('open')
+      })
+      statsArea.appendChild(stockageSection)
+    }
+
+    // ─── SECTION : AVANCEMENT + TYPE ──────────────────────────
+    if (stats.avancementDist.length > 0 && stats.typeDist.length > 0) {
+      const chartsGrid = document.createElement('div')
+      chartsGrid.className = 'dash-charts-grid'
+      chartsGrid.appendChild(createDonutChart('État d\'avancement', stats.avancementDist, statusColors))
+      chartsGrid.appendChild(createDonutChart('Type de demande', stats.typeDist.slice(0, 8), typeColors))
+      statsArea.appendChild(chartsGrid)
+    }
+
+    // ─── SECTION : NATURE + SITE ──────────────────────────────
+    if (stats.natureDist.length > 0 || stats.siteDist.length > 0) {
+      const row2 = document.createElement('div')
+      row2.className = 'dash-charts-grid'
+      if (stats.natureDist.length > 0) row2.appendChild(createBarChart('Nature', stats.natureDist.slice(0, 8), natureColors))
+      if (stats.siteDist.length > 0) row2.appendChild(createDonutChart('Par site', stats.siteDist.slice(0, 8), siteColors))
+      if (row2.children.length > 0) {
+        const section = document.createElement('div')
+        section.className = 'dash-section'
+        section.innerHTML = `<div class="dash-section-header"><h3>Détails</h3><span class="dash-section-toggle open" id="dash-toggle-details">▼</span></div><div class="dash-section-body" id="dash-body-details"></div>`
+        section.querySelector('.dash-section-body').appendChild(row2)
+        section.querySelector('.dash-section-header').addEventListener('click', () => {
+          const body = section.querySelector('.dash-section-body')
+          const toggle = section.querySelector('.dash-section-toggle')
+          body.classList.toggle('collapsed')
+          toggle.classList.toggle('open')
+        })
+        statsArea.appendChild(section)
+      }
+    }
+
+    // ─── SECTION : TOP DEMANDEURS ─────────────────────────────
+    if (stats.topDemandeurs.length > 0) {
+      const demSection = document.createElement('div')
+      demSection.className = 'dash-section'
+      demSection.innerHTML = `<div class="dash-section-header"><h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Top 10 demandeurs</h3><span class="dash-section-toggle open" id="dash-toggle-dem">▼</span></div><div class="dash-section-body" id="dash-body-dem"></div>`
+      const list = document.createElement('div')
+      list.className = 'dash-bar-list'
+      const maxDem = Math.max(...stats.topDemandeurs.map(d => d.count), 1)
+      stats.topDemandeurs.forEach(item => {
+        const pct = (item.count / maxDem) * 100
+        const bar = document.createElement('div')
+        bar.className = 'dash-bar-item'
+        bar.innerHTML = `
+          <div class="dash-bar-header">
+            <span class="dash-bar-label">${esc(item.label)}</span>
+            <span class="dash-bar-count">${item.count}</span>
+          </div>
+          <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${pct}%;background:#0A66C2"></div></div>`
+        list.appendChild(bar)
+      })
+      demSection.querySelector('.dash-section-body').appendChild(list)
+      demSection.querySelector('.dash-section-header').addEventListener('click', () => {
+        const body = demSection.querySelector('.dash-section-body')
+        const toggle = demSection.querySelector('.dash-section-toggle')
+        body.classList.toggle('collapsed')
+        toggle.classList.toggle('open')
+      })
+      statsArea.appendChild(demSection)
+    }
+
+    // ─── SECTION : ÉVOLUTION MENSUELLE ────────────────────────
+    if (stats.monthlyTrend && stats.monthlyTrend.length > 0) {
+      const monthlySection = document.createElement('div')
+      monthlySection.className = 'dash-section'
+      monthlySection.innerHTML = `<div class="dash-section-header"><h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Évolution mensuelle</h3><span class="dash-section-toggle open" id="dash-toggle-monthly">▼</span></div><div class="dash-section-body" id="dash-body-monthly"></div>`
+      monthlySection.querySelector('.dash-section-body').appendChild(createLineChart('', stats.monthlyTrend))
+      monthlySection.querySelector('.dash-section-header').addEventListener('click', () => {
+        const body = monthlySection.querySelector('.dash-section-body')
+        const toggle = monthlySection.querySelector('.dash-section-toggle')
+        body.classList.toggle('collapsed')
+        toggle.classList.toggle('open')
+      })
+      statsArea.appendChild(monthlySection)
+    }
+  } // end buildStatsSections
+
+  // Initial render
+  buildStatsSections(s, displayItems)
+
+  var _gpfnorm = function(x) { return x.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '') }
+  var _gpfh = function(name) {
+    var n = _gpfnorm(name)
+    var match = displayHeaders.find(function(x) { return _gpfnorm(x) === n || x === name })
+    return match ? _gpfnorm(match) : ''
   }
-  const gpStatusField = fh("Etat d'avance de la demande")
+  var gpStatusField = _gpfh("Etat d'avance de la demande")
+  var gpDateField = (_baseItems[0] ? Object.keys(_baseItems[0]).find(function(k) { return k.indexOf('date_') === 0 && (k.indexOf('_dpt') >= 0 || k.indexOf('depot') >= 0) && k.indexOf('docinfo') >= 0 }) : '') || ''
 
-  const filterPanel = document.createElement('div')
+  var filterPanel = document.createElement('div')
   filterPanel.className = 'dash-section'
   filterPanel.id = 'dash-filter-panel'
-  filterPanel.innerHTML = `
-    <div class="dash-section-header" style="cursor:default;user-select:auto">
-      <h3 style="display:flex;align-items:center;gap:8px">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-        Filtres
-      </h3>
-    </div>
-    <div class="dash-section-body" style="padding:var(--space-3) var(--space-5)">
-      <div class="dash-table-filter-row" style="margin:0;border:none">
-        <span class="filter-label">Statut</span>
-        <select id="dash-filter-global-status"><option value="">Tous les statuts</option></select>
-        <span class="filter-label" style="margin-left:12px">Recherche</span>
-        <input type="text" id="dash-filter-global-search" placeholder="Mot-clé…" style="min-width:200px">
-      </div>
-    </div>
-  `
+  filterPanel.innerHTML = [
+    '<div class="dash-section-header" style="cursor:default;user-select:auto">',
+    '  <h3 style="display:flex;align-items:center;gap:8px">',
+    '    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>',
+    '    Filtres',
+    '  </h3>',
+    '</div>',
+    '<div class="dash-section-body" style="padding:var(--space-3) var(--space-5)">',
+    '  <div class="dash-table-filter-row" style="margin:0;border:none">',
+    '    <span class="filter-label">Statut</span>',
+    '    <select id="dash-filter-global-status"><option value="">Tous les statuts</option></select>',
+    '    <span class="filter-label" style="margin-left:12px">Recherche</span>',
+    '    <input type="text" id="dash-filter-global-search" placeholder="Mot-clé\u2026" style="min-width:200px">',
+    '  </div>',
+    '</div>'
+  ].join('\n')
 
   if (gpStatusField) {
-    const uniqueSt = [...new Set(filteredItems.map(i => i[gpStatusField] || '').filter(Boolean))]
-    const sel = filterPanel.querySelector('#dash-filter-global-status')
-    uniqueSt.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o) })
+    var uniqueSt = [...new Set(_baseItems.map(function(i) { return i[gpStatusField] || '' }).filter(Boolean))]
+    var sel = filterPanel.querySelector('#dash-filter-global-status')
+    uniqueSt.forEach(function(s) { var o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o) })
   }
 
   dashContent.appendChild(filterPanel)
 
-  // ─── TABLE (filtrée) ──────────────────────────────────────
-  let tableCard
-  function renderFilteredTable(filteredItems) {
-    const newCard = renderDataTable(displayHeaders, filteredItems, s, gpStatusField)
+  var tableCard
+  function renderFilteredTable(filtered) {
+    var newCard = renderDataTable(displayHeaders, filtered, s, gpStatusField)
     if (tableCard) { tableCard.replaceWith(newCard) } else { dashContent.appendChild(newCard) }
     tableCard = newCard
   }
 
-  const statusSel = filterPanel.querySelector('#dash-filter-global-status')
-  const searchInput = filterPanel.querySelector('#dash-filter-global-search')
+  var statusSel = filterPanel.querySelector('#dash-filter-global-status')
+  var searchInput = filterPanel.querySelector('#dash-filter-global-search')
+  var dateStartVal = ''
+  var dateEndVal = ''
+
+  var parseItemDate = function(raw) {
+    if (!raw) return null
+    try {
+      var d = excelToDate(raw)
+      if (d && !isNaN(d.getTime())) return d
+      if (/\//.test(raw)) {
+        var parts = raw.split('/')
+        if (parts.length === 3) { d = new Date(parts[2], parts[1] - 1, parts[0]); if (!isNaN(d.getTime())) return d }
+      }
+      d = new Date(raw)
+      if (!isNaN(d.getTime())) return d
+    } catch {}
+    return null
+  }
 
   function applyGlobalFilters() {
-    const stVal = statusSel.value.toLowerCase()
-    const searchVal = searchInput.value.toLowerCase()
-    const filtered = filteredItems.filter(item => {
-      const st = (item[gpStatusField] || '').toLowerCase()
+    _dashTableState.page = 1
+    var stVal = statusSel.value.toLowerCase()
+    var searchVal = searchInput.value.toLowerCase()
+    var dsVal = dateStartVal
+    var deVal = dateEndVal
+    var ds = dsVal ? new Date(dsVal + 'T00:00:00') : null
+    var de = deVal ? new Date(deVal + 'T23:59:59') : null
+    var filtered = _baseItems.filter(function(item) {
+      var st = (item[gpStatusField] || '').toLowerCase()
       if (stVal && st !== stVal) return false
       if (searchVal) {
-        const allText = Object.values(item).join(' ').toLowerCase()
+        var allText = Object.values(item).join(' ').toLowerCase()
         if (!allText.includes(searchVal)) return false
+      }
+      if (gpDateField && (ds || de)) {
+        var dt = parseItemDate(item[gpDateField])
+        if (ds && (!dt || dt < ds)) return false
+        if (de && (!dt || dt > de)) return false
       }
       return true
     })
+    var newStats = computeClientStats(_baseHeaders, filtered)
+    buildStatsSections(newStats, filtered)
     renderFilteredTable(filtered)
   }
 
   statusSel.addEventListener('change', applyGlobalFilters)
   searchInput.addEventListener('input', applyGlobalFilters)
 
-  if (filteredItems.length > 0) renderFilteredTable(filteredItems)
-
-  // ─── INSIGHTS ──────────────────────────────────────────────
-  const insights = []
-  if (s.topDemandeurs.length > 0) {
-    insights.push(`<span class="dash-insight"><span class="dash-insight-icon">🏢</span><span class="dash-insight-text"><strong>${esc(s.topDemandeurs[0].label)}</strong> est le plus actif (${s.topDemandeurs[0].count} demandes)</span></span>`)
-  }
-  if (s.avancementDist.length > 0) {
-    const enCours = s.avancementDist.find(a => /en.cours/i.test(a.label))
-    if (enCours) insights.push(`<span class="dash-insight"><span class="dash-insight-icon">⚡</span><span class="dash-insight-text"><strong>${enCours.count} demandes</strong> sont en cours de traitement</span></span>`)
-  }
-  if (s.monthlyTrend && s.monthlyTrend.length >= 2) {
-    const last = s.monthlyTrend[s.monthlyTrend.length - 1]
-    const prev = s.monthlyTrend[s.monthlyTrend.length - 2]
-    const trend = last.count > prev.count ? '📈 en hausse' : last.count < prev.count ? '📉 en baisse' : '→ stable'
-    insights.push(`<span class="dash-insight"><span class="dash-insight-icon">📊</span><span class="dash-insight-text">Activité ${trend} (${last.count} demandes en ${last.month})</span></span>`)
-  }
-  if (insights.length > 0) {
-    const insWrap = document.createElement('div')
-    insWrap.className = 'dash-insights'
-    insWrap.innerHTML = insights.join('')
-    dashContent.appendChild(insWrap)
-  }
-
-  // ─── SECTION : AVANCEMENT + TYPE ──────────────────────────
-  if (s.avancementDist.length > 0 && s.typeDist.length > 0) {
-    const chartsGrid = document.createElement('div')
-    chartsGrid.className = 'dash-charts-grid'
-    chartsGrid.appendChild(createBarChart('État d\'avancement', s.avancementDist, statusColors))
-    chartsGrid.appendChild(createBarChart('Type de demande', s.typeDist.slice(0, 8), typeColors))
-    dashContent.appendChild(chartsGrid)
-  }
-
-  // ─── SECTION : NATURE + SITE ──────────────────────────────
-  if (s.natureDist.length > 0 || s.siteDist.length > 0) {
-    const row2 = document.createElement('div')
-    row2.className = 'dash-charts-grid'
-    if (s.natureDist.length > 0) row2.appendChild(createBarChart('Nature', s.natureDist.slice(0, 8), natureColors))
-    if (s.siteDist.length > 0) row2.appendChild(createBarChart('Par site', s.siteDist.slice(0, 8), siteColors))
-    if (row2.children.length > 0) {
-      const section = document.createElement('div')
-      section.className = 'dash-section'
-      section.innerHTML = `<div class="dash-section-header"><h3>Détails</h3><span class="dash-section-toggle open" id="dash-toggle-details">▼</span></div><div class="dash-section-body" id="dash-body-details"></div>`
-      section.querySelector('.dash-section-body').appendChild(row2)
-      section.querySelector('.dash-section-header').addEventListener('click', () => {
-        const body = section.querySelector('.dash-section-body')
-        const toggle = section.querySelector('.dash-section-toggle')
-        body.classList.toggle('collapsed')
-        toggle.classList.toggle('open')
-      })
-      dashContent.appendChild(section)
-    }
-  }
-
-  // ─── SECTION : CONFORMITÉ ─────────────────────────────────
-  if (s.conf1Dist.length > 0 || s.confDemDist.length > 0) {
-    const confGrid = document.createElement('div')
-    confGrid.className = 'dash-charts-grid'
-    if (s.conf1Dist.length > 0) confGrid.appendChild(createBarChart('Conformité 1ère diffusion', s.conf1Dist, confColors))
-    if (s.confDemDist.length > 0) confGrid.appendChild(createBarChart('Conformité demande', s.confDemDist, confColors))
-    if (confGrid.children.length > 0) {
-      const section = document.createElement('div')
-      section.className = 'dash-section'
-      section.innerHTML = `<div class="dash-section-header"><h3>Conformité</h3><span class="dash-section-toggle open" id="dash-toggle-conf">▼</span></div><div class="dash-section-body" id="dash-body-conf"></div>`
-      section.querySelector('.dash-section-body').appendChild(confGrid)
-      section.querySelector('.dash-section-header').addEventListener('click', () => {
-        const body = section.querySelector('.dash-section-body')
-        const toggle = section.querySelector('.dash-section-toggle')
-        body.classList.toggle('collapsed')
-        toggle.classList.toggle('open')
-      })
-      dashContent.appendChild(section)
-    }
-  }
-
-  // ─── SECTION : TOP DEMANDEURS ─────────────────────────────
-  if (s.topDemandeurs.length > 0) {
-    const demSection = document.createElement('div')
-    demSection.className = 'dash-section'
-    demSection.innerHTML = `<div class="dash-section-header"><h3>🏢 Top 10 demandeurs</h3><span class="dash-section-toggle open" id="dash-toggle-dem">▼</span></div><div class="dash-section-body" id="dash-body-dem"></div>`
-    const list = document.createElement('div')
-    list.className = 'dash-bar-list'
-    const maxDem = Math.max(...s.topDemandeurs.map(d => d.count), 1)
-    s.topDemandeurs.forEach(item => {
-      const pct = (item.count / maxDem) * 100
-      const bar = document.createElement('div')
-      bar.className = 'dash-bar-item'
-      bar.innerHTML = `
-        <div class="dash-bar-header">
-          <span class="dash-bar-label">${esc(item.label)}</span>
-          <span class="dash-bar-count">${item.count}</span>
-        </div>
-        <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${pct}%;background:#0A66C2"></div></div>`
-      list.appendChild(bar)
-    })
-    demSection.querySelector('.dash-section-body').appendChild(list)
-    demSection.querySelector('.dash-section-header').addEventListener('click', () => {
-      const body = demSection.querySelector('.dash-section-body')
-      const toggle = demSection.querySelector('.dash-section-toggle')
-      body.classList.toggle('collapsed')
-      toggle.classList.toggle('open')
-    })
-    dashContent.appendChild(demSection)
-  }
-
-  // ─── SECTION : ÉVOLUTION MENSUELLE ────────────────────────
-  if (s.monthlyTrend && s.monthlyTrend.length > 0) {
-    const monthlySection = document.createElement('div')
-    monthlySection.className = 'dash-section'
-    monthlySection.innerHTML = `<div class="dash-section-header"><h3>📈 Évolution mensuelle</h3><span class="dash-section-toggle open" id="dash-toggle-monthly">▼</span></div><div class="dash-section-body" id="dash-body-monthly"></div>`
-    monthlySection.querySelector('.dash-section-body').appendChild(renderMonthlyChart(s.monthlyTrend))
-    monthlySection.querySelector('.dash-section-header').addEventListener('click', () => {
-      const body = monthlySection.querySelector('.dash-section-body')
-      const toggle = monthlySection.querySelector('.dash-section-toggle')
-      body.classList.toggle('collapsed')
-
-      toggle.classList.toggle('open')
-    })
-    dashContent.appendChild(monthlySection)
-  }
+  if (_baseItems.length > 0) renderFilteredTable(_baseItems)
 }
 
 function computeClientStats(headers, items) {
@@ -1597,6 +1659,8 @@ function computeClientStats(headers, items) {
   const dureeField = h('Durée de traitement (jours) 1')
   const echeanceField = h('Echéance contractuelle (jours) 1')
   const ecartField = h('Ecart de traitement (jour) 1')
+  const stockageField = h('Stockage')
+  const stockageAdvesoField = h('Stockage ADVESO')
 
   const total = items.length
 
@@ -1640,14 +1704,19 @@ function computeClientStats(headers, items) {
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => b.count - a.count)
 
-  // --- Top demandeurs ---
+  // --- Top demandeurs (regroupés par nom normalisé) ---
   const demGroups = {}
+  const demLabels = {}
   items.forEach(item => {
-    const v = (item[demandeurField] || '').trim()
-    if (v) demGroups[v] = (demGroups[v] || 0) + 1
+    const raw = (item[demandeurField] || '').trim()
+    if (!raw) return
+    const key = raw.replace(/[^a-zA-Z]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
+    demGroups[key] = (demGroups[key] || 0) + 1
+    var prev = demLabels[key]
+    if (!prev || (raw.indexOf('\ufffd') < 0 && raw.length >= prev.length)) demLabels[key] = raw
   })
   const topDemandeurs = Object.entries(demGroups)
-    .map(([label, count]) => ({ label, count }))
+    .map(([key, count]) => ({ label: demLabels[key], count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)
 
@@ -1711,11 +1780,6 @@ function computeClientStats(headers, items) {
 
   // --- Monthly trend (date dépôt) ---
   const monthlyTrend = {}
-  const excelToDate = val => {
-    const num = parseFloat(String(val).replace(',', '.'))
-    if (!isNaN(num) && num > 40000 && num < 60000) return new Date(Math.round((num - 25569) * 86400000))
-    return null
-  }
   items.forEach(item => {
     const raw = item[dateDepotField] || ''
     if (!raw) return
@@ -1735,6 +1799,26 @@ function computeClientStats(headers, items) {
     } catch {}
   })
 
+  // --- Stockage DOCINFO ---
+  const stockageGroups = {}
+  items.forEach(item => {
+    var v = (item[stockageField] || '').trim()
+    if (v) stockageGroups[v] = (stockageGroups[v] || 0) + 1
+  })
+  const stockageDist = Object.entries(stockageGroups)
+    .map(function(a) { return { label: a[0], count: a[1] } })
+    .sort(function(a, b) { return b.count - a.count })
+
+  // --- Stockage ADVESO ---
+  const stockageAdvesoGroups = {}
+  items.forEach(item => {
+    var v = (item[stockageAdvesoField] || '').trim()
+    if (v) stockageAdvesoGroups[v] = (stockageAdvesoGroups[v] || 0) + 1
+  })
+  const stockageAdvesoDist = Object.entries(stockageAdvesoGroups)
+    .map(function(a) { return { label: a[0], count: a[1] } })
+    .sort(function(a, b) { return b.count - a.count })
+
   return {
     total,
     avancementDist,
@@ -1746,6 +1830,8 @@ function computeClientStats(headers, items) {
     conf1Dist,
     tauxConfDem,
     confDemDist,
+    stockageDist,
+    stockageAdvesoDist,
     duree: delaiStats(durees),
     echeance: delaiStats(echeances),
     ecart: delaiStats(ecarts),
@@ -1780,6 +1866,7 @@ const siteColors = ['#0A66C2', '#7C3AED', '#D4A017', '#16A34A', '#DC2626', '#0D9
 const typeColors = ['#0A66C2', '#7C3AED', '#D4A017', '#16A34A', '#DC2626', '#0D9488', '#F59E0B', '#6366F1', '#EC4899', '#14B8A6']
 
 const confColors = { 'Oui': '#16A34A', 'Non': '#DC2626', 'Conforme': '#16A34A', 'Non conforme': '#DC2626' }
+const stockageColors = { 'Oui': '#16A34A', 'Non': '#DC2626', 'Non concerné': '#94A3B8', 'Non concerne': '#94A3B8' }
 
 function createBarChart(title, data, colorMap) {
   const card = document.createElement('div')
@@ -1835,6 +1922,165 @@ function renderMonthlyChart(monthlyData) {
   return container
 }
 
+function createDonutChart(title, data, colorMap) {
+  const card = document.createElement('div')
+  card.className = 'dash-chart-card'
+  card.innerHTML = `<h4>${title}</h4>`
+  if (!data || data.length === 0) {
+    card.innerHTML += '<div style="color:var(--clr-text-muted);font-size:var(--text-sm);padding:20px 0;text-align:center">Aucune donnée</div>'
+    return card
+  }
+  const total = data.reduce((s, d) => s + d.count, 0)
+  if (total === 0) {
+    card.innerHTML += '<div style="color:var(--clr-text-muted);font-size:var(--text-sm);padding:20px 0;text-align:center">Aucune donnée</div>'
+    return card
+  }
+  const wrap = document.createElement('div')
+  wrap.className = 'dash-donut-wrap'
+  const svgNS = 'http://www.w3.org/2000/svg'
+  const size = 110
+  const svg = document.createElementNS(svgNS, 'svg')
+  svg.setAttribute('width', size)
+  svg.setAttribute('height', size)
+  svg.setAttribute('viewBox', '0 0 100 100')
+  svg.style.flexShrink = '0'
+  const cx = 50, cy = 50, r = 38, sw = 17
+  const circ = 2 * Math.PI * r
+  let offset = 0
+  data.forEach(item => {
+    const pct = item.count / total
+    const len = pct * circ
+    const color = typeof colorMap === 'function' ? colorMap(item.label) : (colorMap[item.label] || '#0A66C2')
+    const circle = document.createElementNS(svgNS, 'circle')
+    circle.setAttribute('cx', cx)
+    circle.setAttribute('cy', cy)
+    circle.setAttribute('r', r)
+    circle.setAttribute('fill', 'none')
+    circle.setAttribute('stroke', color)
+    circle.setAttribute('stroke-width', sw)
+    circle.setAttribute('stroke-dasharray', `${Math.max(len, 0.5)} ${circ - len}`)
+    circle.setAttribute('stroke-dashoffset', -offset)
+    circle.setAttribute('transform', `rotate(-90 ${cx} ${cy})`)
+    svg.appendChild(circle)
+    offset += len
+  })
+  const hole = document.createElementNS(svgNS, 'text')
+  hole.setAttribute('x', cx)
+  hole.setAttribute('y', cy + 4)
+  hole.setAttribute('text-anchor', 'middle')
+  hole.setAttribute('font-size', '16')
+  hole.setAttribute('font-weight', '700')
+  hole.setAttribute('fill', 'var(--clr-text-primary)')
+  hole.innerHTML = total
+  svg.appendChild(hole)
+  wrap.appendChild(svg)
+  const legend = document.createElement('div')
+  legend.className = 'dash-donut-legend'
+  data.forEach(item => {
+    const pct = Math.round(item.count / total * 100)
+    const color = typeof colorMap === 'function' ? colorMap(item.label) : (colorMap[item.label] || '#0A66C2')
+    const row = document.createElement('div')
+    row.className = 'dash-donut-row'
+    row.innerHTML = `
+      <span class="dash-donut-dot" style="background:${color}"></span>
+      <span class="dash-donut-lbl">${esc(item.label)}</span>
+      <span class="dash-donut-pct">${pct}%</span>
+      <span class="dash-donut-cnt">${item.count}</span>
+    `
+    legend.appendChild(row)
+  })
+  wrap.appendChild(legend)
+  card.appendChild(wrap)
+  return card
+}
+
+function createLineChart(title, data) {
+  const card = document.createElement('div')
+  card.className = 'dash-chart-card'
+  if (title) card.innerHTML = `<h4>${title}</h4>`
+  if (!data || data.length === 0) {
+    card.innerHTML += '<div style="color:var(--clr-text-muted);font-size:var(--text-sm);padding:20px 0;text-align:center">Aucune donnée</div>'
+    return card
+  }
+  const w = Math.max(data.length * 60 + 40, 300)
+  const h = 150
+  const pad = { top: 16, right: 12, bottom: 24, left: 36 }
+  const plotW = w - pad.left - pad.right
+  const plotH = h - pad.top - pad.bottom
+  const maxVal = Math.max(...data.map(d => d.count), 1)
+  const svgNS = 'http://www.w3.org/2000/svg'
+  const svg = document.createElementNS(svgNS, 'svg')
+  svg.setAttribute('width', '100%')
+  svg.setAttribute('height', h)
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`)
+  svg.style.display = 'block'
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (i / 4) * plotH
+    const val = Math.round(maxVal * (1 - i / 4))
+    const line = document.createElementNS(svgNS, 'line')
+    line.setAttribute('x1', pad.left)
+    line.setAttribute('y1', y)
+    line.setAttribute('x2', w - pad.right)
+    line.setAttribute('y2', y)
+    line.setAttribute('stroke', 'var(--clr-border)')
+    line.setAttribute('stroke-width', '1')
+    svg.appendChild(line)
+    const lbl = document.createElementNS(svgNS, 'text')
+    lbl.setAttribute('x', pad.left - 6)
+    lbl.setAttribute('y', y + 3)
+    lbl.setAttribute('text-anchor', 'end')
+    lbl.setAttribute('fill', 'var(--clr-text-muted)')
+    lbl.setAttribute('font-size', '9')
+    lbl.innerHTML = val
+    svg.appendChild(lbl)
+  }
+  const points = data.map((d, i) => ({
+    x: pad.left + (i / Math.max(data.length - 1, 1)) * plotW,
+    y: pad.top + (1 - d.count / maxVal) * plotH,
+    count: d.count,
+    label: d.month.slice(5)
+  }))
+  const area = document.createElementNS(svgNS, 'polygon')
+  const areaPts = `${points[0].x},${pad.top + plotH} ` +
+    points.map(p => `${p.x},${p.y}`).join(' ') +
+    ` ${points[points.length - 1].x},${pad.top + plotH}`
+  area.setAttribute('points', areaPts)
+  area.setAttribute('fill', 'rgba(59,130,246,.08)')
+  svg.appendChild(area)
+  const polyline = document.createElementNS(svgNS, 'polyline')
+  polyline.setAttribute('points', points.map(p => `${p.x},${p.y}`).join(' '))
+  polyline.setAttribute('fill', 'none')
+  polyline.setAttribute('stroke', '#3B82F6')
+  polyline.setAttribute('stroke-width', '2.5')
+  polyline.setAttribute('stroke-linecap', 'round')
+  polyline.setAttribute('stroke-linejoin', 'round')
+  svg.appendChild(polyline)
+  points.forEach((p, i) => {
+    const dot = document.createElementNS(svgNS, 'circle')
+    dot.setAttribute('cx', p.x)
+    dot.setAttribute('cy', p.y)
+    dot.setAttribute('r', i === points.length - 1 ? '4' : '3')
+    dot.setAttribute('fill', i === points.length - 1 ? '#2563EB' : '#3B82F6')
+    dot.setAttribute('stroke', '#fff')
+    dot.setAttribute('stroke-width', '1.5')
+    svg.appendChild(dot)
+  })
+  points.forEach(p => {
+    const lbl = document.createElementNS(svgNS, 'text')
+    lbl.setAttribute('x', p.x)
+    lbl.setAttribute('y', h - 4)
+    lbl.setAttribute('text-anchor', 'middle')
+    lbl.setAttribute('fill', 'var(--clr-text-muted)')
+    lbl.setAttribute('font-size', '9')
+    lbl.innerHTML = p.label
+    svg.appendChild(lbl)
+  })
+  card.appendChild(svg)
+  return card
+}
+
+var _dashTableState = {}
+
 function renderDataTable(headers, items, stats, statusField) {
   const norm = x => x.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '')
   const h = name => {
@@ -1862,38 +2108,70 @@ function renderDataTable(headers, items, stats, statusField) {
   ].filter(f => f.key)
 
   const headerHtml = displayFields.map(f => `<th>${esc(f.label)}</th>`).join('')
-
   function getCellValue(item, key) { return item[key] !== undefined ? item[key] : '' }
 
-  const ROWS = 100
-  const rowsHtml = items.slice(0, ROWS).map(item => {
+  if (!_dashTableState.page) _dashTableState.page = 1
+  if (!_dashTableState.items) _dashTableState.items = items
+  _dashTableState.items = items
+
+  const PAGE_SIZE = 50
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
+  if (_dashTableState.page > totalPages) _dashTableState.page = totalPages
+
+  const page = _dashTableState.page
+  const start = (page - 1) * PAGE_SIZE
+  const pageItems = items.slice(start, start + PAGE_SIZE)
+
+  const rowsHtml = pageItems.map(item => {
     const status = (getCellValue(item, statusField) || '').toLowerCase().replace(/[\s\-]+/g, '-')
     const cells = displayFields.map(f => {
       const val = getCellValue(item, f.key)
-      const displayVal = val.length > 60 ? val.slice(0, 60) + '…' : val
+      const displayVal = val.length > 60 ? val.slice(0, 60) + '\u2026' : val
       if (f.key === statusField) {
-        return `<td><span class="${status ? `dash-badge dash-st-${status}` : ''}">${esc(displayVal || '—')}</span></td>`
+        return '<td><span' + (status ? ' class="dash-badge dash-st-' + status + '"' : '') + '>' + esc(displayVal || '\u2014') + '</span></td>'
       }
       if (f.key === dateField || f.key === dateTraitField) {
-        return `<td style="white-space:nowrap">${esc(formatDateCell(displayVal) || '—')}</td>`
+        return '<td style="white-space:nowrap">' + esc(formatDateCell(displayVal) || '\u2014') + '</td>'
       }
-      return `<td>${esc(displayVal || '—')}</td>`
+      return '<td>' + esc(displayVal || '\u2014') + '</td>'
     }).join('')
-    return `<tr>${cells}</tr>`
+    return '<tr>' + cells + '</tr>'
   }).join('')
 
-  const showing = Math.min(items.length, ROWS)
+  const end = Math.min(start + PAGE_SIZE, items.length)
+
   const card = document.createElement('div')
   card.className = 'dash-section'
   card.id = 'dash-table-card'
-  card.innerHTML = `
-    <div class="dash-section-header" style="cursor:default">
-      <h3>Demandes <span style="font-weight:400;color:var(--clr-text-muted);font-size:var(--text-xs)">${showing}/${items.length}</span></h3>
-    </div>
-    <div class="dash-section-body dash-table-wrap">
-      <table><thead><tr>${headerHtml}</tr></thead><tbody>${rowsHtml}</tbody></table>
-    </div>
-  `
+
+  var pageBtn = function(label, pg, cls) {
+    return '<button class="btn btn--ghost btn-sm ' + cls + '" data-page="' + pg + '"' + (pg === page ? ' disabled' : '') + '>' + label + '</button>'
+  }
+
+  card.innerHTML = [
+    '<div class="dash-section-header" style="cursor:default">',
+    '  <h3>Demandes <span style="font-weight:400;color:var(--clr-text-muted);font-size:var(--text-xs)">' + (start + 1) + '\u2013' + end + '/' + items.length + '</span></h3>',
+    '  <div style="display:flex;align-items:center;gap:6px">',
+         pageBtn('\u2039 Pr\u00e9c\u00e9dent', page - 1, page <= 1 ? 'hidden' : '') +
+         '<span style="font-size:var(--text-xs);color:var(--clr-text-muted)">Page ' + page + '/' + totalPages + '</span>' +
+         pageBtn('Suivant \u203a', page + 1, page >= totalPages ? 'hidden' : ''),
+    '  </div>',
+    '</div>',
+    '<div class="dash-section-body dash-table-wrap">',
+    '  <table><thead><tr>' + headerHtml + '</tr></thead><tbody>' + rowsHtml + '</tbody></table>',
+    '</div>'
+  ].join('\n')
+
+  card.querySelectorAll('[data-page]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      _dashTableState.page = parseInt(btn.dataset.page)
+      var oldCard = document.getElementById('dash-table-card')
+      var parent = oldCard.parentNode
+      var newCard = renderDataTable(headers, items, stats, statusField)
+      parent.replaceChild(newCard, oldCard)
+    })
+  })
+
   return card
 }
 

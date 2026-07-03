@@ -15,10 +15,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="style.css?v=105">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="style.css?v=107">
 </head>
 <body>
 
@@ -60,7 +58,7 @@
       </a>
     </nav>
     <div class="shell-sidebar-footer">
-      <span class="shell-sidebar-version">v105</span>
+      <span class="shell-sidebar-version">v107</span>
     </div>
   </aside>
 
@@ -232,12 +230,12 @@
       <section id="dashboard-screen" class="dashboard">
         <div class="dashboard__header">
           <div class="dashboard__header-left">
-            <h1>📊 Tableau de bord — Suivi 2026</h1>
+            <h1>Tableau de bord — Suivi 2026</h1>
           </div>
           <div class="dashboard__header-right">
             <span id="dash-update-info" class="dashboard__update-info"></span>
-            <button id="btn-dash-refresh" class="btn btn--ghost btn-sm" title="Actualiser">↻ Actualiser</button>
-            <button id="btn-dash-sync" class="btn btn--ghost btn-sm dash-sync-btn" title="Synchroniser SharePoint">☁ Sync</button>
+            <button id="btn-dash-refresh" class="btn btn--ghost btn-sm" title="Actualiser">Actualiser</button>
+            <button id="btn-dash-sync" class="btn btn--ghost btn-sm dash-sync-btn" title="Synchroniser SharePoint">Sync</button>
           </div>
         </div>
         <div id="dash-content" class="dashboard__content">
@@ -246,7 +244,7 @@
             <p>Chargement du tableau de bord…</p>
           </div>
           <div class="dashboard__error hidden" id="dash-error">
-            <span class="dash-error-icon">⚠</span>
+            <span class="dash-error-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
             <p id="dash-error-text">Erreur de chargement</p>
             <button class="btn btn--ghost btn-sm" onclick="loadDashboard()">Réessayer</button>
           </div>
