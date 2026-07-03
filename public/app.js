@@ -384,7 +384,8 @@ function showMain() {
   dashboardScreen.classList.add('hidden')
   document.querySelector('.app-row')?.classList.remove('hidden')
   appContainer.classList.remove('hidden')
-  document.getElementById('shell-ai-selector')?.classList.remove('hidden')
+  const aiSel = document.getElementById('shell-ai-selector')
+  if (aiSel) aiSel.style.display = ''
   if (shellTitle) shellTitle.textContent = 'Articles'
   navArticles?.classList.add('active')
   navDashboard?.classList.remove('active')
@@ -1190,7 +1191,8 @@ function showDashboard() {
   dashboardScreen.classList.remove('hidden')
   document.querySelector('.app-row')?.classList.add('hidden')
   appContainer.classList.remove('hidden')
-  document.getElementById('shell-ai-selector')?.classList.add('hidden')
+  const aiSel = document.getElementById('shell-ai-selector')
+  if (aiSel) aiSel.style.display = 'none'
   if (shellTitle) shellTitle.textContent = 'Tableau de bord'
   navDashboard?.classList.add('active')
   navArticles?.classList.remove('active')
