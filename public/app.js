@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '105'
+const APP_VERSION = '106'
 
 // Force cache invalidation on version change
 ;(() => {
@@ -1229,7 +1229,7 @@ btnDashSync.addEventListener('click', async () => {
   try {
     const result = await api('/sync', { method: 'POST' })
     if (result.success && result.count > 0) {
-      showToast(`${result.count} lignes synchronisées ✓`, 'success')
+      showToast(result.message || `${result.count} lignes synchronisées ✓`, 'success')
     } else {
       showToast(result.message || 'Aucune donnée disponible', 'warning')
     }
@@ -1297,15 +1297,7 @@ function renderDashboard(data) {
   const s = displayStats
   const total = s.total
 
-  // Use same filtered item set as computeClientStats for coherent counts
-  const fnorm2 = x => x.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '')
-  const fh2 = name => {
-    const n = fnorm2(name)
-    const m = displayHeaders.find(x => fnorm2(x) === n || x === name)
-    return m ? fnorm2(m) : ''
-  }
-  const keyFields2 = [fh2("Etat d'avance de la demande"), fh2('Type de demande'), fh2('Nature de la demande'), fh2('Site'), fh2('Demandeurs')].filter(Boolean)
-  const filteredItems = displayItems.filter(item => keyFields2.some(k => item[k] && String(item[k]).trim().length > 0))
+  const filteredItems = displayItems
 
   // ─── HEALTH SCORE ──────────────────────────────────────────
   const avgConf = Math.round((s.tauxConf1 + s.tauxConfDem) / 2)
@@ -1602,10 +1594,6 @@ function computeClientStats(headers, items) {
   const echeanceField = h('Echéance contractuelle (jours) 1')
   const ecartField = h('Ecart de traitement (jour) 1')
 
-  // Filter out empty rows
-  const keyFields = [avancementField, typeField, natureField, siteField, demandeurField].filter(Boolean)
-  const filteredItems = items.filter(item => keyFields.some(k => item[k] && item[k].trim().length > 0))
-  items = filteredItems
   const total = items.length
 
   // --- Avancement ---

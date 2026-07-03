@@ -28,7 +28,16 @@ module.exports = requireAuth(async (req, res) => {
       }
 
       case 'POST': {
-        const article = await db.createArticle(req.body);
+        const body = req.body || {};
+        if (!body.titre_interne || typeof body.titre_interne !== 'string' || body.titre_interne.trim().length < 1) {
+          return res.status(400).json({ error: 'Le champ titre_interne est requis' });
+        }
+        if (!body.corps || typeof body.corps !== 'string' || body.corps.trim().length < 1) {
+          return res.status(400).json({ error: 'Le champ corps est requis' });
+        }
+        body.titre_interne = body.titre_interne.trim().slice(0, 500);
+        if (body.corps) body.corps = body.corps.trim();
+        const article = await db.createArticle(body);
         return res.status(201).json({ article });
       }
 

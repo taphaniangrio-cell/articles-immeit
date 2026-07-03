@@ -1,8 +1,9 @@
 const autoSync = require('../lib/auto-sync');
 const cors = require('../lib/cors');
+const { requireAuth } = require('../lib/auth');
 const { log } = require('../lib/logger');
 
-module.exports = async (req, res) => {
+module.exports = requireAuth(async (req, res) => {
   if (cors(res, req)) return;
 
   if (req.method !== 'POST') {
@@ -15,8 +16,10 @@ module.exports = async (req, res) => {
       return res.status(200).json({
         success: true,
         count: data.items.length,
+        rawCount: data._rawCount,
         syncedAt: data.syncedAt,
         source: data.source,
+        message: `${data.items.length} demandes synchronisées`,
       });
     }
 
@@ -39,4 +42,4 @@ module.exports = async (req, res) => {
     log('error', 'sync_api_error', { error: err.message });
     return res.status(500).json({ error: err.message });
   }
-};
+});

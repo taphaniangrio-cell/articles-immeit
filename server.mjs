@@ -34,7 +34,7 @@ function writeHealthFile(status) {
     if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
     fs.writeFileSync(path.join(LOG_DIR, 'server.port'), String(health.port || START_PORT));
     fs.writeFileSync(path.join(LOG_DIR, 'server.pid'), String(process.pid));
-  } catch {}
+  } catch (e) { console.error('[HEALTH] write failed:', e?.message); }
 }
 
 writeHealthFile('starting');
@@ -173,7 +173,13 @@ server.on('request', async (req, res) => {
     return;
   }
 
-  const filePath = path.join(__dirname, 'public', pathname === '/' ? 'index.html' : pathname);
+  const safePath = pathname.replace(/\.\./g, '').replace(/[<>"|?*]/g, '');
+  const filePath = path.join(__dirname, 'public', safePath === '/' || !safePath ? 'index.html' : safePath);
+  if (!filePath.startsWith(path.join(__dirname, 'public'))) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden');
+    return;
+  }
   serveStatic(res, filePath);
 });
 

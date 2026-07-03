@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const { requireAuth } = require('../lib/auth');
 const { log } = require('../lib/logger');
 
-module.exports = async (req, res) => {
+module.exports = requireAuth(async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST requis' });
 
   try {
@@ -18,7 +19,7 @@ module.exports = async (req, res) => {
         : path.join(__dirname, '..', '.immeit-logs');
       if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
       fs.writeFileSync(path.join(logDir, 'dash-cache.json'), JSON.stringify(cache));
-    } catch {}
+    } catch (e) { log('warn', 'dashboard_sync_cache_write_failed', { error: e?.message }); }
 
     // Also try DB storage if available
     try {
@@ -29,7 +30,7 @@ module.exports = async (req, res) => {
          ON CONFLICT (cache_key) DO UPDATE SET cache_data = $2, updated_at = NOW()`,
         ['sharepoint_suivi_2026', JSON.stringify(cache)]
       );
-    } catch {}
+    } catch (e) { log('warn', 'dashboard_sync_db_write_failed', { error: e?.message }); }
 
     log('info', 'dashboard_sync', { items: items.length, source: cache.source });
 
@@ -38,4 +39,4 @@ module.exports = async (req, res) => {
     log('error', 'dashboard_sync_error', { error: err.message });
     return res.status(500).json({ error: err.message });
   }
-};
+});

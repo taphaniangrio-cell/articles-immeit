@@ -85,14 +85,14 @@ async function getSyncedCache() {
       if (typeof data === 'string') return JSON.parse(data);
       return data;
     }
-  } catch {}
+    } catch (e) { log('warn', 'dashboard_cache_db_read_failed', { error: e?.message }); }
 
   // Try auto-sync cache
   try {
     const autoSync = require('../lib/auto-sync');
     const cached = autoSync.loadCache();
     if (cached) return cached;
-  } catch {}
+  } catch (e) { log('warn', 'dashboard_cache_autosync_failed', { error: e?.message }); }
 
   // Try local file directly
   try {
@@ -104,7 +104,7 @@ async function getSyncedCache() {
       const raw = require('fs').readFileSync(filePath, 'utf-8');
       return JSON.parse(raw);
     }
-  } catch {}
+  } catch (e) { log('warn', 'dashboard_cache_file_read_failed', { error: e?.message }); }
 
   return null;
 }
