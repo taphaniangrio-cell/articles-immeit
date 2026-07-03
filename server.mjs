@@ -183,7 +183,7 @@ function tryListen(port, maxAttempts = 10) {
     console.log('  ╔══════════════════════════════════════╗');
     console.log('  ║     IMMEIT — Générateur d\'articles   ║');
     console.log('  ╠══════════════════════════════════════╣');
-    console.log(`  ║  App   : ${url.padEnd(33)}║`);
+    console.log('  ║  App   : ${url.padEnd(33)}║');
     console.log(`  ║  API   : ${(url + '/api/').padEnd(33)}║`);
     console.log(`  ║  Port  : ${String(port).padEnd(38)}║`);
     console.log('  ╚══════════════════════════════════════╝');
@@ -192,6 +192,28 @@ function tryListen(port, maxAttempts = 10) {
       console.log(`  ⚠ Le port ${START_PORT} était déjà utilisé — fallback sur ${port}`);
       console.log('');
     }
+
+    // Auto-sync SharePoint data after server start
+    setTimeout(async () => {
+      try {
+        const autoSync = _require('./lib/auto-sync');
+        console.log('  ⟳ Synchronisation SharePoint...');
+        const result = await autoSync.sync();
+        if (result) {
+          console.log(`  ✓ ${result.items.length} demandes synchronisées depuis SharePoint`);
+        } else {
+          const cached = autoSync.loadCache();
+          if (cached) {
+            console.log(`  ✓ ${cached.items.length} demandes chargées du cache`);
+          } else {
+            console.log('  ℹ Aucune donnée SharePoint — utilise "📋 Coller Excel" dans le dashboard');
+          }
+        }
+        autoSync.startPeriodicSync();
+      } catch (err) {
+        console.log(`  ℹ Sync SharePoint: ${err.message}`);
+      }
+    }, 1000);
   });
 
   server.on('error', (err) => {

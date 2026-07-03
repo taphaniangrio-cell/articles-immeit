@@ -9,6 +9,8 @@
     "db:init": "psql $DATABASE_URL -f db/schema.sql"
   },
   "dependencies": {
+    "@azure/identity": "^4.13.1",
+    "@azure/identity-broker": "^1.4.0",
     "@neondatabase/serverless": "^0.10.0",
     "bcryptjs": "^3.0.3"
   },
@@ -24,5 +26,8 @@
     "gmao"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@azure/keyvault-secrets": "^4.11.2"
+  }
 }

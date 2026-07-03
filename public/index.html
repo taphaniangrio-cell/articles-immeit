@@ -18,7 +18,7 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 
@@ -53,6 +53,7 @@
         <span id="ai-key-status-main" class="key-status"></span>
       </div>
       <button id="btn-new" class="sidebar__btn-new">+ Nouvel article</button>
+      <button id="btn-dashboard" class="sidebar__btn-dashboard">📊 Tableau de bord</button>
     </nav>
     <div class="sidebar__footer">
       <button id="btn-logout" class="sidebar__logout">Déconnexion</button>
@@ -213,6 +214,33 @@
       </div>
     </div>
     </div>
+  </main>
+
+  <!-- TABLEAU DE BORD -->
+  <section id="dashboard-screen" class="dashboard hidden">
+    <div class="dashboard__header">
+      <div class="dashboard__header-left">
+        <button id="btn-dash-back" class="dashboard__back">← Retour</button>
+        <h1>📊 Tableau de bord — Suivi 2026</h1>
+      </div>
+      <div class="dashboard__header-right">
+        <span id="dash-update-info" class="dashboard__update-info"></span>
+        <button id="btn-dash-refresh" class="btn btn--ghost btn-sm" title="Actualiser">↻ Actualiser</button>
+        <button id="btn-dash-sync" class="btn btn--ghost btn-sm dash-sync-btn" title="Synchroniser SharePoint">☁ Sync</button>
+      </div>
+    </div>
+    <div id="dash-content" class="dashboard__content">
+      <div class="dashboard__loading" id="dash-loading">
+        <div class="spinner"></div>
+        <p>Chargement du tableau de bord…</p>
+      </div>
+      <div class="dashboard__error hidden" id="dash-error">
+        <span class="dash-error-icon">⚠</span>
+        <p id="dash-error-text">Erreur de chargement</p>
+        <button class="btn btn--ghost btn-sm" onclick="loadDashboard()">Réessayer</button>
+      </div>
+    </div>
+  </section>
 
 </div>
 
@@ -261,6 +289,6 @@
   </div>
 </div>
 
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>

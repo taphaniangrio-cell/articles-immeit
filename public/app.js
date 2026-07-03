@@ -41,6 +41,11 @@ const accrocheRadios = document.querySelectorAll('input[name="accroche-active"]'
 const accrocheCards = document.querySelectorAll('.accroche-card')
 const aiProvider = $('ai-provider-main'), aiModel = $('ai-model-main'), aiKeyStatus = $('ai-key-status-main')
 const btnPreview = $('btn-preview'), linkedinPreview = $('linkedin-preview'), liPreviewBody = $('li-preview-body'), btnClosePreview = $('btn-close-preview')
+const btnDashboard = $('btn-dashboard'), dashboardScreen = $('dashboard-screen'), dashContent = $('dash-content')
+const btnDashBack = $('btn-dash-back'), btnDashRefresh = $('btn-dash-refresh'), btnDashSync = $('btn-dash-sync')
+const dashLoading = $('dash-loading'), dashError = $('dash-error'), dashErrorText = $('dash-error-text')
+const dashUpdateInfo = $('dash-update-info')
+
 
 const SUGGESTED_HASHTAGS = [
   '#MaintenanceIndustrielle', '#GMAO', '#Fiabilite', '#MaintenancePredictive',
@@ -352,15 +357,17 @@ function showLogin() {
   loginScreen.classList.remove('hidden')
   mainScreen.classList.add('hidden')
   editorScreen.classList.add('hidden')
+  dashboardScreen.classList.add('hidden')
   loginPassword.value = ''
   loginPassword.focus()
 }
 
 function showMain() {
-  appContainer.classList.remove('hidden')
   loginScreen.classList.add('hidden')
   mainScreen.classList.remove('hidden')
   editorScreen.classList.remove('hidden')
+  dashboardScreen.classList.add('hidden')
+  appContainer.classList.remove('hidden')
   resetEditor()
   currentPage = 1
   if (!availableModels) loadAvailableModels()
@@ -1150,6 +1157,712 @@ async function generateFromNews(news) {
     showToast('Article généré !', 'success')
   } catch (err) { showToast('Erreur: ' + err.message, 'error') }
   finally { setGenerating(false) }
+}
+
+// ─── DASHBOARD ──────────────────────────────────────────
+
+let dashData = null
+
+function showDashboard() {
+  loginScreen.classList.add('hidden')
+  mainScreen.classList.add('hidden')
+  editorScreen.classList.add('hidden')
+  dashboardScreen.classList.remove('hidden')
+  appContainer.classList.remove('hidden')
+  loadDashboard()
+}
+
+function showMainFromDashboard() {
+  dashboardScreen.classList.add('hidden')
+  appContainer.classList.remove('hidden')
+  showMain()
+}
+
+btnDashboard.addEventListener('click', showDashboard)
+btnDashBack.addEventListener('click', showMainFromDashboard)
+btnDashRefresh.addEventListener('click', loadDashboard)
+
+async function loadDashboard() {
+  dashLoading.classList.remove('hidden')
+  dashError.classList.add('hidden')
+  btnDashRefresh.disabled = true
+  dashUpdateInfo.textContent = '🔄 Chargement…'
+
+  try {
+    const data = await api('/dashboard')
+    dashData = data
+    window._lastSyncTime = Date.now()
+    renderDashboard(data)
+    dashUpdateInfo.textContent = `🔄 À l'instant`
+    startSyncTimer()
+  } catch (err) {
+    dashError.classList.remove('hidden')
+    dashErrorText.textContent = err.message || 'Erreur de chargement du tableau de bord'
+    dashUpdateInfo.textContent = '⚠ Erreur'
+  } finally {
+    dashLoading.classList.add('hidden')
+    btnDashRefresh.disabled = false
+  }
+}
+
+btnDashSync.addEventListener('click', async () => {
+  if (btnDashSync.classList.contains('syncing')) return
+  btnDashSync.classList.add('syncing')
+  btnDashSync.textContent = '☁ Sync…'
+  try {
+    const result = await api('/sync', { method: 'POST' })
+    if (result.success && result.count > 0) {
+      showToast(`${result.count} lignes synchronisées ✓`, 'success')
+    } else {
+      showToast(result.message || 'Aucune donnée disponible', 'warning')
+    }
+    await loadDashboard()
+  } catch (err) {
+    showToast('Erreur synchronisation: ' + err.message, 'error')
+  } finally {
+    btnDashSync.classList.remove('syncing')
+    btnDashSync.textContent = '☁ Sync'
+  }
+})
+
+function countUp(el, target, duration = 600) {
+  const isInt = Number.isInteger(target)
+  const start = performance.now()
+  function step(now) {
+    const progress = Math.min((now - start) / duration, 1)
+    const current = isInt ? Math.round(progress * target) : parseFloat((progress * target).toFixed(1))
+    const textNode = [...el.childNodes].find(n => n.nodeType === 3)
+    if (textNode) textNode.textContent = current
+    else el.textContent = current
+    if (progress < 1) requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
+}
+
+function startSyncTimer() {
+  if (window._syncTimerInterval) clearInterval(window._syncTimerInterval)
+  function tick() {
+    const lastSync = window._lastSyncTime
+    if (!lastSync) { dashUpdateInfo.textContent = ''; return }
+    const elapsed = Math.floor((Date.now() - lastSync) / 1000)
+    if (elapsed < 5) dashUpdateInfo.textContent = '🔄 À l\'instant'
+    else if (elapsed < 60) dashUpdateInfo.textContent = '🔄 Synchronisé il y a ' + elapsed + 's'
+    else if (elapsed < 3600) dashUpdateInfo.textContent = '🔄 Synchronisé il y a ' + Math.floor(elapsed / 60) + ' min'
+    else dashUpdateInfo.textContent = '🔄 Synchronisé à ' + new Date(lastSync).toLocaleTimeString('fr-FR')
+  }
+  tick()
+  window._syncTimerInterval = setInterval(tick, 30000)
+}
+
+function renderDashboard(data) {
+  const { articles, sharepoint, synced } = data
+  dashContent.innerHTML = ''
+
+  // --- Source selection ---
+  const hasSynced = synced && synced.headers && synced.items && synced.items.length > 0
+  const hasSPData = sharepoint.connected && sharepoint.stats
+
+  let displayHeaders, displayItems, displayStats
+  if (hasSPData) {
+    displayHeaders = sharepoint.headers
+    displayItems = sharepoint.items
+    displayStats = sharepoint.stats
+  } else if (hasSynced) {
+    displayHeaders = synced.headers
+    displayItems = synced.items
+    displayStats = computeClientStats(synced.headers, synced.items)
+  }
+
+  if (!displayStats) {
+    dashContent.innerHTML = '<div class="dash-empty-state"><div class="dash-empty-icon">⏳</div><p>En attente de synchronisation SharePoint. Clique sur <strong>☁ Sync</strong> pour récupérer les données.</p></div>'
+    return
+  }
+
+  const s = displayStats
+
+  // ─── SECTION: KPI CARDS ─────────────────────────────────────
+  const conf1Color = s.tauxConf1 >= 80 ? '#10B981' : s.tauxConf1 >= 60 ? '#F59E0B' : '#EF4444'
+  const confDemColor = s.tauxConfDem >= 80 ? '#10B981' : s.tauxConfDem >= 60 ? '#F59E0B' : '#EF4444'
+  const dureeColor = s.duree.zeroPct >= 90 ? '#10B981' : s.duree.zeroPct >= 70 ? '#F59E0B' : '#EF4444'
+  const ecartColor = s.ecart.avg <= 0 ? '#10B981' : s.ecart.avg <= 3 ? '#F59E0B' : '#EF4444'
+
+  const kpis = document.createElement('div')
+  kpis.className = 'dash-kpi-grid'
+  kpis.innerHTML = `
+    <div class="dash-kpi-card" style="--accent:#0A66C2">
+      <div class="dash-kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></div>
+      <div class="dash-kpi-body">
+        <span class="dash-kpi-label">Total demandes</span>
+        <span class="dash-kpi-value" data-target="${s.total}">${s.total}</span>
+        <span class="dash-kpi-sub">dans le suivi 2026</span>
+      </div>
+    </div>
+    <div class="dash-kpi-card" style="--accent:${conf1Color}">
+      <div class="dash-kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+      <div class="dash-kpi-body">
+        <span class="dash-kpi-label">Conformité 1ère diffusion</span>
+        <span class="dash-kpi-value" data-target="${s.tauxConf1}">${s.tauxConf1}<span style="font-size:.6em;margin-left:1px">%</span></span>
+        <span class="dash-kpi-sub">${s.tauxConf1 >= 80 ? '✓ Objectif atteint' : s.tauxConf1 >= 60 ? '⚠ Amélioration possible' : '✗ Non conforme'}</span>
+      </div>
+    </div>
+    <div class="dash-kpi-card" style="--accent:${confDemColor}">
+      <div class="dash-kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="dash-kpi-body">
+        <span class="dash-kpi-label">Conformité demande</span>
+        <span class="dash-kpi-value" data-target="${s.tauxConfDem}">${s.tauxConfDem}<span style="font-size:.6em;margin-left:1px">%</span></span>
+        <span class="dash-kpi-sub">${s.tauxConfDem >= 80 ? '✓ Conforme' : s.tauxConfDem >= 60 ? '⚠ Partiel' : '✗ Non conforme'}</span>
+      </div>
+    </div>
+    <div class="dash-kpi-card" style="--accent:${dureeColor}">
+      <div class="dash-kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="dash-kpi-body">
+        <span class="dash-kpi-label">Délai de traitement</span>
+        <span class="dash-kpi-value" data-target="${s.duree.zeroPct}">${s.duree.zeroPct}<span style="font-size:.6em;margin-left:1px">%</span></span>
+        <span class="dash-kpi-sub">traités en J+0 · ${s.duree.gtZero} demandes &gt;1j</span>
+      </div>
+    </div>
+    <div class="dash-kpi-card" style="--accent:${ecartColor}">
+      <div class="dash-kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+      <div class="dash-kpi-body">
+        <span class="dash-kpi-label">Avance / Retard</span>
+        <span class="dash-kpi-value" data-target="${Math.abs(s.ecart.avg)}">${s.ecart.avg <= 0 ? '' : '+'}${Math.abs(s.ecart.avg)}<span style="font-size:.6em;margin-left:2px">j</span></span>
+        <span class="dash-kpi-sub">${s.ecart.avg <= 0 ? '✓ Avance sur délai' : '⚠ Retard contractuel'}</span>
+      </div>
+    </div>
+    <div class="dash-kpi-card" style="--accent:#8B5CF6">
+      <div class="dash-kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div class="dash-kpi-body">
+        <span class="dash-kpi-label">Échéance contractuelle</span>
+        <span class="dash-kpi-value" data-target="${s.echeance.avg}">${s.echeance.avg}<span style="font-size:.6em;margin-left:2px">j</span></span>
+        <span class="dash-kpi-sub">délai moyen · max ${s.echeance.max}j</span>
+      </div>
+    </div>
+  `
+  dashContent.appendChild(kpis)
+
+  // Animate KPI values with staggered count-up
+  const kpiValues = kpis.querySelectorAll('.dash-kpi-value[data-target]')
+  kpiValues.forEach((el, i) => {
+    const target = parseFloat(el.dataset.target)
+    if (isNaN(target)) return
+    const textNode = [...el.childNodes].find(n => n.nodeType === 3)
+    if (textNode) textNode.textContent = '0'
+    else el.textContent = '0'
+    setTimeout(() => countUp(el, target, 600), i * 100)
+  })
+
+  // ─── SECTION: CHARTS ROW 1 (État avancement + Type) ──────
+  const chartsRow1 = document.createElement('div')
+  chartsRow1.className = 'dashboard__charts-row'
+  chartsRow1.appendChild(createBarChart('État d\'avancement', s.avancementDist, statusColors))
+  chartsRow1.appendChild(createBarChart('Type de demande', s.typeDist.slice(0, 8), typeColors))
+  dashContent.appendChild(chartsRow1)
+
+  // ─── SECTION: CHARTS ROW 2 (Nature + Site) ──────────────
+  if (s.natureDist.length > 0 || s.siteDist.length > 0) {
+    const chartsRow2 = document.createElement('div')
+    chartsRow2.className = 'dashboard__charts-row'
+    if (s.natureDist.length > 0) {
+      chartsRow2.appendChild(createBarChart('Nature de la demande', s.natureDist.slice(0, 8), natureColors))
+    }
+    if (s.siteDist.length > 0) {
+      chartsRow2.appendChild(createBarChart('Par site', s.siteDist.slice(0, 8), siteColors))
+    }
+    dashContent.appendChild(chartsRow2)
+  }
+
+  // ─── SECTION: CONFORMITÉ ──────────────────────────────────
+  const confRow = document.createElement('div')
+  confRow.className = 'dashboard__charts-row'
+  if (s.conf1Dist.length > 0) {
+    confRow.appendChild(createBarChart('Conformité 1ère diffusion', s.conf1Dist, confColors))
+  }
+  if (s.confDemDist.length > 0) {
+    confRow.appendChild(createBarChart('Conformité demande', s.confDemDist, confColors))
+  }
+  if (confRow.children.length > 0) dashContent.appendChild(confRow)
+
+  // ─── SECTION: TOP DEMANDEURS ──────────────────────────────
+  if (s.topDemandeurs.length > 0) {
+    const demCard = document.createElement('div')
+    demCard.className = 'dashboard__chart-card dashboard__chart-card--full'
+    demCard.innerHTML = '<h3>🏢 Top 10 demandeurs</h3>'
+    const list = document.createElement('div')
+    list.className = 'dash-bar-list'
+    const maxDem = Math.max(...s.topDemandeurs.map(d => d.count), 1)
+    s.topDemandeurs.forEach(item => {
+      const pct = (item.count / maxDem) * 100
+      const bar = document.createElement('div')
+      bar.className = 'dash-bar-item'
+      bar.innerHTML = `
+        <div class="dash-bar-header">
+          <span class="dash-bar-label">${esc(item.label)}</span>
+          <span class="dash-bar-count">${item.count}</span>
+        </div>
+        <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${pct}%;background:#0A66C2"></div></div>`
+      list.appendChild(bar)
+    })
+    demCard.appendChild(list)
+    dashContent.appendChild(demCard)
+  }
+
+  // ─── SECTION: DÉLAIS ──────────────────────────────────────
+  if (s.duree.count > 0 || s.ecart.count > 0) {
+    const dureePct = s.duree.zeroPct
+    const gtZeroPct = 100 - dureePct
+    const ecartAbs = Math.abs(s.ecart.avg).toFixed(1)
+    const ecartSign = s.ecart.avg <= 0 ? 'avance' : 'retard'
+    const ecartLabel = s.ecart.avg <= 0 ? `Avance ${ecartAbs}j` : `Retard ${ecartAbs}j`
+    const ecartColor = s.ecart.avg <= 0 ? '#10B981' : '#EF4444'
+
+    const delaisCard = document.createElement('div')
+    delaisCard.className = 'dashboard__chart-card dashboard__chart-card--full'
+    delaisCard.innerHTML = '<h3 style="margin-bottom:var(--space-3)">⏱ Délais de traitement</h3>'
+    const delGrid = document.createElement('div')
+    delGrid.className = 'dash-delais-grid'
+    delGrid.innerHTML = `
+      <div class="dash-delais-card">
+        <div class="dash-delais-header">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A66C2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="dash-delais-heading">Traitement</span>
+        </div>
+        <span class="dash-delais-bignum" style="color:#0A66C2">${dureePct}<span style="font-size:.45em;margin-left:1px">%</span></span>
+        <span class="dash-delais-desc">traités en J+0</span>
+        <div class="dash-delais-track"><div class="dash-delais-fill" style="width:${dureePct}%;background:#0A66C2"></div></div>
+        <span class="dash-delais-note">${s.duree.gtZero} demandes >1j · max ${s.duree.max}j</span>
+      </div>
+      <div class="dash-delais-card">
+        <div class="dash-delais-header">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="dash-delais-heading">Échéance</span>
+        </div>
+        <span class="dash-delais-bignum" style="color:#8B5CF6">${s.echeance.avg}<span style="font-size:.45em;margin-left:1px">j</span></span>
+        <span class="dash-delais-desc">délai contractuel moyen</span>
+        <div class="dash-delais-track"><div class="dash-delais-fill" style="width:${Math.min(100, s.echeance.avg * 25)}%;background:#8B5CF6"></div></div>
+        <span class="dash-delais-note">min ${s.echeance.min}j · max ${s.echeance.max}j</span>
+      </div>
+      <div class="dash-delais-card">
+        <div class="dash-delais-header">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${ecartColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span class="dash-delais-heading">Avance / Retard</span>
+        </div>
+        <span class="dash-delais-bignum" style="color:${ecartColor}">${ecartAbs}<span style="font-size:.45em;margin-left:1px">j</span></span>
+        <span class="dash-delais-desc">${ecartLabel}</span>
+        <div class="dash-delais-track"><div class="dash-delais-fill" style="width:${Math.min(100, (Math.abs(s.ecart.avg) / Math.max(Math.abs(s.ecart.max), 1)) * 100)}%;background:${ecartColor}"></div></div>
+        <span class="dash-delais-note">min ${s.ecart.min}j · max ${s.ecart.max}j</span>
+      </div>
+    `
+    delaisCard.appendChild(delGrid)
+    dashContent.appendChild(delaisCard)
+  }
+
+  // ─── SECTION: ÉVOLUTION MENSUELLE ────────────────────────
+  if (s.monthlyTrend && s.monthlyTrend.length > 0) {
+    const monthlyCard = document.createElement('div')
+    monthlyCard.className = 'dashboard__chart-card dashboard__chart-card--full'
+    monthlyCard.innerHTML = '<h3>📈 Évolution mensuelle (date dépôt)</h3>'
+    monthlyCard.appendChild(renderMonthlyChart(s.monthlyTrend))
+    dashContent.appendChild(monthlyCard)
+  }
+
+  // ─── SECTION: TABLEAU ─────────────────────────────────────
+  if (displayItems && displayItems.length > 0) {
+    dashContent.appendChild(renderDataTable(displayHeaders, displayItems, s))
+  }
+}
+
+function computeClientStats(headers, items) {
+  const norm = x => x.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '')
+  const h = name => {
+    const n = norm(name)
+    const match = headers.find(x => norm(x) === n || x === name)
+    const header = match || headers.find(x => norm(x).includes(n.slice(0, 6))) || ''
+    return header ? norm(header) : ''
+  }
+
+  const avancementField = h('Etat d\'avance de la demande')
+  const typeField = h('Type de demande')
+  const natureField = h('Nature de la demande')
+  const siteField = h('Site')
+  const demandeurField = h('Demandeurs')
+  const dateDepotField = h('Date de dépôt du dossier sur docinfo')
+  const conformite1Field = h('Conformité à la première diffusion')
+  const conformiteDemField = h('Conformité de la demande')
+  const dureeField = h('Durée de traitement (jours) 1')
+  const echeanceField = h('Echéance contractuelle (jours) 1')
+  const ecartField = h('Ecart de traitement (jour) 1')
+
+  // Filter out empty rows
+  const keyFields = [avancementField, typeField, natureField, siteField, demandeurField].filter(Boolean)
+  const filteredItems = items.filter(item => keyFields.some(k => item[k] && item[k].trim().length > 0))
+  items = filteredItems
+  const total = items.length
+
+  // --- Avancement ---
+  const avancementGroups = {}
+  items.forEach(item => {
+    const v = (item[avancementField] || '').trim()
+    if (v) avancementGroups[v] = (avancementGroups[v] || 0) + 1
+  })
+  const avancementDist = Object.entries(avancementGroups)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+
+  // --- Type de demande ---
+  const typeGroups = {}
+  items.forEach(item => {
+    const v = (item[typeField] || '').trim()
+    if (v) typeGroups[v] = (typeGroups[v] || 0) + 1
+  })
+  const typeDist = Object.entries(typeGroups)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+
+  // --- Nature de la demande ---
+  const natureGroups = {}
+  items.forEach(item => {
+    const v = (item[natureField] || '').trim()
+    if (v) natureGroups[v] = (natureGroups[v] || 0) + 1
+  })
+  const natureDist = Object.entries(natureGroups)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+
+  // --- Site ---
+  const siteGroups = {}
+  items.forEach(item => {
+    const v = (item[siteField] || '').trim()
+    if (v) siteGroups[v] = (siteGroups[v] || 0) + 1
+  })
+  const siteDist = Object.entries(siteGroups)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+
+  // --- Top demandeurs ---
+  const demGroups = {}
+  items.forEach(item => {
+    const v = (item[demandeurField] || '').trim()
+    if (v) demGroups[v] = (demGroups[v] || 0) + 1
+  })
+  const topDemandeurs = Object.entries(demGroups)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+
+  // --- Conformité 1ère diffusion ---
+  const conf1Values = {}
+  items.forEach(item => {
+    const v = (item[conformite1Field] || '').trim().toLowerCase()
+    if (v) conf1Values[v] = (conf1Values[v] || 0) + 1
+  })
+  const conf1Count = Object.values(conf1Values).reduce((a, b) => a + b, 0)
+  const conf1Ok = (conf1Values['oui'] || 0) + (conf1Values['conforme'] || 0)
+  const tauxConf1 = conf1Count > 0 ? Math.round((conf1Ok / conf1Count) * 100) : 0
+  const conf1Dist = Object.entries(conf1Values)
+    .map(([label, count]) => ({ label: label.charAt(0).toUpperCase() + label.slice(1), count }))
+    .sort((a, b) => b.count - a.count)
+
+  // --- Conformité de la demande ---
+  const confDemValues = {}
+  items.forEach(item => {
+    const v = (item[conformiteDemField] || '').trim().toLowerCase()
+    if (v) confDemValues[v] = (confDemValues[v] || 0) + 1
+  })
+  const confDemCount = Object.values(confDemValues).reduce((a, b) => a + b, 0)
+  const confDemOk = (confDemValues['oui'] || 0) + (confDemValues['conforme'] || 0)
+  const tauxConfDem = confDemCount > 0 ? Math.round((confDemOk / confDemCount) * 100) : 0
+  const confDemDist = Object.entries(confDemValues)
+    .map(([label, count]) => ({ label: label.charAt(0).toUpperCase() + label.slice(1), count }))
+    .sort((a, b) => b.count - a.count)
+
+  // --- Délais (robuste : outliers filtrés) ---
+  function parseNum(val) {
+    if (!val) return NaN
+    const n = parseFloat(String(val).replace(',', '.').replace(/[^0-9.\-]/g, ''))
+    return isNaN(n) ? NaN : n
+  }
+  const MAX_DAYS = 365
+  const rawDurees = items.map(i => parseNum(i[dureeField])).filter(v => !isNaN(v))
+  const durees = rawDurees.filter(v => v >= 0 && v <= MAX_DAYS)
+
+  const rawEcheances = items.map(i => parseNum(i[echeanceField])).filter(v => !isNaN(v))
+  const echeances = rawEcheances.filter(v => v >= 0 && v <= MAX_DAYS)
+
+  const rawEcarts = items.map(i => parseNum(i[ecartField])).filter(v => !isNaN(v))
+  const ecarts = rawEcarts.filter(v => Math.abs(v) <= MAX_DAYS)
+
+  const delaiStats = (values) => {
+    if (values.length === 0) return { min: 0, max: 0, avg: 0, median: 0, count: 0, zeroPct: 0, gtZero: 0 }
+    const sorted = [...values].sort((a, b) => a - b)
+    const sum = values.reduce((a, b) => a + b, 0)
+    const zeroCount = values.filter(v => v === 0).length
+    return {
+      min: sorted[0],
+      max: sorted[sorted.length - 1],
+      avg: Math.round((sum / values.length) * 10) / 10,
+      median: sorted[Math.floor(sorted.length / 2)],
+      count: values.length,
+      zeroPct: values.length > 0 ? Math.round((zeroCount / values.length) * 100) : 0,
+      gtZero: values.length - zeroCount,
+    }
+  }
+
+  // --- Monthly trend (date dépôt) ---
+  const monthlyTrend = {}
+  items.forEach(item => {
+    const raw = item[dateDepotField] || ''
+    if (!raw) return
+    try {
+      // Try DD/MM/YYYY or YYYY-MM-DD
+      let d
+      if (/\//.test(raw)) {
+        const parts = raw.split('/')
+        if (parts.length === 3) d = new Date(parts[2], parts[1] - 1, parts[0])
+      } else {
+        d = new Date(raw)
+      }
+      if (isNaN(d.getTime())) return
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      monthlyTrend[key] = (monthlyTrend[key] || 0) + 1
+    } catch {}
+  })
+
+  return {
+    total,
+    avancementDist,
+    typeDist,
+    natureDist,
+    siteDist,
+    topDemandeurs,
+    tauxConf1,
+    conf1Dist,
+    tauxConfDem,
+    confDemDist,
+    duree: delaiStats(durees),
+    echeance: delaiStats(echeances),
+    ecart: delaiStats(ecarts),
+    monthlyTrend: Object.entries(monthlyTrend)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, count]) => ({ month, count })),
+  }
+}
+
+const statusColors = {
+  'Nouvelle': '#0A66C2', 'Nouveau': '#0A66C2',
+  'En cours': '#B45309', 'Encours': '#B45309',
+  'En attente': '#64748B', 'Enattente': '#64748B',
+  'Terminée': '#15803D', 'Terminé': '#15803D', 'Termine': '#15803D',
+  'Annulée': '#DC2626', 'Annulé': '#DC2626', 'Annule': '#DC2626',
+  'A traiter': '#F59E0B', 'Atraiter': '#F59E0B',
+  'Clôturée': '#16A34A', 'Cloturee': '#16A34A', 'Clôturé': '#16A34A',
+}
+
+const natureColors = {
+  'AMDEC': '#0A66C2', 'AMDEC ': '#0A66C2',
+  'MQT': '#7C3AED',
+  'Sécurité': '#DC2626', 'Securite': '#DC2626',
+  'Maintenance': '#D4A017',
+  'Qualité': '#16A34A', 'Qualite': '#16A34A',
+  'Fiabilité': '#0D9488', 'Fiabilite': '#0D9488',
+  'GMAO': '#6366F1',
+}
+
+const siteColors = ['#0A66C2', '#7C3AED', '#D4A017', '#16A34A', '#DC2626', '#0D9488', '#F59E0B', '#6366F1', '#EC4899', '#14B8A6']
+
+const typeColors = ['#0A66C2', '#7C3AED', '#D4A017', '#16A34A', '#DC2626', '#0D9488', '#F59E0B', '#6366F1', '#EC4899', '#14B8A6']
+
+const confColors = { 'Oui': '#16A34A', 'Non': '#DC2626', 'Conforme': '#16A34A', 'Non conforme': '#DC2626' }
+
+function createBarChart(title, data, colorMap) {
+  const card = document.createElement('div')
+  card.className = 'dashboard__chart-card'
+  card.innerHTML = `<h3>${title}</h3>`
+  if (!data || data.length === 0) {
+    card.innerHTML += '<div style="color:var(--clr-text-muted);font-size:var(--text-sm);padding:20px 0;text-align:center">Aucune donnée</div>'
+    return card
+  }
+  const maxCount = Math.max(...data.map(d => d.count))
+  const list = document.createElement('div')
+  list.className = 'dash-bar-list'
+  data.forEach(item => {
+    const pct = maxCount > 0 ? (item.count / maxCount) * 100 : 0
+    const color = typeof colorMap === 'function' ? colorMap(item.label) : (colorMap[item.label] || '#0A66C2')
+    const bar = document.createElement('div')
+    bar.className = 'dash-bar-item'
+    bar.innerHTML = `
+      <div class="dash-bar-header">
+        <span class="dash-bar-label">${esc(item.label)}</span>
+        <span class="dash-bar-count">${item.count}</span>
+      </div>
+      <div class="dash-bar-track">
+        <div class="dash-bar-fill" style="width:${pct}%;background:${color}"></div>
+      </div>
+    `
+    list.appendChild(bar)
+  })
+  card.appendChild(list)
+  return card
+}
+
+function renderMonthlyChart(monthlyData) {
+  const container = document.createElement('div')
+  container.className = 'dash-monthly'
+  if (!monthlyData || monthlyData.length === 0) {
+    container.innerHTML = '<div style="color:var(--clr-text-muted);font-size:var(--text-sm);text-align:center;width:100%">Aucune donnée mensuelle</div>'
+    return container
+  }
+  const maxCount = Math.max(...monthlyData.map(d => d.count), 1)
+  monthlyData.forEach(item => {
+    const pct = (item.count / maxCount) * 100
+    const col = document.createElement('div')
+    col.className = 'dash-monthly-col'
+    col.innerHTML = `
+      <div class="dash-monthly-bar" style="height:${Math.max(pct, 4)}%">
+        <span class="dash-tooltip">${item.count} demande${item.count > 1 ? 's' : ''}</span>
+      </div>
+      <span class="dash-monthly-label">${item.month.slice(5)}</span>
+    `
+    container.appendChild(col)
+  })
+  return container
+}
+
+function renderDataTable(headers, items, stats) {
+  const norm = x => x.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '')
+  const h = name => {
+    const n = norm(name)
+    const match = headers.find(x => norm(x) === n || x === name)
+    return match ? norm(match) : ''
+  }
+  const statusField = h("Etat d'avance de la demande")
+  const typeField = h('Type de demande')
+  const natureField = h('Nature de la demande')
+  const siteField = h('Site')
+  const demandeurField = h('Demandeurs')
+  const dateField = h('Date de dépôt du dossier sur docinfo')
+  const dateTraitField = h('Date de traitement IMMEIT')
+  const numField = h("N°(BE / GERICO / APEX)")
+  const bancField = h('Nom du banc\nNom entreprise')
+  const periodiciteField = h('Périodicité')
+  const conformiteField = h('Conformité à la première diffusion')
+
+  const displayFields = [
+    { key: dateField, label: 'Dépôt' },
+    { key: siteField, label: 'Site' },
+    { key: demandeurField, label: 'Demandeur' },
+    { key: typeField, label: 'Type' },
+    { key: natureField, label: 'Nature' },
+    { key: statusField, label: 'Avancement' },
+    { key: dateTraitField, label: 'Traitement' },
+  ].filter(f => f.key)
+
+  const headerHtml = displayFields.map(f => `<th>${esc(f.label)}</th>`).join('')
+
+  function getCellValue(item, key) {
+    return item[key] !== undefined ? item[key] : ''
+  }
+
+  const ROWS = 100
+  const rowsHtml = items.slice(0, ROWS).map(item => {
+    const status = (getCellValue(item, statusField) || '').toLowerCase().replace(/[\s\-]+/g, '-')
+    const cells = displayFields.map(f => {
+      const val = getCellValue(item, f.key)
+      const displayVal = val.length > 60 ? val.slice(0, 60) + '…' : val
+      if (f.key === statusField) {
+        const cls = status ? `dash-badge dash-st-${status}` : ''
+        return `<td><span class="${cls}">${esc(displayVal || '—')}</span></td>`
+      }
+      if (f.key === dateField || f.key === dateTraitField) {
+        return `<td style="white-space:nowrap">${esc(formatDateCell(displayVal) || '—')}</td>`
+      }
+      return `<td>${esc(displayVal || '—')}</td>`
+    }).join('')
+    return `<tr>${cells}</tr>`
+  }).join('')
+
+  const statusFilter = document.createElement('select')
+  statusFilter.id = 'dash-filter-status'
+  const uniqueStatuses = [...new Set(items.map(i => i[statusField || ''] || '').filter(Boolean))]
+  statusFilter.innerHTML = '<option value="">Tous les statuts</option>' +
+    uniqueStatuses.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')
+
+  const searchInput = document.createElement('input')
+  searchInput.type = 'text'
+  searchInput.id = 'dash-filter-search'
+  searchInput.placeholder = 'Rechercher…'
+
+  const showing = Math.min(items.length, ROWS)
+  const card = document.createElement('div')
+  card.className = 'dashboard__table-card'
+  card.id = 'dash-table-card'
+  card.innerHTML = `
+    <div class="dashboard__table-header">
+      <h3>Demandes <span style="font-weight:400;color:var(--clr-text-muted);font-size:var(--text-xs)">${showing}/${items.length} affichées</span></h3>
+    </div>
+    <div class="dashboard__table-wrap">
+      <table>
+        <thead><tr>${headerHtml}</tr></thead>
+        <tbody id="dash-tbody">${rowsHtml}</tbody>
+      </table>
+    </div>
+  `
+
+  const headerDiv = card.querySelector('.dashboard__table-header')
+  const filtersDiv = document.createElement('div')
+  filtersDiv.className = 'dashboard__table-filters'
+  filtersDiv.appendChild(statusFilter)
+  filtersDiv.appendChild(searchInput)
+  headerDiv.appendChild(filtersDiv)
+
+  function applyFilters() {
+    const stVal = statusFilter.value.toLowerCase()
+    const searchVal = searchInput.value.toLowerCase()
+    const tbody = card.querySelector('#dash-tbody')
+    const filtered = items.filter(item => {
+      const st = (getCellValue(item, statusField) || '').toLowerCase()
+      if (stVal && st !== stVal) return false
+      if (searchVal) {
+        const allText = Object.values(item).join(' ').toLowerCase()
+        if (!allText.includes(searchVal)) return false
+      }
+      return true
+    }).slice(0, ROWS)
+
+    const hdr = card.querySelector('.dashboard__table-header h3')
+    if (hdr) hdr.innerHTML = `Demandes <span style="font-weight:400;color:var(--clr-text-muted);font-size:var(--text-xs)">${Math.min(filtered.length, ROWS)}/${items.length} affichées</span>`
+
+    tbody.innerHTML = filtered.map(item => {
+      const st = (getCellValue(item, statusField) || '').toLowerCase().replace(/[\s\-]+/g, '-')
+      const cells = displayFields.map(f => {
+        const val = getCellValue(item, f.key)
+        const displayVal = val.length > 60 ? val.slice(0, 60) + '…' : val
+        if (f.key === statusField) {
+          return `<td><span class="dash-badge dash-st-${st || 'nouvelle'}">${esc(displayVal || '—')}</span></td>`
+        }
+        if (f.key === dateField || f.key === dateTraitField) {
+          return `<td style="white-space:nowrap">${esc(formatDateCell(displayVal) || '—')}</td>`
+        }
+        return `<td>${esc(displayVal || '—')}</td>`
+      }).join('')
+      return `<tr>${cells}</tr>`
+    }).join('')
+  }
+
+  statusFilter.addEventListener('change', applyFilters)
+  searchInput.addEventListener('input', applyFilters)
+
+  return card
+}
+
+function formatDateCell(val) {
+  if (!val) return '—'
+  try {
+    const d = new Date(val)
+    if (isNaN(d.getTime())) return String(val).slice(0, 10)
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+  } catch {
+    return String(val).slice(0, 10)
+  }
 }
 
 // INIT
