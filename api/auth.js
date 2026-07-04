@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const rateLimit = require('../lib/rateLimit');
 const { createSession, destroySession } = require('../lib/auth');
 const { log } = require('../lib/logger');
+const { CONSTANTS } = require('../lib/constants');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -9,7 +10,7 @@ module.exports = async (req, res) => {
   }
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
-  if (!rateLimit(ip, 'auth', { max: 10, windowMs: 60_000 })) {
+  if (!rateLimit(ip, 'auth', CONSTANTS.RATE_LIMIT_AUTH)) {
     return res.status(429).json({ error: 'Trop de tentatives. Réessaie dans 1 minute.' });
   }
 
@@ -31,9 +32,17 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'Authentification non configurée' });
   }
 
+  if (adminPassword && !passwordHash) {
+    log('warn', 'plaintext_password_used', { ip, advice: 'Définissez PASSWORD_HASH (hash bcrypt) et retirez ADMIN_PASSWORD pour sécuriser l\'authentification' });
+  }
+
   let ok = false;
   if (passwordHash) {
-    ok = bcrypt.compareSync(String(password || ''), passwordHash);
+    try {
+      ok = await bcrypt.compare(String(password || ''), passwordHash);
+    } catch {
+      ok = false;
+    }
   } else {
     ok = password === adminPassword;
   }

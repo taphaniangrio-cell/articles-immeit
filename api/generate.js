@@ -5,6 +5,7 @@ const sanitizeInput = require('../lib/sanitize');
 const { requireAuth } = require('../lib/auth');
 const { log } = require('../lib/logger');
 const cors = require('../lib/cors');
+const { CONSTANTS } = require('../lib/constants');
 
 module.exports = requireAuth(async (req, res) => {
   if (cors(res, req)) return;
@@ -14,7 +15,7 @@ module.exports = requireAuth(async (req, res) => {
   }
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
-  if (!rateLimit(ip, 'generate', { max: 5, windowMs: 60_000 })) {
+  if (!rateLimit(ip, 'generate', CONSTANTS.RATE_LIMIT_GENERATE)) {
     return res.status(429).json({ error: 'Trop de requêtes. Réessaie dans 1 minute.' });
   }
 
@@ -66,12 +67,12 @@ module.exports = requireAuth(async (req, res) => {
     if (err.message === 'CLÉ_INVALIDE') {
       return res.status(401).json({ error: 'Clé API invalide pour ce fournisseur.' });
     }
-    if (err.message.includes('Crédits insuffisants')) {
-      return res.status(402).json({ error: err.message });
+    if (err.message.includes('Crédits insuffisants') || err.message.includes('402')) {
+      return res.status(402).json({ error: 'Crédits insuffisants pour ce modèle. Sélectionne-en un autre.' });
     }
-    if (err.message.includes('indisponible')) {
-      return res.status(400).json({ error: err.message });
+    if (err.message.includes('indisponible') || err.message.includes('404')) {
+      return res.status(400).json({ error: 'Modèle indisponible. Sélectionne un autre modèle.' });
     }
-    return res.status(500).json({ error: err.message || 'Erreur interne. Réessaie.' });
+    return res.status(500).json({ error: 'Erreur lors de la génération. Réessaie.' });
   }
 });

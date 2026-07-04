@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const _require = createRequire(import.meta.url);
+const { CONSTANTS } = _require('./lib/constants');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const START_PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -118,7 +119,7 @@ async function handleApi(req, res, pathname, url) {
       let size = 0;
       req.on('data', chunk => {
         size += chunk.length;
-        if (size > 1e6) {
+        if (size > CONSTANTS.MAX_PAYLOAD_SIZE) {
           reject(new Error('Payload too large'));
           req.destroy();
         }
@@ -150,7 +151,7 @@ async function handleApi(req, res, pathname, url) {
 
 const server = http.createServer();
 
-server.setTimeout(120_000);
+server.setTimeout(CONSTANTS.SERVER_REQUEST_TIMEOUT);
 
 server.on('request', async (req, res) => {
   let url;
@@ -209,7 +210,7 @@ function tryListen(port, maxAttempts = 10) {
         console.log('  ⟳ Synchronisation SharePoint...');
         const result = await Promise.race([
           autoSync.sync(),
-          new Promise(r => setTimeout(() => r(null), 15000)),
+          new Promise(r => setTimeout(() => r(null), CONSTANTS.AUTO_SYNC_TIMEOUT)),
         ]);
         if (result) {
           console.log(`  ✓ ${result.items.length} demandes synchronisées depuis SharePoint`);

@@ -74,6 +74,14 @@ async function getArticleStats() {
   };
 }
 
+function safeJsonParse(value) {
+  if (typeof value === 'object' && value !== null) return value;
+  if (typeof value === 'string') {
+    try { return JSON.parse(value); } catch { return null; }
+  }
+  return null;
+}
+
 async function getSyncedCache() {
   // Try DB first
   try {
@@ -81,11 +89,9 @@ async function getSyncedCache() {
       `SELECT cache_data FROM dashboard_cache WHERE cache_key = 'sharepoint_suivi_2026'`
     );
     if (result.rows.length > 0) {
-      const data = result.rows[0].cache_data;
-      if (typeof data === 'string') return JSON.parse(data);
-      return data;
+      return safeJsonParse(result.rows[0].cache_data);
     }
-    } catch (e) { log('warn', 'dashboard_cache_db_read_failed', { error: e?.message }); }
+  } catch (e) { log('warn', 'dashboard_cache_db_read_failed', { error: e?.message }); }
 
   // Try auto-sync cache
   try {

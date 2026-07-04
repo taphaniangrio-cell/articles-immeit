@@ -55,7 +55,9 @@ articles-immeit/
 2. Ajouter les variables d'environnement :
    - `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `CEREBRAS_API_KEY`, `MISTRAL_API_KEY` (au moins un)
    - `DATABASE_URL` (Vercel Postgres)
-   - `ADMIN_PASSWORD` (mot de passe connexion)
+   - `SESSION_SECRET` — générer avec : `crypto.randomBytes(32).toString("hex")`
+   - `PASSWORD_HASH` — hash bcrypt du mot de passe (`node scripts/generate-hash.js <mdp>`)
+   - `PEXELS_API_KEY` (optionnel, pour les images)
    - `LOG_LEVEL` (optionnel : debug, info, warn, error)
    - `ALLOWED_ORIGIN` (optionnel : origines CORS supplémentaires)
 3. `git push` → déploiement automatique

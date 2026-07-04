@@ -6,11 +6,10 @@
     "start": "node server.mjs",
     "dev": "node server.mjs",
     "local": "start.bat",
-    "db:init": "psql $DATABASE_URL -f db/schema.sql"
+    "db:init": "psql $DATABASE_URL -f db/schema.sql",
+    "hash": "node scripts/generate-hash.js"
   },
   "dependencies": {
-    "@azure/identity": "^4.13.1",
-    "@azure/identity-broker": "^1.4.0",
     "@neondatabase/serverless": "^0.10.0",
     "bcryptjs": "^3.0.3"
   },
@@ -27,7 +26,5 @@
   ],
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "@azure/keyvault-secrets": "^4.11.2"
-  }
+  "devDependencies": {}
 }

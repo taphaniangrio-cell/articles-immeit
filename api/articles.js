@@ -3,6 +3,9 @@ const rateLimit = require('../lib/rateLimit');
 const { requireAuth } = require('../lib/auth');
 const { log } = require('../lib/logger');
 const cors = require('../lib/cors');
+const { CONSTANTS } = require('../lib/constants');
+
+const ALLOWED_STATUTS = new Set(['brouillon', 'en_revision', 'valide', 'publie', 'archive']);
 
 module.exports = requireAuth(async (req, res) => {
   if (cors(res, req)) return;
@@ -11,7 +14,7 @@ module.exports = requireAuth(async (req, res) => {
   const { id } = req.query;
 
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
-  if (method !== 'GET' && !rateLimit(ip, 'articles', { max: 30, windowMs: 60_000 })) {
+  if (method !== 'GET' && !rateLimit(ip, 'articles', CONSTANTS.RATE_LIMIT_ARTICLES)) {
     return res.status(429).json({ error: 'Trop de requêtes. Réessaie dans 1 minute.' });
   }
 
@@ -43,7 +46,17 @@ module.exports = requireAuth(async (req, res) => {
 
       case 'PUT': {
         if (!id) return res.status(400).json({ error: 'ID requis' });
-        const article = await db.updateArticle(parseInt(id), req.body);
+        const body = req.body || {};
+        if (body.statut && !ALLOWED_STATUTS.has(body.statut)) {
+          return res.status(400).json({ error: `Statut invalide. Valeurs autorisées : ${[...ALLOWED_STATUTS].join(', ')}` });
+        }
+        if (body.titre_interne !== undefined && (typeof body.titre_interne !== 'string' || body.titre_interne.trim().length < 1)) {
+          return res.status(400).json({ error: 'titre_interne invalide' });
+        }
+        if (body.corps !== undefined && typeof body.corps !== 'string') {
+          return res.status(400).json({ error: 'corps invalide' });
+        }
+        const article = await db.updateArticle(parseInt(id), body);
         if (!article) return res.status(404).json({ error: 'Article introuvable' });
         return res.status(200).json({ article });
       }

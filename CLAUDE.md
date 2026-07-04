@@ -77,7 +77,11 @@ shell (flex row, 100vh)
 2. Ajouter les variables d'environnement dans Vercel :
    - `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `CEREBRAS_API_KEY`, `MISTRAL_API_KEY`
    - `DATABASE_URL` — URL de connexion Vercel Postgres
-   - `ADMIN_PASSWORD` — mot de passe d'accès à l'outil
+   - `SESSION_SECRET` — générer avec : `crypto.randomBytes(32).toString("hex")`
+   - `PASSWORD_HASH` — hash bcrypt du mot de passe (générer avec : `node scripts/generate-hash.js <mdp>`)
+   - `ADMIN_PASSWORD` — déprécié, utiliser PASSWORD_HASH de préférence
+   - `PEXELS_API_KEY` — clé API Pexels (optionnel, pour les images)
+   - `ALLOWED_ORIGIN` — origines CORS (optionnel)
 3. `git push` → déploiement automatique
 4. Initialiser la base : `psql $DATABASE_URL -f db/schema.sql`
 

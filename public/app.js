@@ -1315,7 +1315,7 @@ function renderDashboard(data) {
     var topClear = dateBar.querySelector('#dash-date-clear')
     topStart.addEventListener('change', function() { dateStartVal = this.value; applyGlobalFilters() })
     topEnd.addEventListener('change', function() { dateEndVal = this.value; applyGlobalFilters() })
-    topClear.addEventListener('click', function() { topStart.value = ''; topEnd.value = ''; dateStartVal = ''; dateEndVal = ''; applyGlobalFilters() })
+    topClear.addEventListener('click', function() { dateStartVal = minDateStr || '2026-01-01'; dateEndVal = new Date().toISOString().slice(0, 10); topStart.value = dateStartVal; topEnd.value = dateEndVal; applyGlobalFilters() })
 
     // ─── HEALTH SCORE ──────────────────────────────────────────
     const avgConf = Math.round((stats.tauxConf1 + stats.tauxConfDem) / 2)
@@ -1539,6 +1539,8 @@ function renderDashboard(data) {
     }
   } // end buildStatsSections
 
+  var todayStr = new Date().toISOString().slice(0, 10)
+
   // Initial render
   buildStatsSections(s, displayItems)
 
@@ -1550,6 +1552,28 @@ function renderDashboard(data) {
   }
   var gpStatusField = _gpfh("Etat d'avance de la demande")
   var gpDateField = (_baseItems[0] ? Object.keys(_baseItems[0]).find(function(k) { return k.indexOf('date_') === 0 && (k.indexOf('_dpt') >= 0 || k.indexOf('depot') >= 0) && k.indexOf('docinfo') >= 0 }) : '') || ''
+
+  // Compute earliest deposit date from all items
+  var minDateStr = ''
+  if (gpDateField && _baseItems.length) {
+    var minTs = Infinity
+    _baseItems.forEach(function(item) {
+      var d = parseItemDate(item[gpDateField])
+      if (d && d.getTime() < minTs) minTs = d.getTime()
+    })
+    if (minTs < Infinity) {
+      var dd = new Date(minTs)
+      minDateStr = dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0') + '-' + String(dd.getDate()).padStart(2, '0')
+    }
+  }
+  var dateStartVal = minDateStr || '2026-01-01'
+  var dateEndVal = todayStr
+
+  // Set default values on date inputs after they've been created
+  var startInput = document.getElementById('dash-date-start')
+  var endInput = document.getElementById('dash-date-end')
+  if (startInput) startInput.value = dateStartVal
+  if (endInput) endInput.value = dateEndVal
 
   var filterPanel = document.createElement('div')
   filterPanel.className = 'dash-section'
@@ -1588,21 +1612,24 @@ function renderDashboard(data) {
 
   var statusSel = filterPanel.querySelector('#dash-filter-global-status')
   var searchInput = filterPanel.querySelector('#dash-filter-global-search')
-  var dateStartVal = ''
-  var dateEndVal = ''
 
   var parseItemDate = function(raw) {
     if (!raw) return null
-    try {
-      var d = excelToDate(raw)
-      if (d && !isNaN(d.getTime())) return d
-      if (/\//.test(raw)) {
-        var parts = raw.split('/')
-        if (parts.length === 3) { d = new Date(parts[2], parts[1] - 1, parts[0]); if (!isNaN(d.getTime())) return d }
-      }
-      d = new Date(raw)
-      if (!isNaN(d.getTime())) return d
-    } catch {}
+    var candidates = String(raw).split(/[,;\n\r]+/)
+    for (var c = 0; c < candidates.length; c++) {
+      var val = candidates[c].trim()
+      if (!val) continue
+      try {
+        var d = excelToDate(val)
+        if (d && !isNaN(d.getTime())) return d
+        if (/\//.test(val)) {
+          var parts = val.split('/')
+          if (parts.length === 3) { d = new Date(parts[2], parts[1] - 1, parts[0]); if (!isNaN(d.getTime())) return d }
+        }
+        d = new Date(val)
+        if (!isNaN(d.getTime())) return d
+      } catch {}
+    }
     return null
   }
 
@@ -1623,8 +1650,10 @@ function renderDashboard(data) {
       }
       if (gpDateField && (ds || de)) {
         var dt = parseItemDate(item[gpDateField])
-        if (ds && (!dt || dt < ds)) return false
-        if (de && (!dt || dt > de)) return false
+        if (dt) {
+          if (ds && dt < ds) return false
+          if (de && dt > de) return false
+        }
       }
       return true
     })
@@ -1636,7 +1665,7 @@ function renderDashboard(data) {
   statusSel.addEventListener('change', applyGlobalFilters)
   searchInput.addEventListener('input', applyGlobalFilters)
 
-  if (_baseItems.length > 0) renderFilteredTable(_baseItems)
+  if (_baseItems.length > 0) applyGlobalFilters()
 }
 
 function computeClientStats(headers, items) {
