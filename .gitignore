@@ -9,4 +9,5 @@ node_modules/
 cookies.txt
 .azure-app-credentials.json
 .check-*.cjs
+_check*
 scripts/
