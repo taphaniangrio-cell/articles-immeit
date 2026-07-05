@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '121'
+const APP_VERSION = '122'
 
 // Force cache invalidation on version change
 ;(() => {
@@ -46,7 +46,7 @@ const wordCount = $('word-count'), editorStatus = $('editor-status')
 const articleList = $('article-list'), statusBar = $('status-bar')
 const charCount = $('char-count'), saveIndicator = $('save-indicator')
 const hashtagSuggestions = $('hashtag-suggestions')
-const editImages = $('edit-images'), editImageArea = $('edit-image-area')
+const editImages = $('edit-images')
 const btnAddImage = $('btn-add-image'), btnReplaceImage = $('btn-replace-image'), btnRemoveImage = $('btn-remove-image')
 const imageSearchBox = $('image-search-box'), imageSearchInput = $('image-search-input'), imageSearchResults = $('image-search-results')
 const accrocheRadios = document.querySelectorAll('input[name="accroche-active"]')
@@ -91,11 +91,6 @@ function showToast(message, type = 'success', duration = 3000) {
     toast.style.animation = 'fadeOut .2s ease forwards'
     setTimeout(() => toast.remove(), 200)
   }, duration)
-}
-
-function getBadgeClass(status) {
-  const map = { brouillon: 's-brouillon', en_revision: 's-en_revision', valide: 's-valide', publie: 's-publie', archive: 's-archive' }
-  return map[status] || 's-brouillon'
 }
 
 function esc(s) {
@@ -143,15 +138,7 @@ function hasSession() {
   return localStorage.getItem('immeit_session') === '1'
 }
 
-function loadAiSettings(forceProvider) {
-  const provider = forceProvider || localStorage.getItem('immeit_ai_provider') || 'groq'
-  return { provider, model: localStorage.getItem(`immeit_ai_model_${provider}`) || '' }
-}
 
-function saveAiSettings(provider, model) {
-  localStorage.setItem('immeit_ai_provider', provider)
-  if (model) localStorage.setItem(`immeit_ai_model_${provider}`, model)
-}
 
 // --- AI MODEL SELECTOR ---
 async function loadAvailableModels() {
@@ -253,13 +240,6 @@ function renderImages() {
     btnRemoveImage.classList.remove('hidden')
     renderImages()
   }
-}
-
-function addImage(url, thumbnail, photographer, photographerUrl, alt) {
-  articleImages.push({ url, thumbnail, photographer, photographer_url: photographerUrl, alt: alt || '' })
-  selectedImageIndex = articleImages.length - 1
-  renderImages()
-  markDirty()
 }
 
 function removeSelectedImage() {
@@ -1172,8 +1152,6 @@ async function generateFromNews(news) {
 
 // ─── DASHBOARD ──────────────────────────────────────────
 
-let dashData = null
-
 function showDashboard() {
   loginScreen.classList.add('hidden')
   mainScreen.classList.add('hidden')
@@ -1194,20 +1172,42 @@ function showDashboard() {
 navDashboard?.addEventListener('click', e => { e.preventDefault(); showDashboard() })
 navArticles?.addEventListener('click', e => { e.preventDefault(); showMain() })
 
-async function loadDashboard() {
+function loadCachedDashboard() {
+  try {
+    var cached = localStorage.getItem('immeit_dash_cache')
+    if (cached) {
+      var data = JSON.parse(cached)
+      if (data && data.synced && data.synced.items) {
+        renderDashboard(data)
+        window._lastSyncTime = data._cachedAt || Date.now()
+        updateDashInfo()
+        return true
+      }
+    }
+  } catch {}
+  return false
+}
+
+async function loadDashboard(forceFresh) {
   dashLoading.classList.remove('hidden')
   dashError.classList.add('hidden')
 
+  if (!forceFresh) {
+    loadCachedDashboard()
+  }
+
   try {
     const data = await api('/dashboard')
-    dashData = data
     window._lastSyncTime = Date.now()
+    try { localStorage.setItem('immeit_dash_cache', JSON.stringify(Object.assign(data, { _cachedAt: Date.now() }))) } catch {}
     renderDashboard(data)
     updateDashInfo()
     startSyncTimer()
   } catch (err) {
-    dashError.classList.remove('hidden')
-    dashErrorText.textContent = err.message || 'Erreur de chargement du tableau de bord'
+    if (!loadCachedDashboard()) {
+      dashError.classList.remove('hidden')
+      dashErrorText.textContent = err.message || 'Erreur de chargement du tableau de bord'
+    }
   } finally {
     dashLoading.classList.add('hidden')
   }
@@ -1731,192 +1731,113 @@ function computeClientStats(headers, items) {
     return header ? norm(header) : ''
   }
 
-  const avancementField = h('Etat d\'avance de la demande')
-  const typeField = h('Type de demande')
-  const natureField = h('Nature de la demande')
-  const siteField = h('Site')
-  const demandeurField = h('Demandeurs')
-  const dateDepotField = h('Date de dépôt du dossier sur docinfo')
-  const conformite1Field = h('Conformité à la première diffusion')
-  const conformiteDemField = h('Conformité de la demande')
-  const dureeField = h('Durée de traitement (jours) 1')
-  const echeanceField = h('Echéance contractuelle (jours) 1')
-  const ecartField = h('Ecart de traitement (jour) 1')
-  const stockageField = h('Stockage')
-  const stockageAdvesoField = h('Stockage ADVESO')
-
-  const total = items.length
-
-  // --- Avancement ---
-  const avancementGroups = {}
-  items.forEach(item => {
-    const v = (item[avancementField] || '').trim()
-    if (v) avancementGroups[v] = (avancementGroups[v] || 0) + 1
-  })
-  const avancementDist = Object.entries(avancementGroups)
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count)
-
-  // --- Type de demande ---
-  const typeGroups = {}
-  items.forEach(item => {
-    const v = (item[typeField] || '').trim()
-    if (v) typeGroups[v] = (typeGroups[v] || 0) + 1
-  })
-  const typeDist = Object.entries(typeGroups)
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count)
-
-  // --- Nature de la demande ---
-  const natureGroups = {}
-  items.forEach(item => {
-    const v = (item[natureField] || '').trim()
-    if (v) natureGroups[v] = (natureGroups[v] || 0) + 1
-  })
-  const natureDist = Object.entries(natureGroups)
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count)
-
-  // --- Site ---
-  const siteGroups = {}
-  items.forEach(item => {
-    const v = (item[siteField] || '').trim()
-    if (v) siteGroups[v] = (siteGroups[v] || 0) + 1
-  })
-  const siteDist = Object.entries(siteGroups)
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count)
-
-  // --- Top demandeurs (regroupés par nom normalisé) ---
-  const demGroups = {}
-  const demLabels = {}
-  items.forEach(item => {
-    const raw = (item[demandeurField] || '').trim()
-    if (!raw) return
-    const key = raw.replace(/[^a-zA-Z]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
-    demGroups[key] = (demGroups[key] || 0) + 1
-    var prev = demLabels[key]
-    if (!prev || (raw.indexOf('\ufffd') < 0 && raw.length >= prev.length)) demLabels[key] = raw
-  })
-  const topDemandeurs = Object.entries(demGroups)
-    .map(([key, count]) => ({ label: demLabels[key], count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10)
-
-  // --- Conformité 1ère diffusion ---
-  const conf1Values = {}
-  items.forEach(item => {
-    const v = (item[conformite1Field] || '').trim().toLowerCase()
-    if (v) conf1Values[v] = (conf1Values[v] || 0) + 1
-  })
-  const conf1Count = Object.values(conf1Values).reduce((a, b) => a + b, 0)
-  const conf1Ok = (conf1Values['oui'] || 0) + (conf1Values['conforme'] || 0)
-  const tauxConf1 = conf1Count > 0 ? Math.round((conf1Ok / conf1Count) * 100) : 0
-  const conf1Dist = Object.entries(conf1Values)
-    .map(([label, count]) => ({ label: label.charAt(0).toUpperCase() + label.slice(1), count }))
-    .sort((a, b) => b.count - a.count)
-
-  // --- Conformité de la demande ---
-  const confDemValues = {}
-  items.forEach(item => {
-    const v = (item[conformiteDemField] || '').trim().toLowerCase()
-    if (v) confDemValues[v] = (confDemValues[v] || 0) + 1
-  })
-  const confDemCount = Object.values(confDemValues).reduce((a, b) => a + b, 0)
-  const confDemOk = (confDemValues['oui'] || 0) + (confDemValues['conforme'] || 0)
-  const tauxConfDem = confDemCount > 0 ? Math.round((confDemOk / confDemCount) * 100) : 0
-  const confDemDist = Object.entries(confDemValues)
-    .map(([label, count]) => ({ label: label.charAt(0).toUpperCase() + label.slice(1), count }))
-    .sort((a, b) => b.count - a.count)
-
-  // --- Délais (robuste : outliers filtrés) ---
-  function parseNum(val) {
-    if (!val) return NaN
-    const n = parseFloat(String(val).replace(',', '.').replace(/[^0-9.\-]/g, ''))
-    return isNaN(n) ? NaN : n
+  const f = {
+    avancement: h('Etat d\'avance de la demande'),
+    type: h('Type de demande'),
+    nature: h('Nature de la demande'),
+    site: h('Site'),
+    demandeur: h('Demandeurs'),
+    date: h('Date de dépôt du dossier sur docinfo'),
+    conf1: h('Conformité à la première diffusion'),
+    confDem: h('Conformité de la demande'),
+    duree: h('Durée de traitement (jours) 1'),
+    echeance: h('Echéance contractuelle (jours) 1'),
+    ecart: h('Ecart de traitement (jour) 1'),
+    stockage: h('Stockage'),
+    stockageAdv: h('Stockage ADVESO'),
   }
+
   const MAX_DAYS = 365
-  const rawDurees = items.map(i => parseNum(i[dureeField])).filter(v => !isNaN(v))
-  const durees = rawDurees.filter(v => v >= 0 && v <= MAX_DAYS)
+  const parseNum = val => { if (!val) return NaN; const n = parseFloat(String(val).replace(',', '.').replace(/[^0-9.\-]/g, '')); return isNaN(n) ? NaN : n }
 
-  const rawEcheances = items.map(i => parseNum(i[echeanceField])).filter(v => !isNaN(v))
-  const echeances = rawEcheances.filter(v => v >= 0 && v <= MAX_DAYS)
+  const groups = {
+    avancement: {}, type: {}, nature: {}, site: {},
+    demandeur: {}, demLabel: {}, conf1: {}, confDem: {},
+    stockage: {}, stockageAdv: {}, monthly: {},
+  }
+  const delais = { duree: [], echeance: [], ecart: [] }
+  var l = items.length
 
-  const rawEcarts = items.map(i => parseNum(i[ecartField])).filter(v => !isNaN(v))
-  const ecarts = rawEcarts.filter(v => Math.abs(v) <= MAX_DAYS)
+  for (var i = 0; i < l; i++) {
+    var it = items[i]
 
-  const delaiStats = (values) => {
-    if (values.length === 0) return { min: 0, max: 0, avg: 0, median: 0, count: 0, zeroPct: 0, gtZero: 0 }
-    const sorted = [...values].sort((a, b) => a - b)
-    const sum = values.reduce((a, b) => a + b, 0)
-    const zeroCount = values.filter(v => v === 0).length
-    return {
-      min: sorted[0],
-      max: sorted[sorted.length - 1],
-      avg: Math.round((sum / values.length) * 10) / 10,
-      median: sorted[Math.floor(sorted.length / 2)],
-      count: values.length,
-      zeroPct: values.length > 0 ? Math.round((zeroCount / values.length) * 100) : 0,
-      gtZero: values.length - zeroCount,
+    var av = (it[f.avancement] || '').trim(); if (av) groups.avancement[av] = (groups.avancement[av] || 0) + 1
+    var ty = (it[f.type] || '').trim(); if (ty) groups.type[ty] = (groups.type[ty] || 0) + 1
+    var na = (it[f.nature] || '').trim(); if (na) groups.nature[na] = (groups.nature[na] || 0) + 1
+    var si = (it[f.site] || '').trim(); if (si) groups.site[si] = (groups.site[si] || 0) + 1
+
+    var de = (it[f.demandeur] || '').trim()
+    if (de) {
+      var key = de.replace(/[^a-zA-Z]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
+      groups.demandeur[key] = (groups.demandeur[key] || 0) + 1
+      var prev = groups.demLabel[key]
+      if (!prev || (de.indexOf('\ufffd') < 0 && de.length >= prev.length)) groups.demLabel[key] = de
+    }
+
+    var c1 = (it[f.conf1] || '').trim().toLowerCase(); if (c1) groups.conf1[c1] = (groups.conf1[c1] || 0) + 1
+    var cd = (it[f.confDem] || '').trim().toLowerCase(); if (cd) groups.confDem[cd] = (groups.confDem[cd] || 0) + 1
+
+    var st = (it[f.stockage] || '').trim(); if (st) groups.stockage[st] = (groups.stockage[st] || 0) + 1
+    var sa = (it[f.stockageAdv] || '').trim(); if (sa) groups.stockageAdv[sa] = (groups.stockageAdv[sa] || 0) + 1
+
+    var du = parseNum(it[f.duree]); if (!isNaN(du) && du >= 0 && du <= MAX_DAYS) delais.duree.push(du)
+    var ecVal = parseNum(it[f.echeance]); if (!isNaN(ecVal) && ecVal >= 0 && ecVal <= MAX_DAYS) delais.echeance.push(ecVal)
+    var ec = parseNum(it[f.ecart]); if (!isNaN(ec) && Math.abs(ec) <= MAX_DAYS) delais.ecart.push(ec)
+
+    var rd = it[f.date] || ''
+    if (rd) {
+      try {
+        var d = excelToDate(rd)
+        if (!d || isNaN(d.getTime())) {
+          if (rd.indexOf('/') >= 0) { var p = rd.split('/'); if (p.length === 3) d = new Date(p[2], p[1] - 1, p[0]) }
+          else d = new Date(rd)
+        }
+        if (d && !isNaN(d.getTime())) {
+          var mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+          groups.monthly[mk] = (groups.monthly[mk] || 0) + 1
+        }
+      } catch {}
     }
   }
 
-  // --- Monthly trend (date dépôt) ---
-  const monthlyTrend = {}
-  items.forEach(item => {
-    const raw = item[dateDepotField] || ''
-    if (!raw) return
-    try {
-      let d = excelToDate(raw)
-      if (!d || isNaN(d.getTime())) {
-        if (/\//.test(raw)) {
-          const parts = raw.split('/')
-          if (parts.length === 3) d = new Date(parts[2], parts[1] - 1, parts[0])
-        } else {
-          d = new Date(raw)
-        }
-      }
-      if (!d || isNaN(d.getTime())) return
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      monthlyTrend[key] = (monthlyTrend[key] || 0) + 1
-    } catch {}
-  })
+  const toDist = (obj) => Object.entries(obj).map(function(a) { return { label: a[0], count: a[1] } }).sort(function(a, b) { return b.count - a.count })
+  const sortedMonthly = Object.entries(groups.monthly).sort(function(a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0 }).map(function(a) { return { month: a[0], count: a[1] } })
 
-  // --- Stockage DOCINFO ---
-  const stockageGroups = {}
-  items.forEach(item => {
-    var v = (item[stockageField] || '').trim()
-    if (v) stockageGroups[v] = (stockageGroups[v] || 0) + 1
-  })
-  const stockageDist = Object.entries(stockageGroups)
-    .map(function(a) { return { label: a[0], count: a[1] } })
-    .sort(function(a, b) { return b.count - a.count })
+  const topDem = Object.entries(groups.demandeur).map(function(a) { return { label: groups.demLabel[a[0]], count: a[1] } }).sort(function(a, b) { return b.count - a.count }).slice(0, 10)
 
-  // --- Stockage ADVESO ---
-  const stockageAdvesoGroups = {}
-  items.forEach(item => {
-    var v = (item[stockageAdvesoField] || '').trim()
-    if (v) stockageAdvesoGroups[v] = (stockageAdvesoGroups[v] || 0) + 1
-  })
-  const stockageAdvesoDist = Object.entries(stockageAdvesoGroups)
-    .map(function(a) { return { label: a[0], count: a[1] } })
-    .sort(function(a, b) { return b.count - a.count })
+  const conf1Vals = groups.conf1; var conf1T = Object.values(conf1Vals).reduce(function(a, b) { return a + b }, 0); var conf1O = (conf1Vals['oui'] || 0) + (conf1Vals['conforme'] || 0)
+  const confDemVals = groups.confDem; var confDemT = Object.values(confDemVals).reduce(function(a, b) { return a + b }, 0); var confDemO = (confDemVals['oui'] || 0) + (confDemVals['conforme'] || 0)
+
+  const delaiStats = function(vals) {
+    if (vals.length === 0) return { min: 0, max: 0, avg: 0, median: 0, count: 0, zeroPct: 0, gtZero: 0 }
+    var sorted = vals.slice().sort(function(a, b) { return a - b })
+    var sum = 0; for (var k = 0; k < vals.length; k++) sum += vals[k]
+    var zc = 0; for (var k = 0; k < vals.length; k++) { if (vals[k] === 0) zc++ }
+    return {
+      min: sorted[0], max: sorted[sorted.length - 1],
+      avg: Math.round((sum / vals.length) * 10) / 10,
+      median: sorted[Math.floor(sorted.length / 2)],
+      count: vals.length,
+      zeroPct: vals.length > 0 ? Math.round((zc / vals.length) * 100) : 0,
+      gtZero: vals.length - zc,
+    }
+  }
 
   return {
-    total,
-    avancementDist,
-    typeDist,
-    natureDist,
-    siteDist,
-    topDemandeurs,
-    tauxConf1,
-    conf1Dist,
-    tauxConfDem,
-    confDemDist,
-    stockageDist,
-    stockageAdvesoDist,
-    duree: delaiStats(durees),
-    echeance: delaiStats(echeances),
+    total: l,
+    avancementDist: toDist(groups.avancement),
+    typeDist: toDist(groups.type),
+    natureDist: toDist(groups.nature),
+    siteDist: toDist(groups.site),
+    topDemandeurs: topDem,
+    tauxConf1: conf1T > 0 ? Math.round((conf1O / conf1T) * 100) : 0,
+    conf1Dist: toDist(conf1Vals).map(function(a) { return { label: a.label.charAt(0).toUpperCase() + a.label.slice(1), count: a.count } }),
+    tauxConfDem: confDemT > 0 ? Math.round((confDemO / confDemT) * 100) : 0,
+    confDemDist: toDist(confDemVals).map(function(a) { return { label: a.label.charAt(0).toUpperCase() + a.label.slice(1), count: a.count } }),
+    stockageDist: toDist(groups.stockage),
+    stockageAdvesoDist: toDist(groups.stockageAdv),
+    duree: delaiStats(delais.duree),
+    echeance: delaiStats(delais.echeance),
     ecart: delaiStats(ecarts),
     monthlyTrend: Object.entries(monthlyTrend)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -2122,29 +2043,6 @@ function createPieChart(title, data, colorMap) {
   wrap.appendChild(legend)
   card.appendChild(wrap)
   return card
-}
-
-function renderMonthlyChart(monthlyData) {
-  const container = document.createElement('div')
-  container.className = 'dash-monthly'
-  if (!monthlyData || monthlyData.length === 0) {
-    container.innerHTML = '<div style="color:var(--clr-text-muted);font-size:var(--text-sm);text-align:center;width:100%">Aucune donnée mensuelle</div>'
-    return container
-  }
-  const maxCount = Math.max(...monthlyData.map(d => d.count), 1)
-  monthlyData.forEach(item => {
-    const pct = (item.count / maxCount) * 100
-    const col = document.createElement('div')
-    col.className = 'dash-monthly-col'
-    col.innerHTML = `
-      <div class="dash-monthly-bar" style="height:${Math.max(pct, 4)}%">
-        <span class="dash-tooltip">${item.count} demande${item.count > 1 ? 's' : ''}</span>
-      </div>
-      <span class="dash-monthly-label">${item.month.slice(5)}</span>
-    `
-    container.appendChild(col)
-  })
-  return container
 }
 
 function createDonutChart(title, data, colorMap) {
