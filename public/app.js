@@ -1364,7 +1364,7 @@ function renderDashboard(data) {
       <div class="dash-kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
       <div class="dash-kpi-body">
         <span class="dash-kpi-label">Conf. 1ère diffusion</span>
-        <span class="dash-kpi-value" data-target="${s.tauxConf1}">${s.tauxConf1}<span style="font-size:.55em;margin-left:1px">%</span></span>
+        <span class="dash-kpi-value" data-target="${stats.tauxConf1}">${stats.tauxConf1}<span style="font-size:.55em;margin-left:1px">%</span></span>
         <span class="dash-kpi-sub">IMMEIT → rapport reçu conforme</span>
       </div>
     </div>
@@ -1372,7 +1372,7 @@ function renderDashboard(data) {
       <div class="dash-kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21.5 11.5A10 10 0 1 1 12 2a10 10 0 0 1 9.5 6.69"/></svg></div>
       <div class="dash-kpi-body">
         <span class="dash-kpi-label">Conf. vérification</span>
-        <span class="dash-kpi-value" data-target="${s.tauxConfDem}">${s.tauxConfDem}<span style="font-size:.55em;margin-left:1px">%</span></span>
+        <span class="dash-kpi-value" data-target="${stats.tauxConfDem}">${stats.tauxConfDem}<span style="font-size:.55em;margin-left:1px">%</span></span>
         <span class="dash-kpi-sub">P2M → travail IMMEIT conforme</span>
       </div>
     </div>
@@ -1380,7 +1380,7 @@ function renderDashboard(data) {
       <div class="dash-kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
       <div class="dash-kpi-body">
         <span class="dash-kpi-label">J+0</span>
-        <span class="dash-kpi-value" data-target="${s.duree.zeroPct}">${s.duree.zeroPct}<span style="font-size:.55em;margin-left:1px">%</span></span>
+        <span class="dash-kpi-value" data-target="${stats.duree.zeroPct}">${stats.duree.zeroPct}<span style="font-size:.55em;margin-left:1px">%</span></span>
         <span class="dash-kpi-sub">traités le jour même</span>
       </div>
     </div>
@@ -1388,8 +1388,8 @@ function renderDashboard(data) {
       <div class="dash-kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
       <div class="dash-kpi-body">
         <span class="dash-kpi-label">Écart</span>
-        <span class="dash-kpi-value" data-target="${Math.abs(s.ecart.avg)}">${s.ecart.avg <= 0 ? '' : '+'}${Math.abs(s.ecart.avg)}<span style="font-size:.55em;margin-left:1px">j</span></span>
-        <span class="dash-kpi-sub">${s.ecart.avg <= 0 ? 'avance' : 'retard'} moyen</span>
+        <span class="dash-kpi-value" data-target="${Math.abs(stats.ecart.avg)}">${stats.ecart.avg <= 0 ? '' : '+'}${Math.abs(stats.ecart.avg)}<span style="font-size:.55em;margin-left:1px">j</span></span>
+        <span class="dash-kpi-sub">${stats.ecart.avg <= 0 ? 'avance' : 'retard'} moyen</span>
       </div>
     </div>
   `
@@ -1553,6 +1553,26 @@ function renderDashboard(data) {
   var gpStatusField = _gpfh("Etat d'avance de la demande")
   var gpDateField = (_baseItems[0] ? Object.keys(_baseItems[0]).find(function(k) { return k.indexOf('date_') === 0 && (k.indexOf('_dpt') >= 0 || k.indexOf('depot') >= 0) && k.indexOf('docinfo') >= 0 }) : '') || ''
 
+  var parseItemDate = function(raw) {
+    if (!raw) return null
+    var candidates = String(raw).split(/[,;\n\r]+/)
+    for (var c = 0; c < candidates.length; c++) {
+      var val = candidates[c].trim()
+      if (!val) continue
+      try {
+        var d = excelToDate(val)
+        if (d && !isNaN(d.getTime())) return d
+        if (/\//.test(val)) {
+          var parts = val.split('/')
+          if (parts.length === 3) { d = new Date(parts[2], parts[1] - 1, parts[0]); if (!isNaN(d.getTime())) return d }
+        }
+        d = new Date(val)
+        if (!isNaN(d.getTime())) return d
+      } catch {}
+    }
+    return null
+  }
+
   // Compute earliest deposit date from all items
   var minDateStr = ''
   if (gpDateField && _baseItems.length) {
@@ -1604,34 +1624,8 @@ function renderDashboard(data) {
   dashContent.appendChild(filterPanel)
 
   var tableCard
-  function renderFilteredTable(filtered) {
-    var newCard = renderDataTable(displayHeaders, filtered, s, gpStatusField)
-    if (tableCard) { tableCard.replaceWith(newCard) } else { dashContent.appendChild(newCard) }
-    tableCard = newCard
-  }
-
   var statusSel = filterPanel.querySelector('#dash-filter-global-status')
   var searchInput = filterPanel.querySelector('#dash-filter-global-search')
-
-  var parseItemDate = function(raw) {
-    if (!raw) return null
-    var candidates = String(raw).split(/[,;\n\r]+/)
-    for (var c = 0; c < candidates.length; c++) {
-      var val = candidates[c].trim()
-      if (!val) continue
-      try {
-        var d = excelToDate(val)
-        if (d && !isNaN(d.getTime())) return d
-        if (/\//.test(val)) {
-          var parts = val.split('/')
-          if (parts.length === 3) { d = new Date(parts[2], parts[1] - 1, parts[0]); if (!isNaN(d.getTime())) return d }
-        }
-        d = new Date(val)
-        if (!isNaN(d.getTime())) return d
-      } catch {}
-    }
-    return null
-  }
 
   function applyGlobalFilters() {
     _dashTableState.page = 1
@@ -1659,7 +1653,13 @@ function renderDashboard(data) {
     })
     var newStats = computeClientStats(_baseHeaders, filtered)
     buildStatsSections(newStats, filtered)
-    renderFilteredTable(filtered)
+    renderFilteredTable(filtered, newStats)
+  }
+
+  function renderFilteredTable(filtered, ns) {
+    var newCard = renderDataTable(displayHeaders, filtered, ns || s, gpStatusField)
+    if (tableCard) { tableCard.replaceWith(newCard) } else { dashContent.appendChild(newCard) }
+    tableCard = newCard
   }
 
   statusSel.addEventListener('change', applyGlobalFilters)
