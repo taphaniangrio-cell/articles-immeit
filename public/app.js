@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '108'
+const APP_VERSION = '121'
 
 // Force cache invalidation on version change
 ;(() => {
@@ -55,10 +55,9 @@ const aiProvider = $('ai-provider-main'), aiModel = $('ai-model-main'), aiKeySta
 const btnPreview = $('btn-preview'), linkedinPreview = $('linkedin-preview'), liPreviewBody = $('li-preview-body'), btnClosePreview = $('btn-close-preview')
 const navArticles = document.querySelector('[data-app="articles"]'), navDashboard = document.querySelector('[data-app="dashboard"]')
 const dashboardScreen = $('dashboard-screen'), dashContent = $('dash-content')
-const btnDashRefresh = $('btn-dash-refresh'), btnDashSync = $('btn-dash-sync')
+
 const dashLoading = $('dash-loading'), dashError = $('dash-error'), dashErrorText = $('dash-error-text')
-const dashUpdateInfo = $('dash-update-info')
-const shellTitle = $('shell-title')
+const shellTitle = $('shell-title'), shellTopbar = $('shell-topbar')
 
 const excelToDate = val => {
   const num = parseFloat(String(val).replace(',', '.'))
@@ -376,9 +375,11 @@ function showMain() {
   appContainer.classList.remove('hidden')
   const aiSel = document.getElementById('shell-ai-selector')
   if (aiSel) aiSel.style.display = ''
-  if (shellTitle) shellTitle.textContent = 'Articles'
+  if (shellTitle) { shellTitle.style.display = ''; shellTitle.textContent = 'Articles' }
+  if (shellTopbar) shellTopbar.classList.remove('hidden')
   navArticles?.classList.add('active')
   navDashboard?.classList.remove('active')
+  localStorage.setItem('immeit_last_view', 'articles')
   resetEditor()
   currentPage = 1
   if (!availableModels) loadAvailableModels()
@@ -1182,47 +1183,50 @@ function showDashboard() {
   appContainer.classList.remove('hidden')
   const aiSel = document.getElementById('shell-ai-selector')
   if (aiSel) aiSel.style.display = 'none'
-  if (shellTitle) shellTitle.textContent = 'Tableau de bord'
+  if (shellTitle) shellTitle.style.display = 'none'
+  if (shellTopbar) shellTopbar.classList.add('hidden')
   navDashboard?.classList.add('active')
   navArticles?.classList.remove('active')
+  localStorage.setItem('immeit_last_view', 'dashboard')
   loadDashboard()
 }
 
 navDashboard?.addEventListener('click', e => { e.preventDefault(); showDashboard() })
 navArticles?.addEventListener('click', e => { e.preventDefault(); showMain() })
-btnDashRefresh.addEventListener('click', loadDashboard)
 
 async function loadDashboard() {
   dashLoading.classList.remove('hidden')
   dashError.classList.add('hidden')
-  btnDashRefresh.disabled = true
-  dashUpdateInfo.textContent = 'Chargement…'
 
   try {
     const data = await api('/dashboard')
     dashData = data
     window._lastSyncTime = Date.now()
     renderDashboard(data)
-    dashUpdateInfo.textContent = 'À l\'instant'
+    updateDashInfo()
     startSyncTimer()
   } catch (err) {
     dashError.classList.remove('hidden')
     dashErrorText.textContent = err.message || 'Erreur de chargement du tableau de bord'
-    dashUpdateInfo.textContent = 'Erreur'
   } finally {
     dashLoading.classList.add('hidden')
-    btnDashRefresh.disabled = false
   }
 }
 
-btnDashSync.addEventListener('click', async () => {
-  if (btnDashSync.classList.contains('syncing')) return
-  btnDashSync.classList.add('syncing')
-  btnDashSync.textContent = 'Sync…'
+function updateDashInfo() {
+  var el = document.getElementById('dash-update-info')
+  if (el) el.textContent = 'À l\'instant'
+}
+
+async function handleDashSync() {
+  var btn = document.getElementById('btn-dash-sync')
+  if (!btn || btn.classList.contains('syncing')) return
+  btn.classList.add('syncing')
+  btn.textContent = 'Sync…'
   try {
     const result = await api('/sync', { method: 'POST' })
     if (result.success && result.count > 0) {
-      showToast(result.message || `${result.count} lignes synchronisées ✓`, 'success')
+      showToast(result.message || result.count + ' lignes synchronisées ✓', 'success')
     } else {
       showToast(result.message || 'Aucune donnée disponible', 'warning')
     }
@@ -1230,10 +1234,26 @@ btnDashSync.addEventListener('click', async () => {
   } catch (err) {
     showToast('Erreur synchronisation: ' + err.message, 'error')
   } finally {
-    btnDashSync.classList.remove('syncing')
-    btnDashSync.textContent = 'Sync'
+    btn.classList.remove('syncing')
+    btn.textContent = 'Sync'
   }
-})
+}
+
+async function handleDashRefresh() {
+  var btn = document.getElementById('btn-dash-refresh')
+  if (!btn || btn.classList.contains('syncing')) return
+  btn.classList.add('syncing')
+  try {
+    await loadDashboard()
+    showToast('Données actualisées ✓', 'success')
+  } catch (err) {
+    showToast('Erreur: ' + err.message, 'error')
+  } finally {
+    btn.classList.remove('syncing')
+  }
+}
+
+
 
 function countUp(el, target, duration = 600) {
   const isInt = Number.isInteger(target)
@@ -1251,17 +1271,21 @@ function countUp(el, target, duration = 600) {
 
 function startSyncTimer() {
   if (window._syncTimerInterval) clearInterval(window._syncTimerInterval)
+  if (window._autoRefreshInterval) clearInterval(window._autoRefreshInterval)
   function tick() {
+    var el = document.getElementById('dash-update-info')
+    if (!el) return
     const lastSync = window._lastSyncTime
-    if (!lastSync) { dashUpdateInfo.textContent = ''; return }
+    if (!lastSync) { el.textContent = ''; return }
     const elapsed = Math.floor((Date.now() - lastSync) / 1000)
-    if (elapsed < 5)     dashUpdateInfo.textContent = 'À l\'instant'
-    else if (elapsed < 60) dashUpdateInfo.textContent = 'Mis à jour il y a ' + elapsed + 's'
-    else if (elapsed < 3600) dashUpdateInfo.textContent = 'Mis à jour il y a ' + Math.floor(elapsed / 60) + ' min'
-    else dashUpdateInfo.textContent = 'Mis à jour à ' + new Date(lastSync).toLocaleTimeString('fr-FR')
+    if (elapsed < 5)     el.textContent = 'À l\'instant'
+    else if (elapsed < 60) el.textContent = 'Mis à jour il y a ' + elapsed + 's'
+    else if (elapsed < 3600) el.textContent = 'Mis à jour il y a ' + Math.floor(elapsed / 60) + ' min'
+    else el.textContent = 'Mis à jour à ' + new Date(lastSync).toLocaleTimeString('fr-FR')
   }
   tick()
   window._syncTimerInterval = setInterval(tick, 30000)
+  window._autoRefreshInterval = setInterval(loadDashboard, 5 * 60 * 1000)
 }
 
 function renderDashboard(data) {
@@ -1283,7 +1307,7 @@ function renderDashboard(data) {
   }
 
   if (!displayStats) {
-    dashContent.innerHTML = '<div class="dash-empty-state"><div class="dash-empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><p>En attente de synchronisation SharePoint. Clique sur <strong>Sync</strong> pour récupérer les données.</p></div>'
+    dashContent.innerHTML = '<div class="dash-empty-state"><div class="dash-empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><p>En attente de synchronisation. Les données seront chargées automatiquement.</p></div>'
     return
   }
 
@@ -1300,6 +1324,21 @@ function renderDashboard(data) {
     statsArea.innerHTML = ''
     var total = stats.total
 
+    // ─── INFO / ACTIONS BAR ──────────────────────────────────────
+    var infoBar = document.createElement('div')
+    infoBar.className = 'dash-info-bar'
+    infoBar.innerHTML = '<span id="dash-update-info"></span>' +
+      '<div class="dash-info-actions">' +
+      '<button class="dash-action-btn" id="btn-dash-refresh" title="Recharger les données">↻</button>' +
+      '<button class="dash-action-btn" id="btn-dash-sync" title="Synchroniser depuis SharePoint">⇄</button>' +
+      '</div>'
+    statsArea.appendChild(infoBar)
+    updateDashInfo()
+    var refreshBtn = infoBar.querySelector('#btn-dash-refresh')
+    if (refreshBtn) refreshBtn.addEventListener('click', handleDashRefresh)
+    var syncBtn = infoBar.querySelector('#btn-dash-sync')
+    if (syncBtn) syncBtn.addEventListener('click', handleDashSync)
+
     // ─── DATE RANGE BAR ────────────────────────────────────────
     var dateBar = document.createElement('div')
     dateBar.className = 'dash-date-bar'
@@ -1315,7 +1354,7 @@ function renderDashboard(data) {
     var topClear = dateBar.querySelector('#dash-date-clear')
     topStart.addEventListener('change', function() { dateStartVal = this.value; applyGlobalFilters() })
     topEnd.addEventListener('change', function() { dateEndVal = this.value; applyGlobalFilters() })
-    topClear.addEventListener('click', function() { dateStartVal = minDateStr || '2026-01-01'; dateEndVal = new Date().toISOString().slice(0, 10); topStart.value = dateStartVal; topEnd.value = dateEndVal; applyGlobalFilters() })
+    topClear.addEventListener('click', function() { dateStartVal = minDateStr || '2026-01-01'; dateEndVal = new Date().toISOString().slice(0, 10); topStart.value = dateStartVal; topEnd.value = dateEndVal; if (searchInput) searchInput.value = ''; if (statusSel) statusSel.value = ''; applyGlobalFilters() })
 
     // ─── HEALTH SCORE ──────────────────────────────────────────
     const avgConf = Math.round((stats.tauxConf1 + stats.tauxConfDem) / 2)
@@ -1663,7 +1702,22 @@ function renderDashboard(data) {
   }
 
   statusSel.addEventListener('change', applyGlobalFilters)
-  searchInput.addEventListener('input', applyGlobalFilters)
+  var searchTimer
+  searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(applyGlobalFilters, 250)
+  })
+
+  statsArea.addEventListener('click', function(e) {
+    var target = e.target.closest('.dash-bar-item, .dash-donut-row')
+    if (!target) return
+    var lbl = target.querySelector('.dash-bar-label, .dash-donut-lbl')
+    if (!lbl) return
+    var text = lbl.textContent.trim()
+    if (!text) return
+    searchInput.value = text
+    applyGlobalFilters()
+  })
 
   if (_baseItems.length > 0) applyGlobalFilters()
 }
@@ -2367,7 +2421,9 @@ function formatDateCell(val) {
 async function init() {
   if (hasSession()) {
     await loadAvailableModels()
-    showMain()
+    var lastView = localStorage.getItem('immeit_last_view')
+    if (lastView === 'dashboard') showDashboard()
+    else showMain()
   } else showLogin()
 }
 

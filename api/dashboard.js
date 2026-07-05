@@ -4,30 +4,106 @@ const { requireAuth } = require('../lib/auth');
 const { log } = require('../lib/logger');
 const cors = require('../lib/cors');
 const sharepoint = require('../lib/sharepoint');
+const autoSync = require('../lib/auto-sync');
+
+const FETCH_TIMEOUT = 12000;
 
 module.exports = requireAuth(async (req, res) => {
   if (cors(res, req)) return;
 
   try {
-    const [articleStats, sharepointData, syncedData] = await Promise.all([
+    const [articleStats, cachedData] = await Promise.all([
       getArticleStats(),
-      sharepoint.fetchDashboardData(),
-      getSyncedCache(),
+      loadCachedData(),
     ]);
+
+    // Try live SharePoint with timeout — if it succeeds, use fresh data
+    var sharepointData = null
+    if (sharepoint.isConfigured()) {
+      try {
+        sharepointData = await timeoutPromise(sharepoint.fetchDashboardData(), FETCH_TIMEOUT)
+      } catch (e) {
+        log('warn', 'dash_sp_timeout', { error: e.message })
+      }
+    }
+
+    var displayData
+    if (sharepointData && sharepointData.connected && sharepointData.items?.length > 0) {
+      displayData = {
+        headers: sharepointData.headers,
+        items: sharepointData.items,
+        syncedAt: new Date().toISOString(),
+        source: 'sharepoint_live',
+        _rawCount: sharepointData._rawCount,
+      }
+      saveToDBCache(displayData).catch(function() {})
+    } else {
+      displayData = cachedData
+    }
 
     return res.status(200).json({
       articles: articleStats,
-      sharepoint: sharepointData,
-      synced: syncedData,
-    });
+      sharepoint: sharepointData ? { connected: true } : { connected: false },
+      synced: displayData,
+    })
   } catch (err) {
-    log('error', 'dashboard_error', { error: err.message });
-    return res.status(500).json({ error: 'Erreur chargement tableau de bord' });
+    log('error', 'dashboard_error', { error: err.message })
+    return res.status(500).json({ error: 'Erreur chargement tableau de bord' })
   }
-});
+})
+
+function timeoutPromise(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise(function(_, reject) {
+      setTimeout(function() { reject(new Error('timeout')) }, ms)
+    }),
+  ])
+}
+
+async function saveToDBCache(data) {
+  try {
+    await db.query(
+      `INSERT INTO dashboard_cache (cache_key, cache_data, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (cache_key) DO UPDATE SET cache_data = $2, updated_at = NOW()`,
+      ['sharepoint_suivi_2026', JSON.stringify(data)]
+    )
+  } catch (e) { log('warn', 'dash_cache_save_failed', { error: e.message }) }
+}
+
+async function loadCachedData() {
+  try {
+    const r = await db.query(
+      `SELECT cache_data FROM dashboard_cache WHERE cache_key = 'sharepoint_suivi_2026'`
+    )
+    if (r.rows.length > 0) {
+      var data = r.rows[0].cache_data
+      if (typeof data === 'string') { try { data = JSON.parse(data) } catch {} }
+      if (data && data.items && data.items.length > 0) return data
+    }
+  } catch (e) { log('warn', 'dash_cache_db_read_failed', { error: e?.message }) }
+
+  try {
+    var cached = autoSync.loadCache()
+    if (cached && cached.items && cached.items.length > 0) return cached
+  } catch (e) { /* ignore */ }
+
+  try {
+    var logDir = process.env.LOCALAPPDATA
+      ? path.join(process.env.LOCALAPPDATA, 'IMMEIT')
+      : path.join(__dirname, '..', '.immeit-logs')
+    var filePath = path.join(logDir, 'dash-cache.json')
+    if (require('fs').existsSync(filePath)) {
+      return JSON.parse(require('fs').readFileSync(filePath, 'utf-8'))
+    }
+  } catch (e) { /* ignore */ }
+
+  return null
+}
 
 async function getArticleStats() {
-  const result = await db.query(`
+  var result = await db.query(`
     SELECT
       COUNT(*)::int AS total,
       COUNT(*) FILTER (WHERE statut = 'brouillon')::int AS brouillon,
@@ -37,80 +113,18 @@ async function getArticleStats() {
       COUNT(*) FILTER (WHERE statut = 'archive')::int AS archive,
       COUNT(*) FILTER (WHERE statut IN ('valide', 'publie'))::int AS termines
     FROM articles
-  `);
-  const row = result.rows[0] || {};
-  const total = row.total || 0;
-  const termines = row.termines || 0;
-
-  const monthlyResult = await db.query(`
-    SELECT
-      to_char(date_creation, 'YYYY-MM') AS month,
-      COUNT(*)::int AS count
-    FROM articles
-    WHERE date_creation IS NOT NULL
-      AND date_creation >= NOW() - INTERVAL '12 months'
-    GROUP BY month
-    ORDER BY month
-  `);
-
-  const topResult = await db.query(`
-    SELECT titre_interne, statut, date_creation, ia_provider
-    FROM articles
-    ORDER BY date_creation DESC
-    LIMIT 5
-  `);
+  `)
+  var row = result.rows[0] || {}
+  var total = row.total || 0
 
   return {
-    total,
+    total: total,
     brouillon: row.brouillon || 0,
     en_revision: row.en_revision || 0,
     valide: row.valide || 0,
     publie: row.publie || 0,
     archive: row.archive || 0,
-    termines,
-    tauxCompletion: total > 0 ? Math.round((termines / total) * 100) : 0,
-    monthlyTrend: monthlyResult.rows,
-    recentTop: topResult.rows,
-  };
-}
-
-function safeJsonParse(value) {
-  if (typeof value === 'object' && value !== null) return value;
-  if (typeof value === 'string') {
-    try { return JSON.parse(value); } catch { return null; }
+    termines: row.termines || 0,
+    tauxCompletion: total > 0 ? Math.round(((row.termines || 0) / total) * 100) : 0,
   }
-  return null;
-}
-
-async function getSyncedCache() {
-  // Try DB first
-  try {
-    const result = await db.query(
-      `SELECT cache_data FROM dashboard_cache WHERE cache_key = 'sharepoint_suivi_2026'`
-    );
-    if (result.rows.length > 0) {
-      return safeJsonParse(result.rows[0].cache_data);
-    }
-  } catch (e) { log('warn', 'dashboard_cache_db_read_failed', { error: e?.message }); }
-
-  // Try auto-sync cache
-  try {
-    const autoSync = require('../lib/auto-sync');
-    const cached = autoSync.loadCache();
-    if (cached) return cached;
-  } catch (e) { log('warn', 'dashboard_cache_autosync_failed', { error: e?.message }); }
-
-  // Try local file directly
-  try {
-    const logDir = process.env.LOCALAPPDATA
-      ? path.join(process.env.LOCALAPPDATA, 'IMMEIT')
-      : path.join(__dirname, '..', '.immeit-logs');
-    const filePath = path.join(logDir, 'dash-cache.json');
-    if (require('fs').existsSync(filePath)) {
-      const raw = require('fs').readFileSync(filePath, 'utf-8');
-      return JSON.parse(raw);
-    }
-  } catch (e) { log('warn', 'dashboard_cache_file_read_failed', { error: e?.message }); }
-
-  return null;
 }
