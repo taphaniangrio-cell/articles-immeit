@@ -15,8 +15,8 @@ env.split(/\r?\n/).forEach(line => {
 const { sendAlert } = require('./lib/email-alert.js');
 
 console.log('ALERT_EMAIL_TO:', process.env.ALERT_EMAIL_TO);
-console.log('SMTP_USER:', process.env.SMTP_USER);
-console.log('SMTP_PASS:', process.env.SMTP_PASS ? '****' : 'NON DÉFINI');
+console.log('SMTP_USER:', process.env.SMTP_USER || 'NON DÉFINI');
+if (process.env.SMTP_USER) console.log('SMTP_PASS:', process.env.SMTP_PASS ? '****' : 'NON DÉFINI');
 console.log('');
 
 const report = {
@@ -33,13 +33,16 @@ const report = {
   modifiedRows: []
 };
 
-sendAlert(report).then(sent => {
-  if (sent) {
-    console.log('');
-    console.log('✓ Email envoyé ! Vérifie ta boîte Outlook');
+sendAlert(report).then(result => {
+  if (result === true) {
+    console.log('✓ Email envoyé via SMTP ! Vérifie ta boîte Outlook');
+  } else if (result && result.previewUrl) {
+    console.log('⚠ SMTP indisponible, email livré via Ethereal (faux SMTP)');
+    console.log('  → Aperçu : ' + result.previewUrl);
+    console.log('  L\'email n\'est pas réellement arrivé dans ta boîte.');
+    console.log('  Mais le HTML est bon (tu peux cliquer le lien pour voir le rendu).');
   } else {
-    console.log('');
-    console.log('✗ ÉCHEC : aucun canal d\'envoi n\'a fonctionné');
+    console.log('✗ ÉCHEC total — aucun transport disponible');
     process.exit(1);
   }
 });
