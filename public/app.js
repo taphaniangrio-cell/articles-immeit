@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '129'
+const APP_VERSION = '130'
 
 // Force cache invalidation on version change
 ;(() => {
@@ -1503,7 +1503,7 @@ function renderDashboard(data) {
       if (!insightText && stats.monthlyTrend.length >= 3) {
         var _total = 0; for (var _ti = 0; _ti < stats.monthlyTrend.length; _ti++) _total += stats.monthlyTrend[_ti].count
         var _trArrow = last.count > first.count ? '\u2197' : last.count < first.count ? '\u2198' : '\u2192'
-        insightText = _trArrow + ' <strong>' + _total + '</strong> demande' + (_total > 1 ? 's' : '') + ' sur ' + _monthLabel(first.month) + '\u2013' + _monthLabel(last.month) + ' \u2014 tendance ' + (last.count > first.count ? 'haussi\u00e8re' : last.count < first.count ? 'baissi\u00e8re' : 'stable') + ' (' + first.count + ' \u2192 ' + last.count + '/mois)'
+        insightText = _trArrow + ' <strong>' + _total + '</strong> demande' + (_total > 1 ? 's' : '') + ' sur ' + _monthLabel(first.month) + '\u2013' + _monthLabel(last.month) + ' \u2014 tendance ' + (last.count > first.count ? 'haussi\u00e8re' : last.count < first.count ? 'baissi\u00e8re' : 'stable') + ' (' + first.count + ' \u2192 ' + last.count + ')'
       }
 
       if (!insightText && stats.monthlyTrend.length >= 2) {
