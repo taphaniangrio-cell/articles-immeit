@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '123'
+const APP_VERSION = '129'
 
 // Force cache invalidation on version change
 ;(() => {
@@ -1211,6 +1211,10 @@ async function loadDashboard(forceFresh) {
   } finally {
     dashLoading.classList.add('hidden')
   }
+  var _refreshBtn = document.getElementById('btn-dash-refresh')
+  var _syncBtn = document.getElementById('btn-dash-sync')
+  if (_refreshBtn && !_refreshBtn._wired) { _refreshBtn.onclick = handleDashRefresh; _refreshBtn._wired = true }
+  if (_syncBtn && !_syncBtn._wired) { _syncBtn.onclick = handleDashSync; _syncBtn._wired = true }
 }
 
 function updateDashInfo() {
@@ -1222,7 +1226,6 @@ async function handleDashSync() {
   var btn = document.getElementById('btn-dash-sync')
   if (!btn || btn.classList.contains('syncing')) return
   btn.classList.add('syncing')
-  btn.textContent = 'Sync…'
   try {
     const result = await api('/sync', { method: 'POST' })
     if (result.success && result.count > 0) {
@@ -1235,7 +1238,6 @@ async function handleDashSync() {
     showToast('Erreur synchronisation: ' + err.message, 'error')
   } finally {
     btn.classList.remove('syncing')
-    btn.textContent = 'Sync'
   }
 }
 
@@ -1252,6 +1254,8 @@ async function handleDashRefresh() {
     btn.classList.remove('syncing')
   }
 }
+
+
 
 
 
@@ -1320,41 +1324,29 @@ function renderDashboard(data) {
   var _baseHeaders = displayHeaders
   var _baseItems = displayItems
 
+  var parseItemDate = function(raw) {
+    if (!raw) return null
+    var candidates = String(raw).split(/[,;\n\r]+/)
+    for (var c = 0; c < candidates.length; c++) {
+      var val = candidates[c].trim()
+      if (!val) continue
+      try {
+        var d = excelToDate(val)
+        if (d && !isNaN(d.getTime())) return d
+        if (/\//.test(val)) {
+          var parts = val.split('/')
+          if (parts.length === 3) { d = new Date(parts[2], parts[1] - 1, parts[0]); if (!isNaN(d.getTime())) return d }
+        }
+        d = new Date(val)
+        if (!isNaN(d.getTime())) return d
+      } catch {}
+    }
+    return null
+  }
+
   function buildStatsSections(stats, items) {
     statsArea.innerHTML = ''
     var total = stats.total
-
-    // ─── INFO / ACTIONS BAR ──────────────────────────────────────
-    var infoBar = document.createElement('div')
-    infoBar.className = 'dash-info-bar'
-    infoBar.innerHTML = '<span id="dash-update-info"></span>' +
-      '<div class="dash-info-actions">' +
-      '<button class="dash-action-btn" id="btn-dash-refresh" title="Recharger les données">↻</button>' +
-      '<button class="dash-action-btn" id="btn-dash-sync" title="Synchroniser depuis SharePoint">⇄</button>' +
-      '</div>'
-    statsArea.appendChild(infoBar)
-    updateDashInfo()
-    var refreshBtn = infoBar.querySelector('#btn-dash-refresh')
-    if (refreshBtn) refreshBtn.addEventListener('click', handleDashRefresh)
-    var syncBtn = infoBar.querySelector('#btn-dash-sync')
-    if (syncBtn) syncBtn.addEventListener('click', handleDashSync)
-
-    // ─── DATE RANGE BAR ────────────────────────────────────────
-    var dateBar = document.createElement('div')
-    dateBar.className = 'dash-date-bar'
-    dateBar.innerHTML = '<span class="dash-date-bar-label">Période</span>' +
-      '<input type="date" id="dash-date-start" class="dash-date-input" value="' + (dateStartVal || '') + '">' +
-      '<span class="dash-date-bar-sep">→</span>' +
-      '<input type="date" id="dash-date-end" class="dash-date-input" value="' + (dateEndVal || '') + '">' +
-      '<button class="btn btn--ghost btn-sm dash-date-clear" id="dash-date-clear">Réinitialiser</button>'
-    statsArea.appendChild(dateBar)
-    // Bind events for top date inputs
-    var topStart = dateBar.querySelector('#dash-date-start')
-    var topEnd = dateBar.querySelector('#dash-date-end')
-    var topClear = dateBar.querySelector('#dash-date-clear')
-    topStart.addEventListener('change', function() { dateStartVal = this.value; applyGlobalFilters() })
-    topEnd.addEventListener('change', function() { dateEndVal = this.value; applyGlobalFilters() })
-    topClear.addEventListener('click', function() { dateStartVal = minDateStr || '2026-01-01'; dateEndVal = new Date().toISOString().slice(0, 10); topStart.value = dateStartVal; topEnd.value = dateEndVal; if (searchInput) searchInput.value = ''; if (statusSel) statusSel.value = ''; applyGlobalFilters() })
 
     // ─── HEALTH SCORE ──────────────────────────────────────────
     const avgConf = Math.round((stats.tauxConf1 + stats.tauxConfDem) / 2)
@@ -1449,11 +1441,81 @@ function renderDashboard(data) {
       const enCours = stats.avancementDist.find(a => /en.cours/i.test(a.label))
       if (enCours) insights.push(`<span class="dash-insight"><span class="dash-insight-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span><span class="dash-insight-text"><strong>${enCours.count} demandes</strong> sont en cours de traitement</span></span>`)
     }
-    if (stats.monthlyTrend && stats.monthlyTrend.length >= 2) {
-      const last = stats.monthlyTrend[stats.monthlyTrend.length - 1]
-      const prev = stats.monthlyTrend[stats.monthlyTrend.length - 2]
-      const trend = last.count > prev.count ? 'en hausse' : last.count < prev.count ? 'en baisse' : 'stable'
-      insights.push(`<span class="dash-insight"><span class="dash-insight-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="dash-insight-text">Activit\u00e9 ${trend} (${last.count} demandes en ${last.month})</span></span>`)
+    if (stats.monthlyTrend && stats.monthlyTrend.length >= 1) {
+      var _norm2 = function(x) { return x.trim().toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '') }
+      var _monthLabel = function(mk) { var p = mk.split('-'); var months = ['janv','f\u00e9vr','mars','avr','mai','juin','juil','ao\u00fbt','sept','oct','nov','d\u00e9c']; return months[parseInt(p[1],10)-1] + ' ' + p[0] }
+      var _findDateField = function() {
+        if (_baseHeaders && _baseHeaders.length) {
+          var _hdr = _baseHeaders.find(function(x) { return _norm2(x) === _norm2('Date de dépôt du dossier sur docinfo') })
+          if (_hdr) return _norm2(_hdr)
+        }
+        if (items[0]) {
+          var k = Object.keys(items[0]).find(function(k) { return /^date_/.test(k) && (k.indexOf('dpt') >= 0 || k.indexOf('depot') >= 0) })
+          if (k) return k
+          k = Object.keys(items[0]).find(function(k) { return /^date_/.test(k) })
+          if (k) return k
+        }
+        return ''
+      }
+      var last = stats.monthlyTrend[stats.monthlyTrend.length - 1]
+      var first = stats.monthlyTrend[0]
+      var now = new Date(), curMk = String(now.getFullYear()) + '-' + String(now.getMonth() + 1).padStart(2, '0')
+      var isCur = last.month === curMk
+      var insightText = ''
+
+      if (stats.monthlyTrend.length === 1) {
+        insightText = '<strong>' + last.count + '</strong> demande' + (last.count > 1 ? 's' : '') + ' en ' + _monthLabel(last.month)
+      } else if (isCur && stats.monthlyTrend.length >= 2) {
+        var df = _findDateField()
+        if (df) {
+          var maxDay = 0
+          items.forEach(function(item) {
+            var r = item[df]; if (!r) return
+            var d = parseItemDate(r)
+            if (d) {
+              var mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+              if (mk === curMk && d.getDate() > maxDay) maxDay = d.getDate()
+            }
+          })
+          if (maxDay > 0 && maxDay < 28) {
+            var curC = 0, prevC = 0, _prevMk = stats.monthlyTrend[stats.monthlyTrend.length - 2].month
+            items.forEach(function(item) {
+              var r = item[df]; if (!r) return
+              var d = parseItemDate(r)
+              if (d) {
+                var mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+                if (mk === curMk && d.getDate() <= maxDay) curC++
+                if (mk === _prevMk && d.getDate() <= maxDay) prevC++
+              }
+            })
+            var pct = prevC > 0 ? Math.round(((curC - prevC) / prevC) * 100) : 0
+            var arrow = curC > prevC ? '\u2197' : curC < prevC ? '\u2198' : '\u2192'
+            insightText = '<strong>' + curC + '</strong> demande' + (curC > 1 ? 's' : '') + ' sur les ' + maxDay + ' premiers jours de ' + _monthLabel(last.month) + ' \u2014 ' + arrow + ' ' + (pct > 0 ? '+' : '') + pct + '% vs ' + prevC + ' \u00e0 la m\u00eame p\u00e9riode en ' + _monthLabel(_prevMk)
+          } else {
+            var _prev2 = stats.monthlyTrend[stats.monthlyTrend.length - 2]
+            var pct2 = _prev2.count > 0 ? Math.round(((last.count - _prev2.count) / _prev2.count) * 100) : 0
+            var arrow2 = last.count > _prev2.count ? '\u2197' : last.count < _prev2.count ? '\u2198' : '\u2192'
+            insightText = '<strong>' + last.count + '</strong> demande' + (last.count > 1 ? 's' : '') + ' en ' + _monthLabel(last.month) + ' \u2014 ' + arrow2 + ' ' + (pct2 > 0 ? '+' : '') + pct2 + '% vs ' + _prev2.count + ' en ' + _monthLabel(_prev2.month)
+          }
+        }
+      }
+
+      if (!insightText && stats.monthlyTrend.length >= 3) {
+        var _total = 0; for (var _ti = 0; _ti < stats.monthlyTrend.length; _ti++) _total += stats.monthlyTrend[_ti].count
+        var _trArrow = last.count > first.count ? '\u2197' : last.count < first.count ? '\u2198' : '\u2192'
+        insightText = _trArrow + ' <strong>' + _total + '</strong> demande' + (_total > 1 ? 's' : '') + ' sur ' + _monthLabel(first.month) + '\u2013' + _monthLabel(last.month) + ' \u2014 tendance ' + (last.count > first.count ? 'haussi\u00e8re' : last.count < first.count ? 'baissi\u00e8re' : 'stable') + ' (' + first.count + ' \u2192 ' + last.count + '/mois)'
+      }
+
+      if (!insightText && stats.monthlyTrend.length >= 2) {
+        var _prev2 = stats.monthlyTrend[stats.monthlyTrend.length - 2]
+        var pct2 = _prev2.count > 0 ? Math.round(((last.count - _prev2.count) / _prev2.count) * 100) : 0
+        var arrow2 = last.count > _prev2.count ? '\u2197' : last.count < _prev2.count ? '\u2198' : '\u2192'
+        insightText = '<strong>' + last.count + '</strong> demande' + (last.count > 1 ? 's' : '') + ' en ' + _monthLabel(last.month) + ' \u2014 ' + arrow2 + ' ' + (pct2 > 0 ? '+' : '') + pct2 + '% vs ' + _prev2.count + ' en ' + _monthLabel(_prev2.month)
+      }
+
+      if (insightText) {
+        insights.push('<span class="dash-insight"><span class="dash-insight-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="dash-insight-text">' + insightText + '</span></span>')
+      }
     }
     if (insights.length > 0) {
       const insWrap = document.createElement('div')
@@ -1568,6 +1630,14 @@ function renderDashboard(data) {
       monthlySection.className = 'dash-section'
       monthlySection.innerHTML = `<div class="dash-section-header"><h3><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Évolution mensuelle</h3><span class="dash-section-toggle open" id="dash-toggle-monthly">▼</span></div><div class="dash-section-body" id="dash-body-monthly"></div>`
       monthlySection.querySelector('.dash-section-body').appendChild(createLineChart('', stats.monthlyTrend))
+      var _lastM = stats.monthlyTrend[stats.monthlyTrend.length - 1]
+      var _curMk = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0')
+      if (_lastM && _lastM.month === _curMk) {
+        var _note = document.createElement('div')
+        _note.style.cssText = 'font-size:10px;color:var(--clr-text-muted);padding:4px 0 0;text-align:center;border-top:1px solid var(--clr-border);margin-top:8px'
+        _note.textContent = '* Mois en cours — données partielles (J' + new Date().getDate() + ')'
+        monthlySection.querySelector('.dash-section-body').appendChild(_note)
+      }
       monthlySection.querySelector('.dash-section-header').addEventListener('click', () => {
         const body = monthlySection.querySelector('.dash-section-body')
         const toggle = monthlySection.querySelector('.dash-section-toggle')
@@ -1592,26 +1662,6 @@ function renderDashboard(data) {
   var gpStatusField = _gpfh("Etat d'avance de la demande")
   var gpDateField = (_baseItems[0] ? Object.keys(_baseItems[0]).find(function(k) { return k.indexOf('date_') === 0 && (k.indexOf('_dpt') >= 0 || k.indexOf('depot') >= 0) && k.indexOf('docinfo') >= 0 }) : '') || ''
 
-  var parseItemDate = function(raw) {
-    if (!raw) return null
-    var candidates = String(raw).split(/[,;\n\r]+/)
-    for (var c = 0; c < candidates.length; c++) {
-      var val = candidates[c].trim()
-      if (!val) continue
-      try {
-        var d = excelToDate(val)
-        if (d && !isNaN(d.getTime())) return d
-        if (/\//.test(val)) {
-          var parts = val.split('/')
-          if (parts.length === 3) { d = new Date(parts[2], parts[1] - 1, parts[0]); if (!isNaN(d.getTime())) return d }
-        }
-        d = new Date(val)
-        if (!isNaN(d.getTime())) return d
-      } catch {}
-    }
-    return null
-  }
-
   // Compute earliest deposit date from all items
   var minDateStr = ''
   if (gpDateField && _baseItems.length) {
@@ -1631,8 +1681,28 @@ function renderDashboard(data) {
   // Set default values on date inputs after they've been created
   var startInput = document.getElementById('dash-date-start')
   var endInput = document.getElementById('dash-date-end')
-  if (startInput) startInput.value = dateStartVal
-  if (endInput) endInput.value = dateEndVal
+  if (startInput) {
+    startInput.value = dateStartVal
+    startInput.onchange = function() { dateStartVal = this.value; applyGlobalFilters() }
+  }
+  if (endInput) {
+    endInput.value = dateEndVal
+    endInput.onchange = function() { dateEndVal = this.value; applyGlobalFilters() }
+  }
+  var resetBtn = document.getElementById('btn-dash-reset')
+  if (resetBtn) {
+    resetBtn.onclick = function() {
+      if (resetBtn.classList.contains('syncing')) return
+      resetBtn.classList.add('syncing')
+      if (startInput) { startInput.value = minDateStr || '2026-01-01'; dateStartVal = startInput.value }
+      if (endInput) { endInput.value = todayStr; dateEndVal = endInput.value }
+      if (typeof searchInput !== 'undefined' && searchInput) searchInput.value = ''
+      if (typeof statusSel !== 'undefined' && statusSel) statusSel.value = ''
+      applyGlobalFilters()
+      showToast('Filtres réinitialisés ✓', 'success')
+      setTimeout(function() { resetBtn.classList.remove('syncing') }, 300)
+    }
+  }
 
   var filterPanel = document.createElement('div')
   filterPanel.className = 'dash-section'
@@ -1786,17 +1856,23 @@ function computeClientStats(headers, items) {
 
     var rd = it[f.date] || ''
     if (rd) {
-      try {
-        var d = excelToDate(rd)
-        if (!d || isNaN(d.getTime())) {
-          if (rd.indexOf('/') >= 0) { var p = rd.split('/'); if (p.length === 3) d = new Date(p[2], p[1] - 1, p[0]) }
-          else d = new Date(rd)
-        }
-        if (d && !isNaN(d.getTime())) {
-          var mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
-          groups.monthly[mk] = (groups.monthly[mk] || 0) + 1
-        }
-      } catch {}
+      var _candidates = String(rd).split(/[,;\n\r]+/)
+      for (var _c = 0; _c < _candidates.length; _c++) {
+        var _val = _candidates[_c].trim()
+        if (!_val) continue
+        try {
+          var d = excelToDate(_val)
+          if (!d || isNaN(d.getTime())) {
+            if (_val.indexOf('/') >= 0) { var p = _val.split('/'); if (p.length === 3) d = new Date(p[2], p[1] - 1, p[0]) }
+            else d = new Date(_val)
+          }
+          if (d && !isNaN(d.getTime())) {
+            var mk = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+            groups.monthly[mk] = (groups.monthly[mk] || 0) + 1
+            break
+          }
+        } catch {}
+      }
     }
   }
 

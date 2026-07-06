@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="stylesheet" href="style.css?v=142">
+<link rel="stylesheet" href="style.css?v=149">
 </head>
 <body>
 
@@ -228,6 +228,20 @@
           <span class="dashboard__title-bar-text">Rapports reçus pour vérification</span>
           <span class="dashboard__title-bar-year">2026</span>
         </div>
+        <div class="dash-actions-bar">
+          <span id="dash-update-info" class="dash-update-info"></span>
+          <div class="dash-actions-date">
+            <span class="dash-date-label">Période</span>
+            <input type="date" id="dash-date-start" class="dash-date-input">
+            <span class="dash-date-sep">→</span>
+            <input type="date" id="dash-date-end" class="dash-date-input">
+          </div>
+          <div class="dash-actions-group">
+            <button id="btn-dash-refresh" class="dash-action-btn" title="Recharger les données">↻</button>
+            <button id="btn-dash-sync" class="dash-action-btn" title="Synchroniser depuis SharePoint">⇄</button>
+            <button id="btn-dash-reset" class="dash-action-btn dash-action-btn--reset" title="Réinitialiser les filtres">↺ Réinitialiser</button>
+          </div>
+        </div>
         <div id="dash-content" class="dashboard__content">
           <div class="dashboard__loading" id="dash-loading">
             <div class="spinner"></div>
@@ -288,6 +302,6 @@
   </div>
 </div>
 
-<script src="app.js?v=138"></script>
+<script src="app.js?v=152"></script>
 </body>
 </html>
