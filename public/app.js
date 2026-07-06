@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '131'
+const APP_VERSION = '132'
 
 // Force cache invalidation on version change
 ;(() => {
@@ -2260,6 +2260,15 @@ function createLineChart(title, data) {
     dot.setAttribute('stroke', '#fff')
     dot.setAttribute('stroke-width', '1.5')
     svg.appendChild(dot)
+    const vLabel = document.createElementNS(svgNS, 'text')
+    vLabel.setAttribute('x', p.x)
+    vLabel.setAttribute('y', p.y - 9)
+    vLabel.setAttribute('text-anchor', 'middle')
+    vLabel.setAttribute('fill', '#1E40AF')
+    vLabel.setAttribute('font-size', '10')
+    vLabel.setAttribute('font-weight', 'bold')
+    vLabel.innerHTML = p.count
+    svg.appendChild(vLabel)
   })
   points.forEach(p => {
     const lbl = document.createElementNS(svgNS, 'text')
