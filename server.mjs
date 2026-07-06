@@ -28,7 +28,7 @@ const LOG_DIR = process.env.LOCALAPPDATA
 loadEnv();
 
 const SERVER_START = Date.now();
-const health = { uptime: 0, pid: process.pid, port: null };
+const health = { pid: process.pid, port: null };
 
 function writeHealthFile(status) {
   try {

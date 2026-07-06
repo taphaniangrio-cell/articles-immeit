@@ -57,7 +57,6 @@ body {
   --clr-text-secondary:#475569;
   --clr-text-muted:    #94A3B8;
   --clr-text-light:    #64748B;
-  --color-text-light:  #64748B;
   --clr-text-inverse:  #F8FAFC;
 
   /* Bordures */
@@ -249,17 +248,7 @@ body {
 }
 
 /* =============================================
-   SCREENS (layout général)
-   ============================================= */
-.screen {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: var(--space-6) 20px;
-  animation: fadeInUp .25s ease;
-}
-
-/* =============================================
-   SKELETON LOADER (section 6.9)
+   SKELETON LOADER
    ============================================= */
 .skeleton {
   background: linear-gradient(90deg, var(--clr-border) 25%, var(--clr-bg-hover) 50%, var(--clr-border) 75%);
@@ -269,84 +258,9 @@ body {
 }
 .skeleton-card { height: 72px; margin-bottom: var(--space-2); border-radius: var(--radius-md); }
 
-.btn-logout {
-  background: transparent;
-  border: none;
-  color: var(--clr-text-muted);
-  padding: var(--space-1) 6px;
-  border-radius: var(--radius-sm);
-  font-size: .76rem;
-  cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast);
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-height: auto;
-  min-width: auto;
-}
-.btn-logout:hover { color: var(--clr-danger); background: var(--clr-danger-bg); }
-
-/* =============================================
-   AI SELECTOR
-   ============================================= */
-.ai-selector-inline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--clr-bg-page);
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-}
-.ai-selector-inline select {
-  width: auto;
-  padding: 5px 24px 5px 8px;
-  font-size: .75rem;
-  max-width: 150px;
-  border: 1px solid transparent;
-  background: transparent;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 7px center;
-  font-family: var(--font-body);
-  color: var(--clr-text-primary);
-}
-.ai-selector-inline select:focus { border-color: var(--clr-linkedin); background-color: var(--clr-bg-card); }
 .key-status { font-size: .66rem; padding: 0 0 0 6px; white-space: nowrap; }
 .key-ok { color: var(--clr-success); }
 .key-missing { color: var(--clr-danger); }
-
-/* =============================================
-   FILTERS (tabs section 6.4)
-   ============================================= */
-.filters {
-  display: flex;
-  gap: 6px;
-  margin-bottom: var(--space-5);
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding: var(--space-1) 0;
-  -webkit-overflow-scrolling: touch;
-}
-.filters::-webkit-scrollbar { display: none; }
-
-.filter-btn {
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-pill);
-  border: 1.5px solid var(--clr-border);
-  background: var(--clr-bg-card);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--clr-text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  white-space: nowrap;
-  min-height: auto;
-  min-width: auto;
 }
 .filter-btn:hover { border-color: var(--clr-linkedin); color: var(--clr-linkedin); }
 .filter-btn.active { background: var(--clr-linkedin); color: #fff; border-color: var(--clr-linkedin); box-shadow: 0 2px 6px rgba(10,102,194,.2); }
@@ -463,21 +377,6 @@ body {
 .s-publie      { background: var(--clr-published-bg); color: var(--clr-published); }
 .s-archive     { background: var(--clr-archived-bg);  color: var(--clr-archived); }
 
-/* =============================================
-   EDITOR
-   ============================================= */
-.editor-body { display: flex; flex-direction: column; gap: var(--space-4); animation: fadeInUp .2s ease; }
-.editor-layout {
-  display: grid;
-  grid-template-columns: 1fr 240px;
-  gap: var(--space-5);
-}
-@media (max-width: 768px) {
-  .editor-layout { grid-template-columns: 1fr; }
-}
-
-.editor-main { display: flex; flex-direction: column; gap: var(--space-4); }
-.editor-sidebar { display: flex; flex-direction: column; gap: var(--space-4); }
 .field { display: flex; flex-direction: column; gap: 5px; }
 
 label {
@@ -562,7 +461,7 @@ textarea { resize: vertical; line-height: var(--leading-relaxed); }
 .accroche-card-type {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--color-text-light);
+  color:   var(--clr-text-light);
   text-transform: uppercase;
   letter-spacing: .04em;
 }
@@ -619,7 +518,7 @@ select {
 .char-count.warn { color: var(--clr-review); }
 .char-count.over { color: var(--clr-danger); font-weight: var(--weight-semibold); }
 
-.source-display { font-size: var(--text-sm); color: var(--clr-text-muted); padding: var(--space-3) var(--space-3); background: var(--clr-bg-input); border-radius: var(--radius-sm); white-space: pre-line; line-height: 1.6; min-height: 38px; }
+
 
 /* =============================================
    STATUS BAR
@@ -717,22 +616,6 @@ button:active { transform: scale(0.97); }
 }
 .btn-success:hover { background: var(--clr-bg-hover); }
 
-/* LinkedIn — Copier */
-.btn-copy-lined {
-  background: var(--clr-linkedin-light);
-  color: var(--clr-linkedin);
-  border-color: var(--clr-linkedin-light);
-}
-.btn-copy-lined:hover { background: var(--clr-linkedin-muted); }
-
-/* AI — Régénérer */
-.btn-ai {
-  background: var(--clr-gold-light);
-  color: var(--clr-gold);
-  border-color: #e8c85a;
-}
-.btn-ai:hover { background: #fbefc0; }
-
 /* Outline — actions mineures */
 .btn-outline {
   background: transparent;
@@ -757,9 +640,6 @@ button:active { transform: scale(0.97); }
   border-color: transparent;
 }
 .btn-archive:hover { background: var(--clr-bg-hover); }
-
-/* .btn-sm for compact buttons */
-.btn-sm { min-height: 32px; padding: 4px 12px; font-size: .78rem; }
 
 button:disabled {
   opacity: .45;
@@ -1385,7 +1265,6 @@ button:disabled {
   padding: var(--space-3) var(--space-3) 0;
   overflow-x: auto;
   flex-shrink: 0;
-  -webkit-overflow-scrolling: touch;
 }
 .tab {
   padding: var(--space-1) var(--space-2);
@@ -1611,12 +1490,6 @@ button:disabled {
    ============================================= */
 
 
-.dash-sync-btn {
-  font-size: var(--text-xs);
-  padding: var(--space-1) var(--space-3);
-}
-.dash-sync-btn.syncing { opacity: .6; pointer-events: none; }
-
 .dashboard__content {
   flex: 1;
   overflow-y: auto;
@@ -1672,7 +1545,7 @@ button:disabled {
 .dashboard__title-bar-text {
   font-size: 22px;
   font-weight: 700;
-  color: var(--clr-text);
+  color: var(--clr-text-primary);
   letter-spacing: -.01em;
 }
 
@@ -1799,7 +1672,7 @@ button:disabled {
   font-size: 11px;
   border: 1px solid var(--clr-border);
   border-radius: 5px;
-  background: var(--clr-bg);
+  background: var(--clr-bg-page);
   color: var(--clr-text-primary);
   height: 26px;
   line-height: 1;

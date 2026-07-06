@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '133'
+const APP_VERSION = '134'
 
 // Force cache invalidation on version change
 ;(() => {
@@ -684,7 +684,7 @@ function updateWords() {
 
   wordCount.innerHTML = `
     <span style="color:${color};font-weight:600">${words} mots</span>
-    <span style="color:var(--color-text-light)"> · ${chars} car. · ${pct}% cible LinkedIn</span>
+    <span style="color:var(--clr-text-light)"> · ${chars} car. · ${pct}% cible LinkedIn</span>
   `
 }
 
@@ -1188,13 +1188,11 @@ function loadCachedDashboard() {
   return false
 }
 
-async function loadDashboard(forceFresh) {
+async function loadDashboard() {
   dashLoading.classList.remove('hidden')
   dashError.classList.add('hidden')
 
-  if (!forceFresh) {
-    loadCachedDashboard()
-  }
+  loadCachedDashboard()
 
   try {
     const data = await api('/dashboard')
@@ -1388,7 +1386,7 @@ function renderDashboard(data) {
       <div class="dash-kpi-body">
         <span class="dash-kpi-label">Total</span>
         <span class="dash-kpi-value" data-target="${total}">${total}</span>
-        <span class="dash-kpi-sub">demandes 2026</span>
+        <span class="dash-kpi-sub">demandes ${new Date().getFullYear()}</span>
       </div>
     </div>
     <div class="dash-kpi-card" style="--accent:${conf1Color}">
@@ -1673,7 +1671,7 @@ function renderDashboard(data) {
       minDateStr = dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0') + '-' + String(dd.getDate()).padStart(2, '0')
     }
   }
-  var dateStartVal = minDateStr || '2026-01-01'
+  var dateStartVal = minDateStr || (new Date().getFullYear() + '-01-01')
   var dateEndVal = todayStr
 
   // Set default values on date inputs after they've been created
@@ -1692,10 +1690,10 @@ function renderDashboard(data) {
     resetBtn.onclick = function() {
       if (resetBtn.classList.contains('syncing')) return
       resetBtn.classList.add('syncing')
-      if (startInput) { startInput.value = minDateStr || '2026-01-01'; dateStartVal = startInput.value }
+      if (startInput) { startInput.value = minDateStr || (new Date().getFullYear() + '-01-01'); dateStartVal = startInput.value }
       if (endInput) { endInput.value = todayStr; dateEndVal = endInput.value }
-      if (typeof searchInput !== 'undefined' && searchInput) searchInput.value = ''
-      if (typeof statusSel !== 'undefined' && statusSel) statusSel.value = ''
+      if (searchInput) searchInput.value = ''
+      if (statusSel) statusSel.value = ''
       applyGlobalFilters()
       showToast('Filtres réinitialisés ✓', 'success')
       setTimeout(function() { resetBtn.classList.remove('syncing') }, 300)
@@ -2316,9 +2314,7 @@ function renderDataTable(headers, items, stats, statusField) {
   function getCellValue(item, key) { return item[key] !== undefined ? item[key] : '' }
 
   if (!_dashTableState.page) _dashTableState.page = 1
-  if (!_dashTableState.items) _dashTableState.items = items
-  _dashTableState.items = items
-
+  
   const PAGE_SIZE = 50
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
   if (_dashTableState.page > totalPages) _dashTableState.page = totalPages
