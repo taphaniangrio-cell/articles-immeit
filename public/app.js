@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '132'
+const APP_VERSION = '133'
 
 // Force cache invalidation on version change
 ;(() => {
@@ -1938,9 +1938,9 @@ const natureColors = {
   'GMAO': '#6366F1',
 }
 
-const siteColors = ['#0A66C2', '#7C3AED', '#D4A017', '#16A34A', '#DC2626', '#0D9488', '#F59E0B', '#6366F1', '#EC4899', '#14B8A6']
+const siteColors = ['#E11D48', '#2563EB', '#65A30D', '#CA8A04', '#7C3AED', '#059669', '#EA580C', '#4F46E5', '#14B8A6', '#BE123C']
 
-const typeColors = ['#0A66C2', '#7C3AED', '#D4A017', '#16A34A', '#DC2626', '#0D9488', '#F59E0B', '#6366F1', '#EC4899', '#14B8A6']
+const typeColors = ['#2563EB', '#DC2626', '#16A34A', '#F59E0B', '#9333EA', '#0D9488', '#EC4899', '#D97706', '#0891B2', '#6366F1']
 
 const confColors = { 'Oui': '#16A34A', 'Non': '#DC2626', 'Conforme': '#16A34A', 'Non conforme': '#DC2626' }
 const stockageColors = { 'Oui': '#16A34A', 'Non': '#DC2626', 'Non concerné': '#94A3B8', 'Non concerne': '#94A3B8' }
