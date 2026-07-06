@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '130'
+const APP_VERSION = '131'
 
 // Force cache invalidation on version change
 ;(() => {
@@ -1490,27 +1490,26 @@ function renderDashboard(data) {
             })
             var pct = prevC > 0 ? Math.round(((curC - prevC) / prevC) * 100) : 0
             var arrow = curC > prevC ? '\u2197' : curC < prevC ? '\u2198' : '\u2192'
-            insightText = '<strong>' + curC + '</strong> demande' + (curC > 1 ? 's' : '') + ' sur les ' + maxDay + ' premiers jours de ' + _monthLabel(last.month) + ' \u2014 ' + arrow + ' ' + (pct > 0 ? '+' : '') + pct + '% vs ' + prevC + ' \u00e0 la m\u00eame p\u00e9riode en ' + _monthLabel(_prevMk)
+            insightText = '<strong>' + curC + '</strong> demande' + (curC > 1 ? 's' : '') + ' sur les ' + maxDay + ' premiers jours de ' + _monthLabel(last.month) + ' \u2014 ' + arrow + ' ' + (pct > 0 ? '+' : '') + pct + '% par rapport \u00e0 ' + prevC + ' sur la m\u00eame p\u00e9riode en ' + _monthLabel(_prevMk)
           } else {
             var _prev2 = stats.monthlyTrend[stats.monthlyTrend.length - 2]
             var pct2 = _prev2.count > 0 ? Math.round(((last.count - _prev2.count) / _prev2.count) * 100) : 0
             var arrow2 = last.count > _prev2.count ? '\u2197' : last.count < _prev2.count ? '\u2198' : '\u2192'
-            insightText = '<strong>' + last.count + '</strong> demande' + (last.count > 1 ? 's' : '') + ' en ' + _monthLabel(last.month) + ' \u2014 ' + arrow2 + ' ' + (pct2 > 0 ? '+' : '') + pct2 + '% vs ' + _prev2.count + ' en ' + _monthLabel(_prev2.month)
+            insightText = '<strong>' + last.count + '</strong> demande' + (last.count > 1 ? 's' : '') + ' en ' + _monthLabel(last.month) + ' \u2014 ' + arrow2 + ' ' + (pct2 > 0 ? '+' : '') + pct2 + '% par rapport \u00e0 ' + _prev2.count + ' en ' + _monthLabel(_prev2.month)
           }
         }
       }
 
       if (!insightText && stats.monthlyTrend.length >= 3) {
         var _total = 0; for (var _ti = 0; _ti < stats.monthlyTrend.length; _ti++) _total += stats.monthlyTrend[_ti].count
-        var _trArrow = last.count > first.count ? '\u2197' : last.count < first.count ? '\u2198' : '\u2192'
-        insightText = _trArrow + ' <strong>' + _total + '</strong> demande' + (_total > 1 ? 's' : '') + ' sur ' + _monthLabel(first.month) + '\u2013' + _monthLabel(last.month) + ' \u2014 tendance ' + (last.count > first.count ? 'haussi\u00e8re' : last.count < first.count ? 'baissi\u00e8re' : 'stable') + ' (' + first.count + ' \u2192 ' + last.count + ')'
+        insightText = '<strong>' + _total + '</strong> demande' + (_total > 1 ? 's' : '') + ' sur ' + _monthLabel(first.month) + '\u2013' + _monthLabel(last.month) + ' \u2014 tendance ' + (last.count > first.count ? 'haussi\u00e8re' : last.count < first.count ? 'baissi\u00e8re' : 'stable') + ' (' + first.count + ' \u2192 ' + last.count + ')'
       }
 
       if (!insightText && stats.monthlyTrend.length >= 2) {
         var _prev2 = stats.monthlyTrend[stats.monthlyTrend.length - 2]
         var pct2 = _prev2.count > 0 ? Math.round(((last.count - _prev2.count) / _prev2.count) * 100) : 0
         var arrow2 = last.count > _prev2.count ? '\u2197' : last.count < _prev2.count ? '\u2198' : '\u2192'
-        insightText = '<strong>' + last.count + '</strong> demande' + (last.count > 1 ? 's' : '') + ' en ' + _monthLabel(last.month) + ' \u2014 ' + arrow2 + ' ' + (pct2 > 0 ? '+' : '') + pct2 + '% vs ' + _prev2.count + ' en ' + _monthLabel(_prev2.month)
+        insightText = '<strong>' + last.count + '</strong> demande' + (last.count > 1 ? 's' : '') + ' en ' + _monthLabel(last.month) + ' \u2014 ' + arrow2 + ' ' + (pct2 > 0 ? '+' : '') + pct2 + '% par rapport \u00e0 ' + _prev2.count + ' en ' + _monthLabel(_prev2.month)
       }
 
       if (insightText) {
