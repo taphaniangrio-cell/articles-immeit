@@ -1794,9 +1794,16 @@ function renderDashboard(data) {
     endInput.onchange = function() { dateEndVal = this.value; applyGlobalFilters() }
   }
   var resetBtn = document.getElementById('btn-dash-reset')
+  function _dashUpdateResetBtn() {
+    if (!resetBtn) return
+    var has = (statusSel && statusSel.value) || (searchInput && searchInput.value.trim())
+           || (startInput && startInput.value !== (minDateStr || (new Date().getFullYear() + '-01-01')))
+           || (endInput && endInput.value !== todayStr)
+    resetBtn.disabled = !has
+  }
   if (resetBtn) {
     resetBtn.onclick = function() {
-      if (resetBtn.classList.contains('syncing')) return
+      if (resetBtn.classList.contains('syncing') || resetBtn.disabled) return
       resetBtn.classList.add('syncing')
       if (startInput) { startInput.value = minDateStr || (new Date().getFullYear() + '-01-01'); dateStartVal = startInput.value }
       if (endInput) { endInput.value = todayStr; dateEndVal = endInput.value }
@@ -1843,6 +1850,7 @@ function renderDashboard(data) {
   var tableCard
   var statusSel = filterPanel.querySelector('#dash-filter-global-status')
   var searchInput = filterPanel.querySelector('#dash-filter-global-search')
+  _dashUpdateResetBtn()
 
   function applyGlobalFilters() {
     _dashTableState.page = 1
@@ -1871,6 +1879,7 @@ function renderDashboard(data) {
     var newStats = computeClientStats(_baseHeaders, filtered)
     buildStatsSections(newStats, filtered)
     renderFilteredTable(filtered, newStats)
+    _dashUpdateResetBtn()
   }
 
   function renderFilteredTable(filtered, ns) {
