@@ -1240,6 +1240,7 @@ async function handleDashSync() {
   btn.classList.add('syncing')
   try {
     const result = await api('/sync', { method: 'POST' })
+    window._dashLastManualRefresh = Date.now()
     if (result.success && result.count > 0) {
       showToast(result.message || result.count + ' lignes synchronisées ✓', 'success')
     } else {
@@ -1258,6 +1259,7 @@ async function handleDashRefresh() {
   if (!btn || btn.classList.contains('syncing')) return
   btn.classList.add('syncing')
   try {
+    window._dashLastManualRefresh = Date.now()
     await loadDashboard()
     showToast('Données actualisées ✓', 'success')
   } catch (err) {
@@ -1325,6 +1327,7 @@ function connectSSE() {
       var data = JSON.parse(e.data)
       var ds = document.getElementById('dashboard-screen')
       if (ds && !ds.classList.contains('hidden')) {
+        if (Date.now() - (window._dashLastManualRefresh || 0) < 3000) return
         if (_dashHasActiveFilters()) {
           window._dashNeedsRefresh = true
           showToast('📊 Nouvelles données disponibles — réinitialise les filtres pour voir', 'info', 3000)
