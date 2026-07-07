@@ -1861,25 +1861,27 @@ function renderDashboard(data) {
 
   function applyGlobalFilters() {
     _dashTableState.page = 1
-    var stVal = statusSel.value.toLowerCase()
-    var searchVal = searchInput.value.toLowerCase()
+    var _norm = function(s) { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '') }
+    var stVal = _norm(statusSel.value.toLowerCase())
+    var searchVal = _norm(searchInput.value.toLowerCase())
     var dsVal = dateStartVal
     var deVal = dateEndVal
     var ds = dsVal ? new Date(dsVal + 'T00:00:00') : null
     var de = deVal ? new Date(deVal + 'T23:59:59') : null
+    var _demFilter = window._dashDemandeurFilter ? _norm(window._dashDemandeurFilter) : ''
     var filtered = _baseItems.filter(function(item) {
-      var st = (item[gpStatusField] || '').toLowerCase()
+      var st = _norm((item[gpStatusField] || '').toLowerCase())
       if (stVal && st !== stVal) return false
-      if (window._dashDemandeurFilter) {
+      if (_demFilter) {
         var _demHdr = _baseHeaders.find(function(x) { return x.toLowerCase().includes('demandeur') })
         if (_demHdr) {
-          if (!((item[_demHdr] || '').toLowerCase().includes(window._dashDemandeurFilter))) return false
+          if (!_norm((item[_demHdr] || '').toLowerCase()).includes(_demFilter)) return false
         } else {
-          var _fallback = Object.values(item).join(' ').toLowerCase()
-          if (!_fallback.includes(window._dashDemandeurFilter)) return false
+          var _fallback = _norm(Object.values(item).join(' ').toLowerCase())
+          if (!_fallback.includes(_demFilter)) return false
         }
       } else if (searchVal) {
-        var allText = Object.values(item).join(' ').toLowerCase()
+        var allText = _norm(Object.values(item).join(' ').toLowerCase())
         if (!allText.includes(searchVal)) return false
       }
       if (gpDateField && (ds || de)) {
