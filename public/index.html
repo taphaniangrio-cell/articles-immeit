@@ -217,32 +217,65 @@
         </main>
       </div>
 
+      <svg aria-hidden="true" style="position:absolute;width:0;height:0">
+        <defs>
+          <linearGradient id="healthGradGood" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#059669"/>
+            <stop offset="100%" stop-color="#10B981"/>
+          </linearGradient>
+          <linearGradient id="healthGradMid" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#D97706"/>
+            <stop offset="100%" stop-color="#F59E0B"/>
+          </linearGradient>
+          <linearGradient id="healthGradBad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#DC2626"/>
+            <stop offset="100%" stop-color="#EF4444"/>
+          </linearGradient>
+        </defs>
+      </svg>
       <section id="dashboard-screen" class="dashboard">
-        <div class="dashboard__title-bar">
-          <span class="dashboard__title-bar-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          </span>
-          <span class="dashboard__title-bar-text">Rapports reçus pour vérification</span>
-          <span class="dashboard__title-bar-year">2026</span>
-        </div>
-        <div class="dash-actions-bar">
-          <span id="dash-update-info" class="dash-update-info"></span>
-          <div class="dash-actions-date">
-            <span class="dash-date-label">Période</span>
-            <input type="date" id="dash-date-start" class="dash-date-input">
-            <span class="dash-date-sep">→</span>
-            <input type="date" id="dash-date-end" class="dash-date-input">
+        <div class="dash-header">
+          <div class="dash-header-left">
+            <span class="dash-header-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </span>
+            <span class="dash-header-text">Rapports reçus pour vérification</span>
+            <span class="dash-header-year">2026</span>
+            <span class="dash-header-divider"></span>
+            <span id="dash-update-info" class="dash-update-info"></span>
           </div>
-          <div class="dash-actions-group">
-            <button id="btn-dash-refresh" class="dash-action-btn" title="Recharger les données">↻</button>
-            <button id="btn-dash-sync" class="dash-action-btn" title="Synchroniser depuis SharePoint">⇄</button>
-            <button id="btn-dash-reset" class="dash-action-btn dash-action-btn--reset" title="Réinitialiser les filtres">↺ Réinitialiser</button>
+          <div class="dash-header-right">
+            <div class="dash-actions-date">
+              <span class="dash-date-label">Période</span>
+              <input type="date" id="dash-date-start" class="dash-date-input">
+              <span class="dash-date-sep">→</span>
+              <input type="date" id="dash-date-end" class="dash-date-input">
+            </div>
+            <div class="dash-actions-group">
+              <button id="btn-dash-refresh" class="dash-action-btn" title="Recharger les données">↻</button>
+              <button id="btn-dash-sync" class="dash-action-btn" title="Synchroniser depuis SharePoint">⇄</button>
+              <button id="btn-dash-reset" class="dash-action-btn dash-action-btn--reset" title="Réinitialiser les filtres">↺</button>
+            </div>
           </div>
         </div>
         <div id="dash-content" class="dashboard__content">
-          <div class="dashboard__loading" id="dash-loading">
-            <div class="spinner"></div>
-            <p>Chargement du tableau de bord…</p>
+          <div class="dashboard__loading hidden" id="dash-loading">
+            <div class="dash-skeleton">
+              <div class="dash-skeleton-header"></div>
+              <div class="dash-skeleton-grid">
+                <div class="dash-skeleton-card"></div>
+                <div class="dash-skeleton-card"></div>
+                <div class="dash-skeleton-card"></div>
+                <div class="dash-skeleton-card"></div>
+                <div class="dash-skeleton-card"></div>
+              </div>
+            </div>
+            <div class="dash-skeleton">
+              <div class="dash-skeleton-header"></div>
+              <div class="dash-skeleton-row"></div>
+              <div class="dash-skeleton-row"></div>
+              <div class="dash-skeleton-row"></div>
+            </div>
           </div>
           <div class="dashboard__error hidden" id="dash-error">
             <span class="dash-error-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>

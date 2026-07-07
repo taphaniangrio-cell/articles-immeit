@@ -328,6 +328,7 @@ loginForm.addEventListener('submit', async e => {
 })
 
 btnLogout.addEventListener('click', async () => {
+  disconnectSSE()
   try {
     await api('/auth', { method: 'POST', body: JSON.stringify({ action: 'logout' }) })
   } catch {}
@@ -1152,6 +1153,18 @@ async function generateFromNews(news) {
 
 // ─── DASHBOARD ──────────────────────────────────────────
 
+function _dashHasActiveFilters() {
+  var _st = document.getElementById('dash-filter-global-status')
+  var _sr = document.getElementById('dash-filter-global-search')
+  var _sd = document.getElementById('dash-date-start')
+  var _ed = document.getElementById('dash-date-end')
+  if (_st && _st.value) return true
+  if (_sr && _sr.value.trim()) return true
+  if (_sd && _sd.value) return true
+  if (_ed && _ed.value) return true
+  return false
+}
+
 function showDashboard() {
   loginScreen.classList.add('hidden')
   mainScreen.classList.add('hidden')
@@ -1166,6 +1179,7 @@ function showDashboard() {
   navDashboard?.classList.add('active')
   navArticles?.classList.remove('active')
   localStorage.setItem('immeit_last_view', 'dashboard')
+  window._dashNeedsRefresh = false
   loadDashboard()
 }
 
@@ -1273,7 +1287,7 @@ function countUp(el, target, duration = 600) {
 
 function startSyncTimer() {
   if (window._syncTimerInterval) clearInterval(window._syncTimerInterval)
-  if (window._autoRefreshInterval) clearInterval(window._autoRefreshInterval)
+  if (window._autoRefreshTimer) clearTimeout(window._autoRefreshTimer)
   function tick() {
     var el = document.getElementById('dash-update-info')
     if (!el) return
@@ -1286,8 +1300,72 @@ function startSyncTimer() {
     else el.textContent = 'Mis à jour à ' + new Date(lastSync).toLocaleTimeString('fr-FR')
   }
   tick()
-  window._syncTimerInterval = setInterval(tick, 30000)
-  window._autoRefreshInterval = setInterval(loadDashboard, 5 * 60 * 1000)
+  window._syncTimerInterval = setInterval(tick, 5000)
+  function _dashAutoRefresh() { window._autoRefreshTimer = setTimeout(function() { if (!_dashHasActiveFilters()) loadDashboard(); else _dashAutoRefresh() }, 5000) }; _dashAutoRefresh()
+  connectSSE()
+  setupVisibilityRefresh()
+}
+
+function disconnectSSE() {
+  if (window._sseConn) {
+    window._sseConn.close()
+    window._sseConn = null
+  }
+}
+
+function connectSSE() {
+  if (window._sseConn) return
+  var url = window.location.origin + '/api/events'
+  var es = new EventSource(url)
+  es.addEventListener('connected', function(e) {
+    console.log('[SSE] Connecté')
+  })
+  es.addEventListener('dashboard-updated', function(e) {
+    try {
+      var data = JSON.parse(e.data)
+      var ds = document.getElementById('dashboard-screen')
+      if (ds && !ds.classList.contains('hidden')) {
+        if (_dashHasActiveFilters()) {
+          window._dashNeedsRefresh = true
+          showToast('📊 Nouvelles données disponibles — réinitialise les filtres pour voir', 'info', 3000)
+        } else {
+          loadDashboard()
+          showToast('📊 Données mises à jour en temps réel', 'info', 2000)
+        }
+      } else {
+        window._dashNeedsRefresh = true
+      }
+    } catch (err) {
+      console.warn('[SSE] Erreur parsing:', err)
+    }
+  })
+  es.addEventListener('error', function() {
+    if (es.readyState === EventSource.CLOSED) {
+      console.warn('[SSE] Connexion perdue — reconnexion dans 5s')
+      window._sseConn = null
+      setTimeout(connectSSE, 5000)
+    }
+  })
+  window._sseConn = es
+}
+
+function setupVisibilityRefresh() {
+  if (window._visSetup) return
+  window._visSetup = true
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      var ds = document.getElementById('dashboard-screen')
+      if (ds && !ds.classList.contains('hidden') && !_dashHasActiveFilters()) {
+        loadDashboard()
+      }
+    }
+  })
+  window.addEventListener('focus', function() {
+    var ds = document.getElementById('dashboard-screen')
+    if (ds && !ds.classList.contains('hidden') && !_dashHasActiveFilters()) {
+      loadDashboard()
+    }
+  })
 }
 
 function renderDashboard(data) {
@@ -1360,10 +1438,19 @@ function renderDashboard(data) {
       ? `Conf. 1ère diffusion : ${stats.tauxConf1}% · Conf. vérification P2M : ${stats.tauxConfDem}% · ${stats.duree.zeroPct}% J+0. ${stats.ecart.avg > 0 ? 'Écart moyen ' + stats.ecart.avg + 'j à réduire.' : 'Délais sous contrôle.'}`
       : `Conf. 1ère diffusion : ${stats.tauxConf1}% · Conf. vérification P2M : ${stats.tauxConfDem}% · Délais : ${stats.duree.zeroPct}% J+0 — actions prioritaires requises.`
 
+    const C = 2 * Math.PI * 30
+    const offset = C * (1 - score / 100)
     const health = document.createElement('div')
     health.className = 'dash-health'
     health.innerHTML = `
-      <div class="dash-health-score ${healthCls}">${score}</div>
+      <div class="dash-health-score-wrap">
+        <svg class="dash-health-score-svg" viewBox="0 0 72 72">
+          <circle class="dash-health-score-bg" cx="36" cy="36" r="30"/>
+          <circle class="dash-health-score-arc ${healthCls}" cx="36" cy="36" r="30"
+            stroke-dasharray="${C}" stroke-dashoffset="${C}" data-target="${offset}" />
+        </svg>
+        <div class="dash-health-score-num ${healthCls}">0</div>
+      </div>
       <div class="dash-health-info">
         <div class="dash-health-label">Score de santé · ${healthLabel}</div>
         <div class="dash-health-title">${healthTitle}</div>
@@ -1371,6 +1458,12 @@ function renderDashboard(data) {
       </div>
     `
     statsArea.appendChild(health)
+    requestAnimationFrame(() => {
+      const arc = health.querySelector('.dash-health-score-arc')
+      const num = health.querySelector('.dash-health-score-num')
+      if (arc) arc.style.strokeDashoffset = offset
+      if (num) countUp(num, score, 600)
+    })
 
     // ─── KPI CARDS (5) ─────────────────────────────────────────
     const conf1Color = stats.tauxConf1 >= 80 ? '#10B981' : stats.tauxConf1 >= 60 ? '#F59E0B' : '#EF4444'
@@ -1567,7 +1660,17 @@ function renderDashboard(data) {
       chartsGrid.className = 'dash-charts-grid'
       chartsGrid.appendChild(createBarChart('État d\'avancement', stats.avancementDist, statusColors))
       chartsGrid.appendChild(createDonutChart('Type de demande', stats.typeDist.slice(0, 8), typeColors))
-      statsArea.appendChild(chartsGrid)
+      const section = document.createElement('div')
+      section.className = 'dash-section'
+      section.innerHTML = '<div class="dash-section-header"><h3><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Avancement & Type</h3><span class="dash-section-toggle open">▼</span></div><div class="dash-section-body" id="dash-body-avancement"></div>'
+      section.querySelector('.dash-section-body').appendChild(chartsGrid)
+      section.querySelector('.dash-section-header').addEventListener('click', function() {
+        var b = this.parentNode.querySelector('.dash-section-body')
+        var t = this.parentNode.querySelector('.dash-section-toggle')
+        b.classList.toggle('collapsed')
+        t.classList.toggle('open')
+      })
+      statsArea.appendChild(section)
     }
 
     // ─── SECTION : NATURE + SITE ──────────────────────────────
@@ -1695,6 +1798,10 @@ function renderDashboard(data) {
       if (searchInput) searchInput.value = ''
       if (statusSel) statusSel.value = ''
       applyGlobalFilters()
+      if (window._dashNeedsRefresh) {
+        window._dashNeedsRefresh = false
+        loadDashboard()
+      }
       showToast('Filtres réinitialisés ✓', 'success')
       setTimeout(function() { resetBtn.classList.remove('syncing') }, 300)
     }

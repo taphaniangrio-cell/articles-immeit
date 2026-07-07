@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 
 const _require = createRequire(import.meta.url);
 const { CONSTANTS } = _require('./lib/constants');
+const eventBus = _require('./lib/events');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const START_PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -21,6 +22,7 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
+const SSE_CLIENTS = new Set();
 const LOG_DIR = process.env.LOCALAPPDATA
   ? path.join(process.env.LOCALAPPDATA, 'IMMEIT')
   : path.join(__dirname, '.immeit-logs');
@@ -149,6 +151,46 @@ async function handleApi(req, res, pathname, url) {
   }
 }
 
+function handleSSE(req, res) {
+  const id = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+    'X-Accel-Buffering': 'no',
+  });
+
+  res.write(`event: connected\ndata: ${JSON.stringify({ id })}\n\n`);
+
+  SSE_CLIENTS.add(res);
+  console.log(`[SSE] Client connecté (${SSE_CLIENTS.size})`);
+
+  const keepalive = setInterval(() => {
+    try { res.write(`:keepalive\n\n`) } catch { clearInterval(keepalive) }
+  }, 30000);
+
+  const onUpdate = (data) => {
+    try {
+      res.write(`event: dashboard-updated\ndata: ${JSON.stringify(data)}\n\n`);
+    } catch {}
+  };
+  eventBus.on('dashboard-updated', onUpdate);
+
+  req.on('close', () => {
+    clearInterval(keepalive);
+    eventBus.off('dashboard-updated', onUpdate);
+    SSE_CLIENTS.delete(res);
+    console.log(`[SSE] Client déconnecté (${SSE_CLIENTS.size})`);
+  });
+}
+
+function broadcastSSE(event, data) {
+  for (const client of SSE_CLIENTS) {
+    try { client.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`) } catch {}
+  }
+}
+
 const server = http.createServer();
 
 server.setTimeout(CONSTANTS.SERVER_REQUEST_TIMEOUT);
@@ -168,6 +210,10 @@ server.on('request', async (req, res) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  if (pathname === '/api/events') {
+    return handleSSE(req, res);
+  }
 
   if (pathname.startsWith('/api/')) {
     await handleApi(req, res, pathname, url);
@@ -203,29 +249,21 @@ function tryListen(port, maxAttempts = 10) {
       console.log('');
     }
 
-    // Auto-sync SharePoint data after server start (with timeout to prevent hanging)
+    eventBus.on('dashboard-updated', (data) => {
+      broadcastSSE('dashboard-updated', data);
+    });
+
+    // Auto-sync SharePoint data after server start
     setTimeout(async () => {
-      try {
-        const autoSync = _require('./lib/auto-sync');
-        console.log('  ⟳ Synchronisation SharePoint...');
-        const result = await Promise.race([
-          autoSync.sync(),
-          new Promise(r => setTimeout(() => r(null), CONSTANTS.AUTO_SYNC_TIMEOUT)),
-        ]);
-        if (result) {
-          console.log(`  ✓ ${result.items.length} demandes synchronisées depuis SharePoint`);
-        } else {
-          const cached = autoSync.loadCache();
-          if (cached) {
-            console.log(`  ✓ ${cached.items.length} demandes chargées du cache`);
-          } else {
-            console.log('  ℹ Aucune donnée SharePoint — utilise "📋 Coller Excel" dans le dashboard');
-          }
-        }
-        autoSync.startPeriodicSync();
-      } catch (err) {
-        console.log(`  ℹ Sync SharePoint: ${err.message}`);
+      const autoSync = _require('./lib/auto-sync');
+      console.log('  ⟳ Synchronisation SharePoint...');
+      const result = await autoSync.initialSync();
+      if (result) {
+        console.log(`  ✓ ${result.items.length} demandes synchronisées depuis SharePoint`);
+      } else {
+        console.log('  ℹ Aucune donnée SharePoint — utilise "📋 Coller Excel" dans le dashboard');
       }
+      autoSync.startContinuousSync();
     }, 1000);
   });
 
