@@ -1870,7 +1870,15 @@ function renderDashboard(data) {
     var filtered = _baseItems.filter(function(item) {
       var st = (item[gpStatusField] || '').toLowerCase()
       if (stVal && st !== stVal) return false
-      if (searchVal) {
+      if (window._dashDemandeurFilter) {
+        var _demHdr = _baseHeaders.find(function(x) { return x.toLowerCase().includes('demandeur') })
+        if (_demHdr) {
+          if (!((item[_demHdr] || '').toLowerCase().includes(window._dashDemandeurFilter))) return false
+        } else {
+          var _fallback = Object.values(item).join(' ').toLowerCase()
+          if (!_fallback.includes(window._dashDemandeurFilter)) return false
+        }
+      } else if (searchVal) {
         var allText = Object.values(item).join(' ').toLowerCase()
         if (!allText.includes(searchVal)) return false
       }
@@ -1910,7 +1918,9 @@ function renderDashboard(data) {
     var text = lbl.textContent.trim()
     if (!text) return
     searchInput.value = text
+    window._dashDemandeurFilter = target.closest('.dash-section') && target.closest('.dash-section').querySelector('h3') && target.closest('.dash-section').querySelector('h3').textContent.includes('Top 10 demandeurs') ? text.toLowerCase() : ''
     applyGlobalFilters()
+    window._dashDemandeurFilter = ''
   })
 
   if (_baseItems.length > 0) applyGlobalFilters()
