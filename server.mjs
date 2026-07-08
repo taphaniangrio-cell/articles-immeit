@@ -36,19 +36,24 @@ const health = { pid: process.pid, port: null };
 function openBrowser(url) {
   const platform = process.platform;
   if (platform === 'win32') {
-    // Méthode 1 : cmd /c start avec titre explicite (évite l'ambiguïté URL vs titre)
     try {
-      const p = spawn('cmd', ['/c', 'start', '', url], { detached: true, stdio: 'ignore', windowsHide: false });
+      const p = spawn('cmd', ['/c', 'start', '', url], { shell: false, detached: true, stdio: 'ignore' });
       p.unref();
       return;
     } catch {}
-    // Méthode 2 : PowerShell Start-Process (fallback)
     try {
       const p = spawn('powershell', ['-NoProfile', '-Command', `Start-Process '${url}'`], { detached: true, stdio: 'ignore' });
       p.unref();
-    } catch {
-      console.error('[BROWSER] Ouvre manuellement :', url);
-    }
+      return;
+    } catch {}
+    try {
+      const p = spawn('rundll32', ['url.dll,FileProtocolHandler', url], { detached: true, stdio: 'ignore' });
+      p.unref();
+      return;
+    } catch {}
+    console.log('');
+    console.log(`  → Ouvre ${url} dans ton navigateur`);
+    console.log('');
   } else if (platform === 'darwin') {
     spawn('open', [url], { detached: true, stdio: 'ignore' }).unref();
   } else {
@@ -290,7 +295,6 @@ function tryListen(port, maxAttempts = 10) {
     // Auto-sync SharePoint data after server start
     setTimeout(async () => {
       const autoSync = _require('./lib/auto-sync');
-      console.log('  ⟳ Synchronisation SharePoint...');
       const result = await autoSync.initialSync().catch(() => null);
       if (result) {
         console.log(`  ✓ ${result.items.length} demandes synchronisées depuis SharePoint`);
