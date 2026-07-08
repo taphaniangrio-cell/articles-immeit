@@ -1,8 +1,10 @@
 node_modules/
 .env
+.env.local
 *.log
 .DS_Store
 .vscode/
+.idea/
 
 .vercel/
 
@@ -11,3 +13,10 @@ cookies.txt
 .check-*.cjs
 _check*
 scripts/node_modules/
+
+# Build / OS
+Thumbs.db
+desktop.ini
+
+# Logs
+.immeit-logs/

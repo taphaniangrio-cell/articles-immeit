@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('../lib/rateLimit');
 const { createSession, destroySession } = require('../lib/auth');
@@ -21,30 +22,21 @@ module.exports = async (req, res) => {
     const token = cookie.split(';').map(c => c.trim()).find(c => c.startsWith('session='))?.split('=')[1]?.trim();
     if (token) destroySession(token);
     log('info', 'logout', { ip });
-    res.setHeader('Set-Cookie', 'session=; HttpOnly; Path=/; Max-Age=0');
+    res.setHeader('Set-Cookie', ['session=; HttpOnly; Path=/; Max-Age=0', 'csrf=; Path=/; Max-Age=0']);
     return res.status(200).json({ success: true });
   }
 
-  const adminPassword = process.env.ADMIN_PASSWORD;
   const passwordHash = process.env.PASSWORD_HASH;
 
-  if (!adminPassword && !passwordHash) {
-    return res.status(500).json({ error: 'Authentification non configurée' });
-  }
-
-  if (adminPassword && !passwordHash) {
-    log('warn', 'plaintext_password_used', { ip, advice: 'Définissez PASSWORD_HASH (hash bcrypt) et retirez ADMIN_PASSWORD pour sécuriser l\'authentification' });
+  if (!passwordHash) {
+    return res.status(500).json({ error: 'Authentification non configurée. Définissez PASSWORD_HASH.' });
   }
 
   let ok = false;
-  if (passwordHash) {
-    try {
-      ok = await bcrypt.compare(String(password || ''), passwordHash);
-    } catch {
-      ok = false;
-    }
-  } else {
-    ok = password === adminPassword;
+  try {
+    ok = await bcrypt.compare(String(password || ''), passwordHash);
+  } catch {
+    ok = false;
   }
 
   if (!ok) {
@@ -56,7 +48,11 @@ module.exports = async (req, res) => {
   log('info', 'login_ok', { ip });
 
   const isDev = process.env.VERCEL_ENV !== 'production';
-  res.setHeader('Set-Cookie', `session=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}${isDev ? '' : '; Secure'}`);
+  const csrfToken = crypto.randomBytes(32).toString('hex');
+  res.setHeader('Set-Cookie', [
+    `session=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}${isDev ? '' : '; Secure'}`,
+    `csrf=${csrfToken}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}${isDev ? '' : '; Secure'}`,
+  ]);
 
-  return res.status(200).json({ success: true });
+  return res.status(200).json({ success: true, csrfToken });
 };

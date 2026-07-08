@@ -1,6 +1,6 @@
 const db = require('../lib/db');
 const rateLimit = require('../lib/rateLimit');
-const { requireAuth } = require('../lib/auth');
+const { requireAuth, requireCsrf } = require('../lib/auth');
 const { log } = require('../lib/logger');
 const cors = require('../lib/cors');
 const { CONSTANTS } = require('../lib/constants');
@@ -9,6 +9,7 @@ const ALLOWED_STATUTS = new Set(['brouillon', 'en_revision', 'valide', 'publie',
 
 module.exports = requireAuth(async (req, res) => {
   if (cors(res, req)) return;
+  if (!requireCsrf(req, res)) return;
 
   const { method } = req;
   const { id } = req.query;

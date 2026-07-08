@@ -9,5 +9,4 @@ if (!password) {
 const salt = bcrypt.genSaltSync(12);
 const hash = bcrypt.hashSync(password, salt);
 console.log('\nPASSWORD_HASH=' + hash);
-console.log('\nAjoute cette ligne dans ton .env ou dans les variables Vercel.');
-console.log('Supprime ensuite ADMIN_PASSWORD pour ne plus utiliser le mot de passe en clair.\n');
+console.log('\nAjoute cette ligne dans ton .env ou dans les variables Vercel.\n');

@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '134'
+const APP_VERSION = '150'
 
 // Force cache invalidation on version change
 ;(() => {
@@ -107,15 +107,25 @@ function fmtDate(d) {
 
 function statusClass(s) { return 's-' + (s || 'brouillon') }
 
+function getCookie(name) {
+  return document.cookie.split('; ').find(r => r.startsWith(name + '='))?.split('=')[1]
+}
+
 async function api(path, options = {}) {
   const sep = path.includes('?') ? '&' : '?'
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 120_000)
+  const headers = { 'Content-Type': 'application/json', ...options.headers }
+  const method = (options.method || 'GET').toUpperCase()
+  if (method !== 'GET') {
+    const csrf = getCookie('csrf')
+    if (csrf) headers['X-CSRF-Token'] = csrf
+  }
   try {
     const res = await fetch(`${API_BASE}${path}${sep}_=${Date.now()}`, {
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
       ...options,
+      headers,
+      credentials: 'same-origin',
       signal: controller.signal,
     })
     clearTimeout(timeout)

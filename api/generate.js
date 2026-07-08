@@ -2,13 +2,14 @@ const { generateArticle } = require('../lib/ai-client');
 const { findImagesForArticle } = require('../lib/image-fetcher');
 const rateLimit = require('../lib/rateLimit');
 const sanitizeInput = require('../lib/sanitize');
-const { requireAuth } = require('../lib/auth');
+const { requireAuth, requireCsrf } = require('../lib/auth');
 const { log } = require('../lib/logger');
 const cors = require('../lib/cors');
 const { CONSTANTS } = require('../lib/constants');
 
 module.exports = requireAuth(async (req, res) => {
   if (cors(res, req)) return;
+  if (!requireCsrf(req, res)) return;
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });

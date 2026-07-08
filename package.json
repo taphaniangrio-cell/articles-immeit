@@ -10,11 +10,16 @@
     "hash": "node scripts/generate-hash.js"
   },
   "dependencies": {
-    "@azure/identity": "^4.13.1",
-    "@azure/identity-broker": "^1.4.0",
     "@neondatabase/serverless": "^0.10.0",
     "bcryptjs": "^3.0.3",
     "nodemailer": "^9.0.3"
+  },
+  "optionalDependencies": {
+    "@azure/identity": "^4.13.1",
+    "@azure/identity-broker": "^1.4.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.0"
   },
   "repository": {
     "type": "git",
@@ -22,9 +27,9 @@
   },
   "keywords": [
     "immeit",
-    "linkedin",
     "articles",
     "maintenance",
+    "fiabilite",
     "gmao"
   ],
   "author": "",

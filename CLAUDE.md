@@ -11,26 +11,42 @@ Application hub interne regroupant les outils IMMEIT (maintenance industrielle, 
 ```
 articles-immeit/
 ├── api/
-│   ├── auth.js        # POST /api/auth — authentification
+│   ├── auth.js        # POST /api/auth — authentification + CSRF token
 │   ├── news.js        # GET  /api/news — RSS sectoriel filtré
-│   ├── generate.js    # POST /api/generate — appel IA
-│   └── articles.js    # CRUD /api/articles — articles PostgreSQL
+│   ├── generate.js    # POST /api/generate — appel IA (CSRF protégé)
+│   └── articles.js    # CRUD /api/articles — articles PostgreSQL (CSRF protégé)
 ├── public/
 │   ├── index.html     # Shell hub + 2 apps (articles, dashboard)
-│   ├── app.js         # Router + store + apps (1929 lignes)
+│   ├── app.js         # Router + store + apps (2620 lignes)
 │   └── style.css      # Design system + shell layout
 ├── lib/
-│   ├── company-context.md
-│   ├── db.js
-│   └── rss-fetcher.js
+│   ├── auth.js        # requireAuth + requireCsrf (double-submit cookie)
+│   ├── cors.js        # CORS whitelist
+│   ├── db.js          # Connexion PostgreSQL (Neon serverless)
+│   ├── ai-client.js   # Appels IA (Groq, OpenRouter, Cerebras, Mistral)
+│   ├── rss-fetcher.js # Agrégation RSS maintenance
+│   ├── sanitize.js    # Nettoyage HTML
+│   ├── rateLimit.js   # Rate-limiting in-memory
+│   ├── logger.js      # Logger structuré JSON
+│   ├── email-alert.js # Alertes SMTP
+│   ├── events.js      # Event bus local
+│   ├── constants.js   # Constantes centralisées
+│   ├── image-fetcher.js # Recherche images Pexels
+│   ├── sharepoint.js  # Client Microsoft Graph (dashboard)
+│   ├── auto-sync.js   # Synchronisation SharePoint (local dev)
+│   └── company-context.md # Contexte IMMEIT pour prompts IA
 ├── db/
 │   └── schema.sql
+├── scripts/
+│   └── generate-hash.js # Générateur de hash bcrypt
 ├── server.mjs
 ├── vercel.json
 ├── package.json
+├── .editorconfig
 ├── .env.example
 ├── .gitignore
-└── CLAUDE.md
+├── CLAUDE.md
+└── README.md
 ```
 
 ## Architecture Hub
@@ -56,20 +72,20 @@ shell (flex row, 100vh)
 
 **Routage** : `showMain()` / `showDashboard()` togglent `.hidden` sur les sections + `.app-row`. Pas de hash router externe.
 
-**Cache** : `APP_VERSION` localStorage + `?v=104` sur CSS/JS. Reload automatique si version change.
+**Cache** : `APP_VERSION` localStorage + `?v=150` sur CSS/JS. Reload automatique si version change.
 
 ## API
 
 | Route | Méthode | Description |
 |-------|---------|-------------|
-| `/api/auth` | POST | Authentification (password → cookie session) |
+| `/api/auth` | POST | Authentification (password → cookie session + CSRF token) |
 | `/api/news` | GET | Actualités RSS filtrées par mots-clés |
-| `/api/generate` | POST | Génération article via IA |
+| `/api/generate` | POST | Génération article via IA (CSRF protégé) |
 | `/api/articles` | GET | Liste des articles (filtre `?statut=`) |
 | `/api/articles?id=N` | GET | Un article |
-| `/api/articles` | POST | Créer un article |
-| `/api/articles?id=N` | PUT | Modifier un article |
-| `/api/articles?id=N` | DELETE | Supprimer un article |
+| `/api/articles` | POST | Créer un article (CSRF protégé) |
+| `/api/articles?id=N` | PUT | Modifier un article (CSRF protégé) |
+| `/api/articles?id=N` | DELETE | Supprimer un article (CSRF protégé) |
 
 ## Déploiement
 
@@ -79,7 +95,6 @@ shell (flex row, 100vh)
    - `DATABASE_URL` — URL de connexion Vercel Postgres
    - `SESSION_SECRET` — générer avec : `crypto.randomBytes(32).toString("hex")`
    - `PASSWORD_HASH` — hash bcrypt du mot de passe (générer avec : `node scripts/generate-hash.js <mdp>`)
-   - `ADMIN_PASSWORD` — déprécié, utiliser PASSWORD_HASH de préférence
    - `PEXELS_API_KEY` — clé API Pexels (optionnel, pour les images)
    - `ALLOWED_ORIGIN` — origines CORS (optionnel)
 3. `git push` → déploiement automatique

@@ -38,7 +38,7 @@ articles-immeit/
 
 ## Modules partagés (`lib/`)
 
-- **`auth.js`** — Middleware `requireAuth()` + session store in-memory (Map), TTL 7 jours, nettoyage automatique chaque heure
+- **`auth.js`** — Middleware `requireAuth()` + session store in-memory (Map), TTL 7 jours, nettoyage automatique chaque heure. Protection CSRF via `requireCsrf()` (double-submit cookie + `X-CSRF-Token` header).
 - **`cors.js`** — En-têtes CORS avec whitelist configurable via `ALLOWED_ORIGIN`
 - **`logger.js`** — Logger structuré JSON, niveaux (debug/info/warn/error), configurable via `LOG_LEVEL`
 - **`db.js`** — Connexion PostgreSQL (Neon serverless, pg)
