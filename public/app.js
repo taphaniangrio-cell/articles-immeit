@@ -1182,15 +1182,13 @@ async function generateFromNews(news) {
 
 // ─── DASHBOARD ──────────────────────────────────────────
 
+var _dashUserFiltered = false
 function _dashHasActiveFilters() {
+  if (_dashUserFiltered) return true
   var _st = document.getElementById('dash-filter-global-status')
   var _sr = document.getElementById('dash-filter-global-search')
-  var _sd = document.getElementById('dash-date-start')
-  var _ed = document.getElementById('dash-date-end')
   if (_st && _st.value) return true
   if (_sr && _sr.value.trim()) return true
-  if (_sd && _sd.value) return true
-  if (_ed && _ed.value) return true
   if (window._dashFieldFilters && Object.keys(window._dashFieldFilters).length > 0) return true
   return false
 }
@@ -1419,6 +1417,7 @@ function setupVisibilityRefresh() {
 }
 
 function renderDashboard(data) {
+  _dashUserFiltered = false
   const { articles, sharepoint, synced } = data
   dashContent.innerHTML = ''
 
@@ -1861,11 +1860,11 @@ function renderDashboard(data) {
   var endInput = document.getElementById('dash-date-end')
   if (startInput) {
     startInput.value = dateStartVal
-    startInput.onchange = function() { dateStartVal = this.value; applyGlobalFilters() }
+    startInput.onchange = function() { dateStartVal = this.value; _dashUserFiltered = true; applyGlobalFilters() }
   }
   if (endInput) {
     endInput.value = dateEndVal
-    endInput.onchange = function() { dateEndVal = this.value; applyGlobalFilters() }
+    endInput.onchange = function() { dateEndVal = this.value; _dashUserFiltered = true; applyGlobalFilters() }
   }
   var resetBtn = document.getElementById('btn-dash-reset')
   function _dashUpdateResetBtn() {
@@ -1880,6 +1879,7 @@ function renderDashboard(data) {
     resetBtn.onclick = function() {
       if (resetBtn.classList.contains('syncing') || resetBtn.disabled) return
       resetBtn.classList.add('syncing')
+      _dashUserFiltered = false
       if (startInput) { startInput.value = minDateStr || (new Date().getFullYear() + '-01-01'); dateStartVal = startInput.value }
       if (endInput) { endInput.value = todayStr; dateEndVal = endInput.value }
       if (searchInput) searchInput.value = ''
@@ -2009,11 +2009,11 @@ function renderDashboard(data) {
     tableCard = newCard
   }
 
-  statusSel.addEventListener('change', applyGlobalFilters)
+  statusSel.addEventListener('change', function() { _dashUserFiltered = true; applyGlobalFilters() })
   var searchTimer
   searchInput.addEventListener('input', function() {
     clearTimeout(searchTimer)
-    searchTimer = setTimeout(applyGlobalFilters, 250)
+    searchTimer = setTimeout(function() { _dashUserFiltered = true; applyGlobalFilters() }, 250)
   })
 
   statsArea.addEventListener('click', function(e) {
@@ -2046,6 +2046,7 @@ function renderDashboard(data) {
         window._dashFieldFilters[fk] = text
       }
     }
+    _dashUserFiltered = true
     applyGlobalFilters()
     showToast('Filtre actif : ' + text, 'info', 2000)
   })
