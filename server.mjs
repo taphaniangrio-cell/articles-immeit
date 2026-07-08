@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-import { spawn } from 'node:child_process';
+import { spawn, exec } from 'node:child_process';
 
 const _require = createRequire(import.meta.url);
 const { CONSTANTS } = _require('./lib/constants');
@@ -36,24 +36,11 @@ const health = { pid: process.pid, port: null };
 function openBrowser(url) {
   const platform = process.platform;
   if (platform === 'win32') {
-    try {
-      const p = spawn('cmd', ['/c', 'start', '', url], { shell: false, detached: true, stdio: 'ignore' });
-      p.unref();
-      return;
-    } catch {}
-    try {
-      const p = spawn('powershell', ['-NoProfile', '-Command', `Start-Process '${url}'`], { detached: true, stdio: 'ignore' });
-      p.unref();
-      return;
-    } catch {}
-    try {
-      const p = spawn('rundll32', ['url.dll,FileProtocolHandler', url], { detached: true, stdio: 'ignore' });
-      p.unref();
-      return;
-    } catch {}
-    console.log('');
-    console.log(`  → Ouvre ${url} dans ton navigateur`);
-    console.log('');
+    exec(`start "" "${url}"`, (err) => {
+      if (err) {
+        spawn('powershell', ['-NoProfile', '-Command', `Start-Process '${url}'`], { detached: true, stdio: 'ignore' }).unref();
+      }
+    });
   } else if (platform === 'darwin') {
     spawn('open', [url], { detached: true, stdio: 'ignore' }).unref();
   } else {
