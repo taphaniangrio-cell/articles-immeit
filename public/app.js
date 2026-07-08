@@ -1207,6 +1207,7 @@ function showDashboard() {
   navDashboard?.classList.add('active')
   navArticles?.classList.remove('active')
   localStorage.setItem('immeit_last_view', 'dashboard')
+  console.log('[DASH] showDashboard — _dashNeedsRefresh mis à false')
   window._dashNeedsRefresh = false
   loadDashboard()
 }
@@ -1232,6 +1233,7 @@ function loadCachedDashboard() {
 
 let _dashLoading = false
 async function loadDashboard() {
+  console.log('[DASH] loadDashboard appelé, _dashLoading=' + _dashLoading)
   if (_dashLoading) return
   _dashLoading = true
   dashLoading.classList.remove('hidden')
@@ -1343,8 +1345,12 @@ function startSyncTimer() {
   tick()
   window._syncTimerInterval = setInterval(tick, 5000)
   window._dashPollInterval = setInterval(function() {
-    if (!_dashHasActiveFilters() && Date.now() - (window._dashLastLoaded || 0) > 120000) {
+    var _hf = _dashHasActiveFilters()
+    if (!_hf && Date.now() - (window._dashLastLoaded || 0) > 120000) {
+      console.log('[DASH] Poll → pas de filtres actifs, reload')
       loadDashboard()
+    } else if (_hf) {
+      console.log('[DASH] Poll → filtres actifs, pas de reload')
     }
   }, 30000)
   connectSSE()
@@ -1377,7 +1383,9 @@ function connectSSE() {
         if ((_syncEl && _syncEl.classList.contains('syncing')) || (_refEl && _refEl.classList.contains('syncing'))) return
         if (Date.now() - (window._dashLastLoaded || 0) < 3000) return
         window._lastSyncTime = Date.now()
-        if (_dashHasActiveFilters()) {
+        var _hf = _dashHasActiveFilters()
+        console.log('[DASH] SSE dashboard-updated, hasFilters=' + _hf + ', userFiltered=' + _dashUserFiltered)
+        if (_hf) {
           window._dashNeedsRefresh = true
         } else {
           loadDashboard()
@@ -1403,13 +1411,17 @@ function setupVisibilityRefresh() {
   if (window._visSetup) return
   window._visSetup = true
   document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && window._dashNeedsRefresh && !_dashHasActiveFilters()) {
+    var _hf = _dashHasActiveFilters()
+    console.log('[DASH] visibilitychange, hidden=' + document.hidden + ', needsRefresh=' + window._dashNeedsRefresh + ', hasFilters=' + _hf + ', userFiltered=' + _dashUserFiltered)
+    if (!document.hidden && window._dashNeedsRefresh && !_hf) {
       window._dashNeedsRefresh = false
       loadDashboard()
     }
   })
   window.addEventListener('focus', function() {
-    if (window._dashNeedsRefresh && !_dashHasActiveFilters()) {
+    var _hf = _dashHasActiveFilters()
+    console.log('[DASH] focus, needsRefresh=' + window._dashNeedsRefresh + ', hasFilters=' + _hf + ', userFiltered=' + _dashUserFiltered)
+    if (window._dashNeedsRefresh && !_hf) {
       window._dashNeedsRefresh = false
       loadDashboard()
     }
@@ -1417,6 +1429,7 @@ function setupVisibilityRefresh() {
 }
 
 function renderDashboard(data) {
+  console.log('[DASH] renderDashboard, reset _dashUserFiltered=false')
   _dashUserFiltered = false
   const { articles, sharepoint, synced } = data
   dashContent.innerHTML = ''
@@ -2009,7 +2022,7 @@ function renderDashboard(data) {
     tableCard = newCard
   }
 
-  statusSel.addEventListener('change', function() { _dashUserFiltered = true; applyGlobalFilters() })
+  statusSel.addEventListener('change', function() { console.log('[DASH] Filtre status changé'); _dashUserFiltered = true; applyGlobalFilters() })
   var searchTimer
   searchInput.addEventListener('input', function() {
     clearTimeout(searchTimer)
