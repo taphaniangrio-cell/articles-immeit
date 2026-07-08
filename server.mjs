@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { spawn } from 'node:child_process';
 
 const _require = createRequire(import.meta.url);
 const { CONSTANTS } = _require('./lib/constants');
@@ -31,6 +32,17 @@ loadEnv();
 
 const SERVER_START = Date.now();
 const health = { pid: process.pid, port: null };
+
+function openBrowser(url) {
+  const platform = process.platform;
+  if (platform === 'win32') {
+    spawn('cmd', ['/c', 'start', url], { detached: true, stdio: 'ignore' });
+  } else if (platform === 'darwin') {
+    spawn('open', [url], { detached: true, stdio: 'ignore' });
+  } else {
+    spawn('xdg-open', [url], { detached: true, stdio: 'ignore' });
+  }
+}
 
 function writeHealthFile(status) {
   try {
@@ -253,11 +265,14 @@ function tryListen(port, maxAttempts = 10) {
       broadcastSSE('dashboard-updated', data);
     });
 
+    // Open browser automatically after a short delay
+    setTimeout(() => openBrowser(url), 800);
+
     // Auto-sync SharePoint data after server start
     setTimeout(async () => {
       const autoSync = _require('./lib/auto-sync');
       console.log('  ⟳ Synchronisation SharePoint...');
-      const result = await autoSync.initialSync();
+      const result = await autoSync.initialSync().catch(() => null);
       if (result) {
         console.log(`  ✓ ${result.items.length} demandes synchronisées depuis SharePoint`);
       } else {
@@ -281,12 +296,35 @@ function tryListen(port, maxAttempts = 10) {
   });
 }
 
+// ── Watchdog : auto-restart en cas de crash ──
+let crashCount = 0;
+const MAX_CRASHES = 10;
+const RESTART_DELAY = 2000;
+
+function restartServer() {
+  crashCount++;
+  if (crashCount > MAX_CRASHES) {
+    console.error(`[WATCHDOG] Trop de crashs (${crashCount}) — abandon`);
+    return;
+  }
+  console.log(`[WATCHDOG] Redémarrage dans ${RESTART_DELAY}ms (tentative ${crashCount}/${MAX_CRASHES})...`);
+  setTimeout(() => {
+    try {
+      server.closeAllConnections?.();
+      server.close();
+    } catch {}
+    tryListen(START_PORT);
+  }, RESTART_DELAY);
+}
+
 process.on('uncaughtException', (err) => {
-  console.error('[FATAL] Erreur non rattrapée:', err.message);
+  console.error('[FATAL] Erreur non rattrapée:', err.message, err.stack?.split('\n')[1] || '');
+  restartServer();
 });
 
 process.on('unhandledRejection', (err) => {
-  console.error('[FATAL] Rejet non géré:', err.message);
+  console.error('[FATAL] Rejet non géré:', err?.message || err);
+  restartServer();
 });
 
 tryListen(START_PORT);

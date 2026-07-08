@@ -1162,6 +1162,7 @@ function _dashHasActiveFilters() {
   if (_sr && _sr.value.trim()) return true
   if (_sd && _sd.value) return true
   if (_ed && _ed.value) return true
+  if (window._dashFieldFilters && Object.keys(window._dashFieldFilters).length > 0) return true
   return false
 }
 
@@ -1296,6 +1297,7 @@ function countUp(el, target, duration = 600) {
 function startSyncTimer() {
   if (window._syncTimerInterval) clearInterval(window._syncTimerInterval)
   if (window._autoRefreshTimer) clearTimeout(window._autoRefreshTimer)
+  if (window._dashPollInterval) clearInterval(window._dashPollInterval)
   function tick() {
     var el = document.getElementById('dash-update-info')
     if (!el) return
@@ -1309,7 +1311,11 @@ function startSyncTimer() {
   }
   tick()
   window._syncTimerInterval = setInterval(tick, 5000)
-  function _dashAutoRefresh() { window._autoRefreshTimer = setTimeout(function() { if (!_dashHasActiveFilters()) loadDashboard(); else _dashAutoRefresh() }, 5000) }; _dashAutoRefresh()
+  window._dashPollInterval = setInterval(function() {
+    if (!_dashHasActiveFilters() && Date.now() - (window._dashLastLoaded || 0) > 30000) {
+      loadDashboard()
+    }
+  }, 30000)
   connectSSE()
   setupVisibilityRefresh()
 }
@@ -1319,14 +1325,16 @@ function disconnectSSE() {
     window._sseConn.close()
     window._sseConn = null
   }
+  window._sseRetryCount = 0
 }
 
 function connectSSE() {
   if (window._sseConn) return
+  if (window._sseRetryCount === undefined) window._sseRetryCount = 0
   var url = window.location.origin + '/api/events'
   var es = new EventSource(url)
   es.addEventListener('connected', function(e) {
-    console.log('[SSE] Connecté')
+    window._sseRetryCount = 0
   })
   es.addEventListener('dashboard-updated', function(e) {
     try {
@@ -1337,12 +1345,11 @@ function connectSSE() {
         var _refEl = document.getElementById('btn-dash-refresh')
         if ((_syncEl && _syncEl.classList.contains('syncing')) || (_refEl && _refEl.classList.contains('syncing'))) return
         if (Date.now() - (window._dashLastLoaded || 0) < 3000) return
+        window._lastSyncTime = Date.now()
         if (_dashHasActiveFilters()) {
           window._dashNeedsRefresh = true
-          showToast('📊 Nouvelles données disponibles — réinitialise les filtres pour voir', 'info', 3000)
         } else {
           loadDashboard()
-          showToast('📊 Données mises à jour en temps réel', 'info', 2000)
         }
       } else {
         window._dashNeedsRefresh = true
@@ -1353,9 +1360,10 @@ function connectSSE() {
   })
   es.addEventListener('error', function() {
     if (es.readyState === EventSource.CLOSED) {
-      console.warn('[SSE] Connexion perdue — reconnexion dans 5s')
       window._sseConn = null
-      setTimeout(connectSSE, 5000)
+      window._sseRetryCount++
+      var delay = Math.min(30000, 1000 * Math.pow(2, window._sseRetryCount))
+      setTimeout(connectSSE, delay)
     }
   })
   window._sseConn = es
@@ -1411,6 +1419,34 @@ function renderDashboard(data) {
 
   var _baseHeaders = displayHeaders
   var _baseItems = displayItems
+  window._dashFieldFilters = {}
+  var _findFieldKey = function(hint) {
+    var hints = {
+      'demandeur': ['demandeur', 'demandeurs', 'requester'],
+      'avancement': ['etat', 'avancement', 'statut', 'status', 'état'],
+      'type': ['type'],
+      'nature': ['nature'],
+      'site': ['site'],
+      'stockage': ['stockage'],
+      'stockage_adv': ['stockage_adv', 'stockage_adv', 'adveso'],
+    }
+    var hk = function(s) { return s.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '') }
+    var keys = hints[hint] || [hint]
+    var header = null
+    for (var k = 0; k < keys.length; k++) {
+      var kh = hk(keys[k])
+      header = _baseHeaders.find(function(x) { return hk(x) === kh || hk(x).indexOf(kh) >= 0 })
+      if (header) break
+    }
+    if (header) {
+      var fk = hk(header)
+      var found = _baseItems.length > 0 && _baseItems[0].hasOwnProperty ? _baseItems[0].hasOwnProperty(fk) : (fk in (_baseItems[0] || {}))
+      if (found) return fk
+      var alt = Object.keys(_baseItems[0] || {}).find(function(k) { return k.indexOf(hk(hint)) >= 0 })
+      return alt || fk
+    }
+    return Object.keys(_baseItems[0] || {}).find(function(k) { return hk(k).indexOf(hk(hint).slice(0, 6)) >= 0 }) || null
+  }
 
   var parseItemDate = function(raw) {
     if (!raw) return null
@@ -1806,6 +1842,7 @@ function renderDashboard(data) {
     var has = (statusSel && statusSel.value) || (searchInput && searchInput.value.trim())
            || (startInput && startInput.value !== (minDateStr || (new Date().getFullYear() + '-01-01')))
            || (endInput && endInput.value !== todayStr)
+           || (window._dashFieldFilters && Object.keys(window._dashFieldFilters).length > 0)
     resetBtn.disabled = !has
   }
   if (resetBtn) {
@@ -1816,6 +1853,7 @@ function renderDashboard(data) {
       if (endInput) { endInput.value = todayStr; dateEndVal = endInput.value }
       if (searchInput) searchInput.value = ''
       if (statusSel) statusSel.value = ''
+      window._dashFieldFilters = {}
       applyGlobalFilters()
       if (window._dashNeedsRefresh) {
         window._dashNeedsRefresh = false
@@ -1868,24 +1906,16 @@ function renderDashboard(data) {
     var deVal = dateEndVal
     var ds = dsVal ? new Date(dsVal + 'T00:00:00') : null
     var de = deVal ? new Date(deVal + 'T23:59:59') : null
-    var _demFilter = window._dashDemandeurFilter ? _norm(window._dashDemandeurFilter) : ''
-    var _dHdr = null
-    if (_demFilter) {
-      var _n2 = function(s) { return s.trim().toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '') }
-      _dHdr = _baseHeaders.find(function(x) { return _n2(x) === 'demandeurs' || _n2(x) === 'demandeur' || x === 'Demandeurs' || x === 'Demandeur' })
-        || _baseHeaders.find(function(x) { return _n2(x).includes('demand') && !_n2(x).includes('type') && !_n2(x).includes('groupe') && !_n2(x).includes('categorie') })
-    }
+    var _ff = window._dashFieldFilters || {}
     var filtered = _baseItems.filter(function(item) {
       var st = _norm((item[gpStatusField] || '').toLowerCase())
       if (stVal && st !== stVal) return false
-      if (_demFilter) {
-        if (_dHdr) {
-          if (!_norm((item[_dHdr] || '').toLowerCase()).includes(_demFilter)) return false
-        } else {
-          var _fallback = _norm(Object.values(item).join(' ').toLowerCase())
-          if (!_fallback.includes(_demFilter)) return false
-        }
-      } else if (searchVal) {
+      for (var _fk in _ff) {
+        var _ival = (item[_fk] || '')
+        var _ffv = _ff[_fk]
+        if (!_norm(_ival.toLowerCase()).includes(_norm(_ffv))) return false
+      }
+      if (searchVal) {
         var allText = _norm(Object.values(item).join(' ').toLowerCase())
         if (!allText.includes(searchVal)) return false
       }
@@ -1924,10 +1954,31 @@ function renderDashboard(data) {
     if (!lbl) return
     var text = lbl.textContent.trim()
     if (!text) return
-    searchInput.value = text
-    window._dashDemandeurFilter = target.closest('.dash-section') && target.closest('.dash-section').querySelector('h3') && target.closest('.dash-section').querySelector('h3').textContent.includes('Top 10 demandeurs') ? text.toLowerCase() : ''
+    var chart = target.closest('.dash-chart-card')
+    var hintKey = null
+    if (chart) {
+      var h4 = chart.querySelector('h4')
+      if (h4) {
+        var t = h4.textContent.trim().toLowerCase()
+        if (t.indexOf('état') >= 0 || t.indexOf('avancement') >= 0) hintKey = 'avancement'
+        else if (t.indexOf('type') >= 0) hintKey = 'type'
+        else if (t === 'nature') hintKey = 'nature'
+        else if (t === 'par site') hintKey = 'site'
+        else if (t.indexOf('stockage docinfo') >= 0) hintKey = 'stockage'
+        else if (t.indexOf('stockage adveso') >= 0) hintKey = 'stockage_adv'
+      }
+    } else {
+      var sec = target.closest('.dash-section')
+      if (sec && sec.querySelector('#dash-body-dem')) hintKey = 'demandeur'
+    }
+    if (hintKey) {
+      var fk = _findFieldKey(hintKey)
+      if (fk) {
+        window._dashFieldFilters[fk] = text
+      }
+    }
     applyGlobalFilters()
-    window._dashDemandeurFilter = ''
+    showToast('Filtre actif : ' + text, 'info', 2000)
   })
 
   if (_baseItems.length > 0) applyGlobalFilters()

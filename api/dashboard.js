@@ -6,7 +6,7 @@ const cors = require('../lib/cors');
 const sharepoint = require('../lib/sharepoint');
 const autoSync = require('../lib/auto-sync');
 
-const FETCH_TIMEOUT = 12000;
+const FETCH_TIMEOUT = 30000;
 
 module.exports = requireAuth(async (req, res) => {
   if (cors(res, req)) return;
@@ -17,13 +17,36 @@ module.exports = requireAuth(async (req, res) => {
       loadCachedData(),
     ]);
 
-    // Try live SharePoint with timeout — if it succeeds, use fresh data
     var sharepointData = null
+    var liveSource = null
+
+    // 1) Try client_credentials (app-only) — works on Vercel, no popup
     if (sharepoint.isConfigured()) {
       try {
         sharepointData = await timeoutPromise(sharepoint.fetchDashboardData(), FETCH_TIMEOUT)
+        if (sharepointData && sharepointData.connected) liveSource = 'client_credentials'
       } catch (e) {
-        log('warn', 'dash_sp_timeout', { error: e.message })
+        log('warn', 'dash_sp_clientcreds_failed', { error: e.message })
+      }
+    }
+
+    // 2) Fallback: try auto-sync (InteractiveBrowserCredential with timeout)
+    if (!sharepointData || !sharepointData.connected) {
+      try {
+        var autoData = await timeoutPromise(autoSync.fetchSharePointData(), FETCH_TIMEOUT)
+        if (autoData && autoData.items && autoData.items.length > 0) {
+          sharepointData = {
+            connected: true,
+            headers: autoData.headers,
+            items: autoData.items,
+            stats: null,
+            lastSync: autoData.syncedAt,
+            _rawCount: autoData._rawCount,
+          }
+          liveSource = 'auto_sync'
+        }
+      } catch (e) {
+        log('warn', 'dash_sp_autosync_failed', { error: e.message })
       }
     }
 
@@ -33,7 +56,7 @@ module.exports = requireAuth(async (req, res) => {
         headers: sharepointData.headers,
         items: sharepointData.items,
         syncedAt: new Date().toISOString(),
-        source: 'sharepoint_live',
+        source: liveSource || 'sharepoint_live',
         _rawCount: sharepointData._rawCount,
       }
       saveToDBCache(displayData).catch(function() {})
@@ -43,7 +66,9 @@ module.exports = requireAuth(async (req, res) => {
 
     return res.status(200).json({
       articles: articleStats,
-      sharepoint: sharepointData ? { connected: true } : { connected: false },
+      sharepoint: sharepointData && sharepointData.connected
+        ? { connected: true, lastSync: sharepointData.lastSync || displayData?.syncedAt }
+        : { connected: false },
       synced: displayData,
     })
   } catch (err) {
