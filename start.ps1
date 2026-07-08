@@ -72,7 +72,7 @@ function Get-PidsOnPort($Port) {
   }
 }
 $oldPids = Get-PidsOnPort 3000
-$oldPids | ForEach-Object {
+$oldPids | Where-Object { $_ -gt 0 } | ForEach-Object {
   $p = Get-Process -Id $_ -ErrorAction SilentlyContinue
   if ($p) {
     Write-Host "[INFO] Ancien processus sur le port 3000 (PID $_ -- $($p.ProcessName)) -- arret..." -ForegroundColor Yellow
