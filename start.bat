@@ -6,10 +6,18 @@ echo.
 echo  ^>^>^> IMMEIT Hub — Lancement du serveur local
 echo.
 
-:: Lancer le script PowerShell principal
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0start.ps1"
+:: Tuer les anciens processus node sur le port 3000
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":3000 "') do (
+  if %%a neq 0 (
+    taskkill /f /pid %%a >nul 2>&1
+  )
+)
+timeout /t 1 /nobreak >nul
 
-:: Si le script PowerShell s'arrête, on affiche un message
+:: Lancer le serveur
+node server.mjs
+
+:: Si le serveur s'arrête
 echo.
 echo  [INFO] Le serveur s'est arrete.
 echo.
