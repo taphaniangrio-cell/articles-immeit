@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '154'
+const APP_VERSION = '155'
 
 // Force cache invalidation on version change
 ;(() => {
@@ -1236,10 +1236,6 @@ let _dashLoading = false
 async function loadDashboard() {
   console.log('[DASH] loadDashboard appelé, _dashLoading=' + _dashLoading + ', userFiltered=' + _dashUserFiltered)
   if (_dashLoading) return
-  if (_dashUserFiltered) {
-    console.log('[DASH] loadDashboard ignoré — filtres utilisateur actifs')
-    return
-  }
   _dashLoading = true
   dashLoading.classList.remove('hidden')
   dashError.classList.add('hidden')
@@ -1382,15 +1378,20 @@ function connectSSE() {
   es.addEventListener('dashboard-updated', function(e) {
     try {
       var data = JSON.parse(e.data)
+      var _src = data && data.source
       var ds = document.getElementById('dashboard-screen')
       if (ds && !ds.classList.contains('hidden')) {
         var _syncEl = document.getElementById('btn-dash-sync')
         var _refEl = document.getElementById('btn-dash-refresh')
         if ((_syncEl && _syncEl.classList.contains('syncing')) || (_refEl && _refEl.classList.contains('syncing'))) return
-        if (Date.now() - (window._dashLastLoaded || 0) < 3000) return
+        if (Date.now() - (window._dashLastLoaded || 0) < 10000) {
+          console.log('[DASH] SSE ignoré — trop tôt depuis dernier loadDashboard (' + _src + ')')
+          window._lastSyncTime = Date.now()
+          return
+        }
         window._lastSyncTime = Date.now()
         var _hf = _dashHasActiveFilters()
-        console.log('[DASH] SSE dashboard-updated, hasFilters=' + _hf + ', userFiltered=' + _dashUserFiltered)
+        console.log('[DASH] SSE dashboard-updated, hasFilters=' + _hf + ', userFiltered=' + _dashUserFiltered + ', source=' + _src)
         if (_hf) {
           window._dashNeedsRefresh = true
         } else {
