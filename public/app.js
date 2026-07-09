@@ -1962,7 +1962,7 @@ function renderDashboard(data) {
     if (searchInput && searchInput.value.trim()) {
       chips.push({ type: 'search', label: 'Recherche : "' + searchInput.value.trim() + '"', remove: function() { searchInput.value = ''; applyGlobalFilters() } })
     }
-    if (dateStartVal || dateEndVal) {
+    if ((dateStartVal && dateStartVal !== (minDateStr || (new Date().getFullYear() + '-01-01'))) || (dateEndVal && dateEndVal !== todayStr)) {
       var dLabel = 'Période'
       if (dateStartVal && dateEndVal) dLabel += ' : ' + dateStartVal + ' → ' + dateEndVal
       else if (dateStartVal) dLabel += ' : depuis ' + dateStartVal
