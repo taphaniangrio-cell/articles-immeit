@@ -1954,19 +1954,16 @@ function renderDashboard(data) {
     var ff = window._dashFieldFilters || {}
     for (var fk in ff) {
       var label = _baseHeaders.find(function(h) { return fk === h.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '') })
-      chips.push({ type: 'field', label: (label || fk) + ' : ' + ff[fk], remove: function(k) { return function() { delete window._dashFieldFilters[k]; applyGlobalFilters() } }(fk) })
+      chips.push({ type: 'field', label: ff[fk], remove: function(k) { return function() { delete window._dashFieldFilters[k]; applyGlobalFilters() } }(fk) })
     }
     if (statusSel && statusSel.value) {
-      chips.push({ type: 'status', label: 'Statut : ' + statusSel.value, remove: function() { statusSel.value = ''; applyGlobalFilters() } })
+      chips.push({ type: 'status', label: statusSel.value, remove: function() { statusSel.value = ''; applyGlobalFilters() } })
     }
     if (searchInput && searchInput.value.trim()) {
-      chips.push({ type: 'search', label: 'Recherche : "' + searchInput.value.trim() + '"', remove: function() { searchInput.value = ''; applyGlobalFilters() } })
+      chips.push({ type: 'search', label: searchInput.value.trim(), remove: function() { searchInput.value = ''; applyGlobalFilters() } })
     }
     if ((dateStartVal && dateStartVal !== (minDateStr || (new Date().getFullYear() + '-01-01'))) || (dateEndVal && dateEndVal !== todayStr)) {
-      var dLabel = 'Période'
-      if (dateStartVal && dateEndVal) dLabel += ' : ' + dateStartVal + ' → ' + dateEndVal
-      else if (dateStartVal) dLabel += ' : depuis ' + dateStartVal
-      else dLabel += ' : jusqu\'à ' + dateEndVal
+      var dLabel = dateStartVal && dateEndVal ? dateStartVal + ' → ' + dateEndVal : (dateStartVal ? 'depuis ' + dateStartVal : 'jusqu\'à ' + dateEndVal)
       chips.push({ type: 'date', label: dLabel, remove: function() { if (startInput) { startInput.value = minDateStr || (new Date().getFullYear() + '-01-01'); dateStartVal = startInput.value }; if (endInput) { endInput.value = todayStr; dateEndVal = endInput.value }; applyGlobalFilters() } })
     }
     if (chips.length === 0) { chipsBar.classList.add('hidden'); return }

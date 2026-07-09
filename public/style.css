@@ -2338,7 +2338,7 @@ button:disabled {
   border: 1px solid #FECACA;
 }
 .dash-filter-chip-label {
-  max-width: 220px;
+  max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
