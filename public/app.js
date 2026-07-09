@@ -115,7 +115,7 @@ async function api(path, options = {}) {
   const sep = path.includes('?') ? '&' : '?'
   const controller = new AbortController()
   const ms = options.timeout || (path.includes('/generate') ? 60000 : 20000)
-  const timeout = setTimeout(() => controller.abort(), ms)
+  const timeout = setTimeout(() => controller.abort(new Error('Délai d\'attente dépassé (' + (ms / 1000) + 's)')), ms)
   const headers = { 'Content-Type': 'application/json', ...options.headers }
   const method = (options.method || 'GET').toUpperCase()
   if (method !== 'GET') {
@@ -1276,7 +1276,7 @@ async function handleDashSync() {
   if (!btn || btn.classList.contains('syncing')) return
   btn.classList.add('syncing')
   try {
-    const result = await api('/sync', { method: 'POST' })
+    const result = await api('/sync', { method: 'POST', timeout: 90000 })
     if (result.success && result.count > 0) {
       showToast(result.message || result.count + ' lignes synchronisées ✓', 'success')
     } else {
