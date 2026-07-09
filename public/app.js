@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '155'
+const APP_VERSION = '156'
 
 // Force cache invalidation on version change
 ;(() => {
