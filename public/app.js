@@ -1963,7 +1963,8 @@ function renderDashboard(data) {
       chips.push({ type: 'search', label: searchInput.value.trim(), remove: function() { searchInput.value = ''; applyGlobalFilters() } })
     }
     if ((dateStartVal && dateStartVal !== (minDateStr || (new Date().getFullYear() + '-01-01'))) || (dateEndVal && dateEndVal !== todayStr)) {
-      var dLabel = dateStartVal && dateEndVal ? dateStartVal + ' → ' + dateEndVal : (dateStartVal ? 'depuis ' + dateStartVal : 'jusqu\'à ' + dateEndVal)
+      var fmt = d => d.split('-').reverse().join('-')
+      var dLabel = dateStartVal && dateEndVal ? fmt(dateStartVal) + ' → ' + fmt(dateEndVal) : (dateStartVal ? 'depuis ' + fmt(dateStartVal) : 'jusqu\'à ' + fmt(dateEndVal))
       chips.push({ type: 'date', label: dLabel, remove: function() { if (startInput) { startInput.value = minDateStr || (new Date().getFullYear() + '-01-01'); dateStartVal = startInput.value }; if (endInput) { endInput.value = todayStr; dateEndVal = endInput.value }; applyGlobalFilters() } })
     }
     if (chips.length === 0) { chipsBar.classList.add('hidden'); return }
