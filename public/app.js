@@ -1946,7 +1946,7 @@ function renderDashboard(data) {
   var chipsBar = document.createElement('div')
   chipsBar.id = 'dash-filter-chips'
   chipsBar.className = 'dash-filter-chips'
-  dashContent.appendChild(chipsBar)
+  document.querySelector('#dashboard-screen .dash-header')?.insertAdjacentElement('afterend', chipsBar)
 
   function _dashRenderFilterChips() {
     chipsBar.innerHTML = ''
@@ -2075,7 +2075,7 @@ function renderDashboard(data) {
 }
 
 function computeClientStats(headers, items) {
-  const norm = x => x.trim().toLowerCase().normalize('NFC').replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '')
+  const norm = x => x.trim().toLowerCase().normalize('NFC').replace(/\uFFFD/g, '').replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '')
   const h = name => {
     const n = norm(name)
     const match = headers.find(x => norm(x) === n || x === name)
@@ -2103,20 +2103,32 @@ function computeClientStats(headers, items) {
   const parseNum = val => { if (!val) return NaN; const n = parseFloat(String(val).replace(',', '.').replace(/[^0-9.\-]/g, '')); return isNaN(n) ? NaN : n }
 
   const groups = {
-    avancement: {}, type: {}, nature: {}, site: {},
-    demandeur: {}, demLabel: {}, conf1: {}, confDem: {},
-    stockage: {}, stockageAdv: {}, monthly: {},
+    avancement: {}, avLabel: {}, type: {}, typeLabel: {},
+    nature: {}, natureLabel: {}, site: {}, siteLabel: {},
+    demandeur: {}, demLabel: {},
+    conf1: {}, conf1Label: {}, confDem: {}, confDemLabel: {},
+    stockage: {}, stockageLabel: {}, stockageAdv: {}, stockageAdvLabel: {},
+    monthly: {},
   }
   const delais = { duree: [], echeance: [], ecart: [] }
-  var l = items.length
 
+  function addGroup(slugMap, labelMap, raw) {
+    var v = (raw || '').trim()
+    if (!v) return
+    var gk = v.replace(/[^ -~]+/g, '').toLowerCase()
+    slugMap[gk] = (slugMap[gk] || 0) + 1
+    var prev = labelMap[gk]
+    if (!prev || (v.indexOf('\ufffd') < 0 && v.length >= prev.length)) labelMap[gk] = v
+  }
+
+  var l = items.length
   for (var i = 0; i < l; i++) {
     var it = items[i]
 
-    var av = (it[f.avancement] || '').trim().normalize('NFC'); if (av) groups.avancement[av] = (groups.avancement[av] || 0) + 1
-    var ty = (it[f.type] || '').trim().normalize('NFC'); if (ty) groups.type[ty] = (groups.type[ty] || 0) + 1
-    var na = (it[f.nature] || '').trim().normalize('NFC'); if (na) groups.nature[na] = (groups.nature[na] || 0) + 1
-    var si = (it[f.site] || '').trim().normalize('NFC'); if (si) groups.site[si] = (groups.site[si] || 0) + 1
+    addGroup(groups.avancement, groups.avLabel, it[f.avancement])
+    addGroup(groups.type, groups.typeLabel, it[f.type])
+    addGroup(groups.nature, groups.natureLabel, it[f.nature])
+    addGroup(groups.site, groups.siteLabel, it[f.site])
 
     var de = (it[f.demandeur] || '').trim()
     if (de) {
@@ -2126,11 +2138,10 @@ function computeClientStats(headers, items) {
       if (!prev || (de.indexOf('\ufffd') < 0 && de.length >= prev.length)) groups.demLabel[key] = de
     }
 
-    var c1 = (it[f.conf1] || '').trim().toLowerCase().normalize('NFC'); if (c1) groups.conf1[c1] = (groups.conf1[c1] || 0) + 1
-    var cd = (it[f.confDem] || '').trim().toLowerCase().normalize('NFC'); if (cd) groups.confDem[cd] = (groups.confDem[cd] || 0) + 1
-
-    var st = (it[f.stockage] || '').trim().normalize('NFC'); if (st) groups.stockage[st] = (groups.stockage[st] || 0) + 1
-    var sa = (it[f.stockageAdv] || '').trim().normalize('NFC'); if (sa) groups.stockageAdv[sa] = (groups.stockageAdv[sa] || 0) + 1
+    addGroup(groups.conf1, groups.conf1Label, it[f.conf1])
+    addGroup(groups.confDem, groups.confDemLabel, it[f.confDem])
+    addGroup(groups.stockage, groups.stockageLabel, it[f.stockage])
+    addGroup(groups.stockageAdv, groups.stockageAdvLabel, it[f.stockageAdv])
 
     var du = parseNum(it[f.duree]); if (!isNaN(du) && du >= 0 && du <= MAX_DAYS) delais.duree.push(du)
     var ecVal = parseNum(it[f.echeance]); if (!isNaN(ecVal) && ecVal >= 0 && ecVal <= MAX_DAYS) delais.echeance.push(ecVal)
@@ -2158,7 +2169,14 @@ function computeClientStats(headers, items) {
     }
   }
 
-  const toDist = (obj) => Object.entries(obj).map(function(a) { return { label: a[0], count: a[1] } }).sort(function(a, b) { return b.count - a.count })
+  const toDist = (obj, labelMap) => {
+    var keys = Object.keys(obj)
+    var out = []
+    for (var k = 0; k < keys.length; k++) {
+      out.push({ label: labelMap ? (labelMap[keys[k]] || keys[k]) : keys[k], count: obj[keys[k]] })
+    }
+    return out.sort(function(a, b) { return b.count - a.count })
+  }
   const sortedMonthly = Object.entries(groups.monthly).sort(function(a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0 }).map(function(a) { return { month: a[0], count: a[1] } })
 
   const topDem = Object.entries(groups.demandeur).map(function(a) { return { label: groups.demLabel[a[0]], count: a[1] } }).sort(function(a, b) { return b.count - a.count }).slice(0, 10)
@@ -2183,17 +2201,17 @@ function computeClientStats(headers, items) {
 
   return {
     total: l,
-    avancementDist: toDist(groups.avancement),
-    typeDist: toDist(groups.type),
-    natureDist: toDist(groups.nature),
-    siteDist: toDist(groups.site),
+    avancementDist: toDist(groups.avancement, groups.avLabel),
+    typeDist: toDist(groups.type, groups.typeLabel),
+    natureDist: toDist(groups.nature, groups.natureLabel),
+    siteDist: toDist(groups.site, groups.siteLabel),
     topDemandeurs: topDem,
     tauxConf1: conf1T > 0 ? Math.round((conf1O / conf1T) * 100) : 0,
-    conf1Dist: toDist(conf1Vals).map(function(a) { return { label: a.label.charAt(0).toUpperCase() + a.label.slice(1), count: a.count } }),
+    conf1Dist: toDist(conf1Vals, groups.conf1Label).map(function(a) { return { label: a.label.charAt(0).toUpperCase() + a.label.slice(1), count: a.count } }),
     tauxConfDem: confDemT > 0 ? Math.round((confDemO / confDemT) * 100) : 0,
-    confDemDist: toDist(confDemVals).map(function(a) { return { label: a.label.charAt(0).toUpperCase() + a.label.slice(1), count: a.count } }),
-    stockageDist: toDist(groups.stockage),
-    stockageAdvesoDist: toDist(groups.stockageAdv),
+    confDemDist: toDist(confDemVals, groups.confDemLabel).map(function(a) { return { label: a.label.charAt(0).toUpperCase() + a.label.slice(1), count: a.count } }),
+    stockageDist: toDist(groups.stockage, groups.stockageLabel),
+    stockageAdvesoDist: toDist(groups.stockageAdv, groups.stockageAdvLabel),
     duree: delaiStats(delais.duree),
     echeance: delaiStats(delais.echeance),
     ecart: delaiStats(delais.ecart),

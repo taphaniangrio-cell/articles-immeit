@@ -2298,10 +2298,25 @@ button:disabled {
 .dash-filter-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 6px var(--space-5) 2px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
   min-height: 0;
   transition: min-height .2s;
+  background: var(--clr-bg-card);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-xl);
+  margin: 0 0 12px;
+  box-shadow: var(--shadow-sm);
+}
+.dash-filter-chips::before {
+  content: 'Filtres actifs';
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--clr-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-right: 4px;
 }
 .dash-filter-chips.hidden {
   display: none;
@@ -2310,8 +2325,8 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 4px 3px 10px;
-  font-size: var(--text-xs);
+  padding: 5px 8px 5px 12px;
+  font-size: var(--text-sm);
   font-weight: 500;
   border-radius: 20px;
   line-height: 1.4;
