@@ -2309,15 +2309,7 @@ button:disabled {
   margin: 0 0 12px;
   box-shadow: var(--shadow-sm);
 }
-.dash-filter-chips::before {
-  content: 'Filtres actifs';
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--clr-text-muted);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  margin-right: 4px;
-}
+
 .dash-filter-chips.hidden {
   display: none;
 }
@@ -2333,25 +2325,17 @@ button:disabled {
   animation: fadeIn .2s ease;
   white-space: nowrap;
 }
-.dash-filter-chip--field {
-  background: #EEF2FF;
-  color: #4338CA;
-  border: 1px solid #C7D2FE;
-}
-.dash-filter-chip--status {
-  background: #F0FDF4;
-  color: #15803D;
-  border: 1px solid #BBF7D0;
-}
+.dash-filter-chip--field,
+.dash-filter-chip--status,
 .dash-filter-chip--search {
-  background: #FFF7ED;
-  color: #C2410C;
-  border: 1px solid #FED7AA;
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
 }
 .dash-filter-chip--date {
-  background: #F5F3FF;
-  color: #6D28D9;
-  border: 1px solid #DDD6FE;
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
 }
 .dash-filter-chip-label {
   max-width: 220px;
