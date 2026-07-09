@@ -2075,7 +2075,7 @@ function renderDashboard(data) {
 }
 
 function computeClientStats(headers, items) {
-  const norm = x => x.trim().toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '')
+  const norm = x => x.trim().toLowerCase().normalize('NFC').replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '')
   const h = name => {
     const n = norm(name)
     const match = headers.find(x => norm(x) === n || x === name)
@@ -2113,10 +2113,10 @@ function computeClientStats(headers, items) {
   for (var i = 0; i < l; i++) {
     var it = items[i]
 
-    var av = (it[f.avancement] || '').trim(); if (av) groups.avancement[av] = (groups.avancement[av] || 0) + 1
-    var ty = (it[f.type] || '').trim(); if (ty) groups.type[ty] = (groups.type[ty] || 0) + 1
-    var na = (it[f.nature] || '').trim(); if (na) groups.nature[na] = (groups.nature[na] || 0) + 1
-    var si = (it[f.site] || '').trim(); if (si) groups.site[si] = (groups.site[si] || 0) + 1
+    var av = (it[f.avancement] || '').trim().normalize('NFC'); if (av) groups.avancement[av] = (groups.avancement[av] || 0) + 1
+    var ty = (it[f.type] || '').trim().normalize('NFC'); if (ty) groups.type[ty] = (groups.type[ty] || 0) + 1
+    var na = (it[f.nature] || '').trim().normalize('NFC'); if (na) groups.nature[na] = (groups.nature[na] || 0) + 1
+    var si = (it[f.site] || '').trim().normalize('NFC'); if (si) groups.site[si] = (groups.site[si] || 0) + 1
 
     var de = (it[f.demandeur] || '').trim()
     if (de) {
@@ -2126,11 +2126,11 @@ function computeClientStats(headers, items) {
       if (!prev || (de.indexOf('\ufffd') < 0 && de.length >= prev.length)) groups.demLabel[key] = de
     }
 
-    var c1 = (it[f.conf1] || '').trim().toLowerCase(); if (c1) groups.conf1[c1] = (groups.conf1[c1] || 0) + 1
-    var cd = (it[f.confDem] || '').trim().toLowerCase(); if (cd) groups.confDem[cd] = (groups.confDem[cd] || 0) + 1
+    var c1 = (it[f.conf1] || '').trim().toLowerCase().normalize('NFC'); if (c1) groups.conf1[c1] = (groups.conf1[c1] || 0) + 1
+    var cd = (it[f.confDem] || '').trim().toLowerCase().normalize('NFC'); if (cd) groups.confDem[cd] = (groups.confDem[cd] || 0) + 1
 
-    var st = (it[f.stockage] || '').trim(); if (st) groups.stockage[st] = (groups.stockage[st] || 0) + 1
-    var sa = (it[f.stockageAdv] || '').trim(); if (sa) groups.stockageAdv[sa] = (groups.stockageAdv[sa] || 0) + 1
+    var st = (it[f.stockage] || '').trim().normalize('NFC'); if (st) groups.stockage[st] = (groups.stockage[st] || 0) + 1
+    var sa = (it[f.stockageAdv] || '').trim().normalize('NFC'); if (sa) groups.stockageAdv[sa] = (groups.stockageAdv[sa] || 0) + 1
 
     var du = parseNum(it[f.duree]); if (!isNaN(du) && du >= 0 && du <= MAX_DAYS) delais.duree.push(du)
     var ecVal = parseNum(it[f.echeance]); if (!isNaN(ecVal) && ecVal >= 0 && ecVal <= MAX_DAYS) delais.echeance.push(ecVal)
