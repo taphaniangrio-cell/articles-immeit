@@ -143,12 +143,12 @@ async function handleApi(req, res, pathname, url) {
         }
         body += chunk;
       };
-      const onEnd = () => { if (!rejected) resolve(); };
+      const onEnd = () => { if (!rejected) { rejected = true; resolve(); } };
       const onError = err => { rejected = true; reject(err); };
       req.on('data', onData);
       req.on('end', onEnd);
       req.on('error', onError);
-      req.on('close', () => { if (!rejected) { rejected = true; reject(new Error('Connection closed')); } });
+      req.on('close', () => { if (!rejected) { rejected = true; resolve(); } });
     });
     try { req.body = JSON.parse(body); } catch { req.body = {}; }
   }

@@ -131,4 +131,4 @@ async function handleSync(req, res) {
     count: 0,
     message: 'Échec synchronisation : ' + reason,
   });
-});
+}
