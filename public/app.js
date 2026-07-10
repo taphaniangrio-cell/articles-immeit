@@ -1,15 +1,23 @@
 const API_BASE = '/api'
-const APP_VERSION = '156'
+const APP_VERSION = '157'
 
-// Force cache invalidation on version change
+// Cache invalidation : reload si un nouveau déploiement est détecté
 ;(() => {
-  const prev = localStorage.getItem('immeit_app_version')
-  if (prev && prev !== APP_VERSION) {
+  const htmlEl = document.getElementById('app-version')
+  const htmlVersion = (htmlEl?.textContent || '').replace(/^v/, '') || '0'
+  const storedVersion = localStorage.getItem('immeit_app_version')
+
+  // Évite la boucle infinie : ne reload qu'1x par session
+  const alreadyReloaded = sessionStorage.getItem('immeit_reloaded')
+
+  if ((htmlVersion !== APP_VERSION || (storedVersion && storedVersion !== APP_VERSION)) && !alreadyReloaded) {
     localStorage.setItem('immeit_app_version', APP_VERSION)
-    location.reload(true)
+    sessionStorage.setItem('immeit_reloaded', '1')
+    if (htmlEl) htmlEl.textContent = 'v' + APP_VERSION
+    location.reload()
     return
   }
-  if (!prev) localStorage.setItem('immeit_app_version', APP_VERSION)
+  if (!storedVersion) localStorage.setItem('immeit_app_version', APP_VERSION)
 })()
 
 let articles = []

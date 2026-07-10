@@ -25,12 +25,22 @@
 - ✅ Device code authentifié (token jusqu'à 11:49, refresh automatique)
 - ✅ CRON_SECRET ajouté dans les secrets GitHub Actions
 
+## Recent
+- Cache navigateur auto-purgé à chaque déploiement :
+  - Version bump synchronisée `index.html` / `app.js` (v157)
+  - Cross-check HTML↔JS au load (si mismatch → `location.reload()`)
+  - `sessionStorage` flag anti-boucle infinie
+  - Meta tags `Cache-Control: no-cache, no-store, must-revalidate` dans index.html
+  - Vercel headers HTML `no-cache, no-store` dans `vercel.json`
+
 ## Relevant Files
 - `lib/auto-sync.js` : coeur du sync, fallback chain + token management + Graph API fetch
 - `api/sync.js` : endpoint POST, accepte CRON/auth bearer ou session
 - `server.mjs` : startup message, lance `sync()` + `startContinuousSync()`
-- `vercel.json` : CRON `0 5 * * *` + maxDuration 60s
+- `vercel.json` : CRON `0 5 * * *` + maxDuration 60s + cache headers HTML
 - `.github/workflows/sync.yml` : GitHub Actions toutes les 30 min
 - `.env.example` : documente `CRON_SECRET`
 - `package.json` : dépend `@azure/identity`
+- `public/app.js` : version check HTML↔JS + `location.reload()` si mismatch
+- `public/index.html` : version dans `#app-version` + meta cache-control
 - `AGENTS.md` : ce fichier
