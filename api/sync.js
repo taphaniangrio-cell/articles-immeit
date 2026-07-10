@@ -31,12 +31,31 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-module.exports = requireAuth(async (req, res) => {
+async function isCronAuthorized(req) {
+  if (req.headers['x-vercel-cron'] === '1') return true;
+  const auth = req.headers['authorization'] || '';
+  const secret = process.env.CRON_SECRET || process.env.GITHUB_TOKEN;
+  if (auth.startsWith('Bearer ') && secret && auth.slice(7) === secret) return true;
+  return false;
+}
+
+module.exports = async (req, res) => {
   if (cors(res, req)) return;
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'POST requis' });
   }
+
+  if (!await isCronAuthorized(req)) {
+    return requireAuth(async (req2, res2) => {
+      await handleSync(req2, res2);
+    })(req, res);
+  }
+
+  await handleSync(req, res);
+};
+
+async function handleSync(req, res) {
 
   // 1. Direct client_credentials fetch (works on Vercel + local if env vars set)
   if (sharepoint.isConfigured()) {

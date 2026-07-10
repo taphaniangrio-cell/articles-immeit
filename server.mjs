@@ -281,7 +281,7 @@ function tryListen(port, maxAttempts = 10) {
       const autoSync = _require('./lib/auto-sync');
       const result = await autoSync.initialSync().catch(() => null);
       if (result) {
-        const isLive = result.source === 'client_credentials';
+        const isLive = result.source === 'client_credentials' || result.source === 'device_code';
         console.log(`  ✓ ${result.items.length} demandes (${isLive ? 'SharePoint' : 'cache'})`);
       } else {
         console.log('  ℹ Aucune donnée disponible');
