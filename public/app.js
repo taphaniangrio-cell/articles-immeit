@@ -1,5 +1,5 @@
 const API_BASE = '/api'
-const APP_VERSION = '157'
+const APP_VERSION = '159'
 
 // Cache invalidation : reload si un nouveau déploiement est détecté
 ;(() => {
@@ -1290,8 +1290,21 @@ async function handleDashSync() {
     } else {
       showToast(result.message || 'Aucune donnée disponible', 'warning')
     }
-    if (!_dashUserFiltered) await loadDashboard()
-    else console.log('[DASH] Sync effectué, loadDashboard ignoré — filtres actifs')
+    if (result.success && result.items && result.items.length > 0 && result.headers) {
+      var syncData = {
+        articles: window._dashLastData ? window._dashLastData.articles : null,
+        sharepoint: { connected: true, lastSync: result.syncedAt },
+        synced: { headers: result.headers, items: result.items, syncedAt: result.syncedAt, source: result.source, _rawCount: result.rawCount }
+      }
+      window._dashLastData = syncData
+      try { localStorage.setItem('immeit_dash_cache', JSON.stringify({ ...syncData, _cachedAt: Date.now() })) } catch {}
+      renderDashboard(syncData)
+      updateDashInfo()
+    } else if (!_dashUserFiltered) {
+      await loadDashboard()
+    } else {
+      console.log('[DASH] Sync effectué, loadDashboard ignoré — filtres actifs')
+    }
   } catch (err) {
     showToast('Erreur synchronisation: ' + err.message, 'error')
   } finally {

@@ -77,6 +77,8 @@ async function handleSync(req, res) {
           rawCount: spData._rawCount,
           syncedAt: cacheData.syncedAt,
           source: 'sharepoint_client_credentials',
+          headers: spData.headers,
+          items: spData.items,
           message: spData.items.length + ' demandes synchronisées depuis SharePoint',
         });
       }
@@ -101,6 +103,8 @@ async function handleSync(req, res) {
           rawCount: dbCache._rawCount,
           syncedAt: dbCache.syncedAt,
           source: 'db_cache',
+          headers: dbCache.headers,
+          items: dbCache.items,
           message: dbCache.items.length + ' demandes (cache base de données — SharePoint indisponible)',
         });
       }
@@ -117,6 +121,8 @@ async function handleSync(req, res) {
         count: cached.items.length,
         syncedAt: cached.syncedAt,
         source: 'file_cache',
+        headers: cached.headers,
+        items: cached.items,
         message: cached.items.length + ' demandes (cache local — SharePoint indisponible)',
       });
     }
@@ -136,6 +142,8 @@ async function handleSync(req, res) {
         rawCount: githubCached._rawCount,
         syncedAt: githubCached.syncedAt,
         source: 'github_cache',
+        headers: githubCached.headers,
+        items: githubCached.items,
         message: githubCached.items.length + ' demandes (cache GitHub — SharePoint indisponible)',
       });
     }
