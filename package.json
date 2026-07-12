@@ -7,16 +7,18 @@
     "dev": "node server.mjs",
     "local": "start.bat",
     "db:init": "psql $DATABASE_URL -f db/schema.sql",
+    "db:migrate": "node scripts/migrate-supabase.js",
+    "db:transfer": "node scripts/transfer-data.js",
     "hash": "node scripts/generate-hash.js"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.0",
+    "@azure/msal-node": "^5.3.1",
+    "pg": "^8.13.0",
     "bcryptjs": "^3.0.3",
     "nodemailer": "^9.0.3"
   },
   "optionalDependencies": {
-    "@azure/identity": "^4.13.1",
-    "@azure/identity-broker": "^1.4.0"
+    "@azure/identity": "^4.13.1"
   },
   "devDependencies": {
     "prettier": "^3.4.0"

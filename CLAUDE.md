@@ -4,7 +4,7 @@ Application hub interne regroupant les outils IMMEIT (maintenance industrielle, 
 
 ## Stack
 
-**Vercel Serverless (Node.js) + Vercel Postgres (Neon) + vanilla JS frontend + Shell Hub v3.**
+**Vercel Serverless (Node.js) + Supabase (Postgres gratuit) + vanilla JS frontend + Shell Hub v3.**
 
 ## Structure
 
@@ -22,7 +22,7 @@ articles-immeit/
 ├── lib/
 │   ├── auth.js        # requireAuth + requireCsrf (double-submit cookie)
 │   ├── cors.js        # CORS whitelist
-│   ├── db.js          # Connexion PostgreSQL (Neon serverless)
+│   ├── db.js          # Connexion PostgreSQL (pg driver)
 │   ├── ai-client.js   # Appels IA (Groq, OpenRouter, Cerebras, Mistral)
 │   ├── rss-fetcher.js # Agrégation RSS maintenance
 │   ├── sanitize.js    # Nettoyage HTML

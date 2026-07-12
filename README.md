@@ -5,7 +5,7 @@ Application interne de génération d'articles LinkedIn pour IMMEIT (maintenance
 ## Stack
 
 - **Runtime:** Node.js (Vercel Serverless)
-- **Base de données:** Vercel Postgres (Neon)
+- **Base de données:** Supabase (Postgres gratuit, sans limite de transfert)
 - **Frontend:** Vanilla JS + CSS custom properties
 - **IA:** Groq / OpenRouter / Cerebras / Mistral
 
@@ -41,7 +41,7 @@ articles-immeit/
 - **`auth.js`** — Middleware `requireAuth()` + session store in-memory (Map), TTL 7 jours, nettoyage automatique chaque heure. Protection CSRF via `requireCsrf()` (double-submit cookie + `X-CSRF-Token` header).
 - **`cors.js`** — En-têtes CORS avec whitelist configurable via `ALLOWED_ORIGIN`
 - **`logger.js`** — Logger structuré JSON, niveaux (debug/info/warn/error), configurable via `LOG_LEVEL`
-- **`db.js`** — Connexion PostgreSQL (Neon serverless, pg)
+- **`db.js`** — Connexion PostgreSQL (pg driver)
 - **`ai-client.js`** — Appels aux API IA (Groq, OpenRouter, Cerebras, Mistral)
 - **`rss-fetcher.js`** — Récupération et filtrage RSS secteur maintenance
 - **`rateLimit.js`** — Rate limiting in-memory par IP
