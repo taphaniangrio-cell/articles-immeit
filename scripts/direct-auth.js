@@ -129,22 +129,38 @@ async function main() {
         console.log('');
         console.log('  ✅ Token obtenu !');
 
-        // Save to correct cache dir (AppData\Local\IMMEIT, same as cache-dir.js)
+        // Save raw token info
         const { getCacheDir } = require('../lib/cache-dir');
         const cacheDir = getCacheDir();
         if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
-        const cacheFile = path.join(cacheDir, 'msal-cache.json');
-        fs.writeFileSync(cacheFile, JSON.stringify(cacheData, null, 2), 'utf-8');
-        console.log('  ✅ Cache sauvegardé: ' + cacheFile);
 
-        // Also save raw token info
         const tokenFile = path.join(cacheDir, 'msal-token.json');
         fs.writeFileSync(tokenFile, JSON.stringify({
           token: result.access_token,
           expiresAt: Date.now() + (result.expires_in || 3600) * 1000,
-          refreshToken: result.refresh_token,
+          refreshToken: result.refresh_token || null,
         }, null, 2), 'utf-8');
         console.log('  ✅ Token sauvegardé: ' + tokenFile);
+
+        // Save to Supabase DB
+        if (process.env.DATABASE_URL) {
+          try {
+            const db = require('../lib/db');
+            await db.query(
+              `INSERT INTO dashboard_cache (cache_key, cache_data, updated_at)
+               VALUES ($1, $2, NOW())
+               ON CONFLICT (cache_key) DO UPDATE SET cache_data = $2, updated_at = NOW()`,
+              ['msal_token_cache', JSON.stringify({ blob: JSON.stringify({
+                token: result.access_token,
+                expiresAt: Date.now() + (result.expires_in || 3600) * 1000,
+                refreshToken: result.refresh_token || null,
+              }) })]
+            );
+            console.log('  ✅ Token sauvegardé dans Supabase');
+          } catch (e) {
+            console.log('  ⚠ Erreur DB:', e.message);
+          }
+        }
 
         // Step 3: Test SharePoint
         console.log('');
