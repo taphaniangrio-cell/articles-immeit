@@ -22,7 +22,7 @@ if (fs.existsSync(envPath)) {
 
 const TENANT_ID = process.env.SHAREPOINT_TENANT_ID || 'd852d5cd-724c-4128-8812-ffa5db3f8507';
 const CLIENT_ID = process.env.SHAREPOINT_DELEGATED_CLIENT_ID || '1950a258-227b-4e31-a9cf-717495945fc2';
-const SCOPES = 'https://graph.microsoft.com/.default';
+const SCOPES = 'https://graph.microsoft.com/.default offline_access';
 
 function httpsPost(url, body, headers) {
   return new Promise((resolve, reject) => {
