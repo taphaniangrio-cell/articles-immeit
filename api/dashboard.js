@@ -62,6 +62,13 @@ module.exports = requireAuth(async (req, res) => {
       saveToDBCache(displayData).catch(function() {})
     } else {
       displayData = cachedData
+      if (displayData && displayData.items && displayData.headers && displayData.items.length > 0) {
+        var filtered = sharepoint.filterDataRows(displayData.items, displayData.headers)
+        if (filtered.length !== displayData.items.length) {
+          displayData = { ...displayData, items: filtered, _rawCount: displayData.items.length }
+          saveToDBCache(displayData).catch(function() {})
+        }
+      }
     }
 
     return res.status(200).json({
