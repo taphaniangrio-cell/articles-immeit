@@ -96,6 +96,7 @@ async function saveToDBCache(data) {
 }
 
 async function loadCachedData() {
+  // 1) DB cache
   try {
     const r = await db.query(
       `SELECT cache_data FROM dashboard_cache WHERE cache_key = 'sharepoint_suivi_2026'`
@@ -106,6 +107,16 @@ async function loadCachedData() {
       if (data && data.items && data.items.length > 0) return data;
     }
   } catch (e) { log('warn', 'dash_cache_db_read_failed', { error: e?.message }); }
+
+  // 2) GitHub cache (fallback si DB vide/inaccessible)
+  try {
+    const { fetchCache } = require('../lib/github-cache');
+    const gh = await fetchCache();
+    if (gh && gh.items && gh.items.length > 0 && gh.headers) {
+      log('info', 'dash_github_cache_fallback', { items: gh.items.length });
+      return gh;
+    }
+  } catch (e) { log('warn', 'dash_github_cache_fallback_failed', { error: e?.message }); }
 
   return null;
 }
