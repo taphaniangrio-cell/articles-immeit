@@ -9,8 +9,9 @@ node_modules/
 .vscode/
 .idea/
 
-# Runtime cache (changes on every sync)
-cache/
+# Runtime cache (local only — dash-cache.json is tracked on 'cache' branch for GitHub fallback)
+cache/*
+!cache/dash-cache.json
 
 # OS
 .DS_Store
