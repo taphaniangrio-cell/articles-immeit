@@ -31,13 +31,29 @@ module.exports = async (req, res) => {
 // synchronisation qu'on soit déclenché par le cron Vercel, GitHub Actions, ou le bouton
 // "Sync" du tableau de bord. allowInteractive n'est jamais passé ici (défaut false) : un
 // appel API ne doit jamais rester bloqué à attendre une connexion humaine.
+const SYNC_TIMEOUT_MS = 55_000;
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Sync timeout (' + (ms / 1000) + 's)')), ms)
+    ),
+  ]);
+}
+
 async function handleSync(req, res) {
   try {
-    const result = await autoSync.performSync();
+    const result = await withTimeout(autoSync.performSync(), SYNC_TIMEOUT_MS);
     const status = result.success ? 200 : 502;
     return res.status(status).json(result);
   } catch (err) {
     log('error', 'sync_endpoint_failed', { error: err.message });
-    return res.status(500).json({ success: false, count: 0, message: 'Échec synchronisation : ' + err.message });
+    const isTimeout = err.message.includes('timeout');
+    return res.status(isTimeout ? 504 : 500).json({
+      success: false,
+      count: 0,
+      message: isTimeout ? 'Synchronisation trop longue — réessayez' : 'Échec synchronisation : ' + err.message,
+    });
   }
 }

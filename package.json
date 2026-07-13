@@ -9,7 +9,10 @@
     "db:init": "psql $DATABASE_URL -f db/schema.sql",
     "db:migrate": "node scripts/migrate-supabase.js",
     "db:transfer": "node scripts/transfer-data.js",
-    "hash": "node scripts/generate-hash.js"
+    "hash": "node scripts/generate-hash.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@azure/msal-node": "^5.3.1",
@@ -32,5 +35,8 @@
     "gmao"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "vitest": "^4.1.10"
+  }
 }

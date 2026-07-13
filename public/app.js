@@ -97,10 +97,15 @@ function showToast(message, type = 'success', duration = 3000) {
   toast.dataset.type = type
   toast.innerHTML = `<span>${icons[type] || 'ℹ'}</span><span>${message}</span>`
   document.body.appendChild(toast)
-  setTimeout(() => {
-    toast.style.animation = 'fadeOut .2s ease forwards'
-    setTimeout(() => toast.remove(), 200)
-  }, duration)
+  if (duration > 0) {
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.style.animation = 'fadeOut .2s ease forwards'
+        setTimeout(() => toast.remove(), 200)
+      }
+    }, duration)
+  }
+  return toast
 }
 
 function esc(s) {
@@ -1278,20 +1283,61 @@ async function handleDashSync() {
   var btn = document.getElementById('btn-dash-sync')
   if (!btn || btn.classList.contains('syncing')) return
   btn.classList.add('syncing')
-  showToast('Synchronisation en cours…', 'info', 30000)
-  try {
-    const result = await api('/sync', { method: 'POST', timeout: 90000 })
-    if (result.success) {
-      showToast(result.message || 'Synchronisation réussie', 'success')
-      await loadDashboard()
-    } else {
-      showToast(result.message || 'Synchronisation échouée', 'error')
+
+  var startTime = Date.now()
+  var toast = showToast('Synchronisation en cours…', 'info', 0)
+  var elapsedTimer = setInterval(function() {
+    if (!toast.parentElement) { clearInterval(elapsedTimer); return }
+    var sec = Math.floor((Date.now() - startTime) / 1000)
+    var msgSpan = toast.querySelectorAll('span')[1]
+    if (msgSpan) msgSpan.textContent = 'Synchronisation en cours… ' + sec + 's'
+  }, 1000)
+
+  var maxRetries = 2
+  var lastError = null
+
+  for (var attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      var result = await api('/sync', { method: 'POST', timeout: 60000 })
+      clearInterval(elapsedTimer)
+      if (result.success) {
+        if (toast.parentElement) toast.remove()
+        showToast(result.message || 'Synchronisation réussie', 'success')
+        btn.classList.remove('syncing')
+        await loadDashboard()
+        return
+      }
+      lastError = result.message || 'Synchronisation échouée'
+      if (attempt < maxRetries) {
+        var delay = 1500 * Math.pow(2, attempt)
+        var msgSpan2 = toast.querySelectorAll('span')[1]
+        if (msgSpan2) msgSpan2.textContent = 'Nouvel essai dans ' + Math.round(delay / 1000) + 's…'
+        await new Promise(function(r) { setTimeout(r, delay) })
+      }
+    } catch (err) {
+      lastError = err.message || 'Erreur réseau'
+      if (attempt < maxRetries) {
+        var delay2 = 1500 * Math.pow(2, attempt)
+        clearInterval(elapsedTimer)
+        var msgSpan3 = toast.querySelectorAll('span')[1]
+        if (msgSpan3) msgSpan3.textContent = 'Erreur — nouvel essai dans ' + Math.round(delay2 / 1000) + 's…'
+        toast.dataset.type = 'warning'
+        await new Promise(function(r) { setTimeout(r, delay2) })
+        elapsedTimer = setInterval(function() {
+          if (!toast.parentElement) { clearInterval(elapsedTimer); return }
+          var sec = Math.floor((Date.now() - startTime) / 1000)
+          var msgSpan4 = toast.querySelectorAll('span')[1]
+          if (msgSpan4) msgSpan4.textContent = 'Synchronisation en cours… ' + sec + 's'
+        }, 1000)
+        toast.dataset.type = 'info'
+      }
     }
-  } catch (err) {
-    showToast('Erreur lors de la synchronisation', 'error')
-  } finally {
-    btn.classList.remove('syncing')
   }
+
+  clearInterval(elapsedTimer)
+  if (toast.parentElement) toast.remove()
+  showToast(maxRetries > 0 ? 'Échec après ' + (maxRetries + 1) + ' essais — ' + lastError : lastError, 'error')
+  btn.classList.remove('syncing')
 }
 
 async function handleDashRefresh() {
