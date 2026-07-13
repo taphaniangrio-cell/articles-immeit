@@ -70,3 +70,26 @@ DROP TRIGGER IF EXISTS articles_updated_at ON articles;
 CREATE TRIGGER articles_updated_at
 BEFORE UPDATE ON articles
 FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- Alert deduplication: tracks which changes have been alerted
+CREATE TABLE IF NOT EXISTS alert_dedup (
+  change_hash TEXT PRIMARY KEY,
+  first_seen TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  last_alerted TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_alert_dedup_last_alerted ON alert_dedup(last_alerted);
+
+-- Alert history: audit trail of all sent alert emails
+CREATE TABLE IF NOT EXISTS alert_history (
+  id SERIAL PRIMARY KEY,
+  sent_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  changes_count INTEGER NOT NULL,
+  critical_count INTEGER DEFAULT 0,
+  normal_count INTEGER DEFAULT 0,
+  low_count INTEGER DEFAULT 0,
+  change_hashes TEXT[] DEFAULT '{}',
+  source TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_alert_history_sent_at ON alert_history(sent_at DESC);
