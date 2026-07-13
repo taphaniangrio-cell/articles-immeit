@@ -40729,7 +40729,7 @@
       "stockage_adveso": "Non concerné",
       "stockage": "Oui",
       "mise__jour_kpi": "Non",
-      "remarque_immeit": " RAS",
+      "remarque_immeit": "• RAS",
       "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "Attention renommé le fichier avant de le stocker c'est du REG et non du PRE",
       "conformit_de_la_demande": "Oui",
@@ -44961,7 +44961,7 @@
       "stockage_adveso": "Oui",
       "stockage": "Oui",
       "mise__jour_kpi": "Non",
-      "remarque_immeit": "• Côté PREV, RAS. A noter quatre opérations non réalisées (4NR [2PREV3 et 2PREV6]) pour le même motif \"CLA-755 retiré du contrat\"\n• Sur les CR et CR provisoir, absence du VM6 et de son numéro OT malgré que les opérations VM6 sont bien mentionnées sur le PMP\n  * Ce qui est mentionné: N° OT (429895179 et 430223588) Plan d'entretien (PRE 6M et PRE 3M)\n• La date de Validité bouteille (Essence) (14/06/2026) est antérieure à la date de vérifcation 17/06/2026 sur Bouteille test Essence-Diesel+Compa POSTCAT BRC2 et Bouteille test Essence-Diesel+Compa PRECAT BRC2\n• Absence signature intervenant et nom de l'approbateur sur Bouteille test Essence-Diesel+Compa POSTCAT BRC2 et Bouteille test Essence-Diesel+Compa PRECAT BRC2\nPour stockage ADVESO: Vérification conforme sur site effectuée le 16/06/2026 par l'entreprise INDUSTRELEC avec le technicien Julien BERUT",
+      "remarque_immeit": "• Côté PREV, RAS. A noter quatre opérations non réalisées (4NR [2PREV3 et 2PREV6]) pour le même motif \"CLA-755 retiré du contrat\"\n• Sur les CR et CR provisoir, absence du VM6 et de son numéro OT malgré que les opérations VM6 sont bien mentionnées sur le PMP\n  * Ce qui est mentionné: N° OT (429895179 et 430223588) Plan d'entretien (PRE 6M et PRE 3M)\n• La date de Validit bouteille (Essence) (14/06/2026) est antérieure à la date de vérifcation 17/06/2026 sur Bouteille test Essence-Diesel+Compa POSTCAT BRC2 et Bouteille test Essence-Diesel+Compa PRECAT BRC2\n• Absence signature intervenant et nom de l'approbateur sur Bouteille test Essence-Diesel+Compa POSTCAT BRC2 et Bouteille test Essence-Diesel+Compa PRECAT BRC2\nPour stockage ADVESO: Vérification conforme sur site effectuée le 16/06/2026 par l'entreprise INDUSTRELEC avec le technicien Julien BERUT",
       "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "",
       "conformit_de_la_demande": "Oui",
@@ -46618,7 +46618,7 @@
       "stockage": "Non",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• Cinq (5) tests sans accord dans  le Check Out Protocol \n - 1 PNC Flow - Pump (AVL)\n - 2 Pre. Validation APC (executed et certificate)\n - 2 Calibration APC (executed et certificate)\nPour stockage sur ADVESO: Vérification Conforme effectuée hors site par l'entreprise AVL le 28/05/2026 avec les techniciens Benjamin FALK, Robert HOEFLER  & Christian SCHMITT",
-      "etat_davance_de_la_demande": "En attente de traitement IMMEIT",
+      "etat_davance_de_la_demande": "En attente validation P2M",
       "commentaire_p2m": "",
       "conformit_de_la_demande": "",
       "date_dvaluation_en_cas_de_non_conformit": "",
@@ -46644,7 +46644,7 @@
       "ecart_dheure_contractuel": ""
     }
   ],
-  "syncedAt": "2026-07-13T22:41:01.633Z",
+  "syncedAt": "2026-07-13T22:42:09.218Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
   "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)"
