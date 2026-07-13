@@ -255,12 +255,6 @@ function renderImages() {
     })
   })
 
-  if (articleImages.length === 0) {
-    selectedImageIndex = -1
-    btnReplaceImage.classList.add('hidden')
-    btnRemoveImage.classList.add('hidden')
-    return
-  }
   if (selectedImageIndex === -1 || selectedImageIndex >= articleImages.length) {
     selectedImageIndex = articleImages.length - 1
     btnReplaceImage.classList.remove('hidden')
@@ -882,8 +876,8 @@ function renderLinkedInPreview(text) {
 
 btnCopy.addEventListener('click', async () => {
   let text = formatForLinkedIn(editCorps.value)
-  const h = editHashtags.value.split(/\s+/).filter(h => h)
-  if (h.length) text += '\n\n' + h.join(' ')
+  const hashtags = editHashtags.value.split(/\s+/).filter(Boolean)
+  if (hashtags.length) text += '\n\n' + hashtags.join(' ')
 
   if (text.length > 3000) {
     showToast(`⚠ ${text.length} car. (max 3000 recommandé)`, 'warning')
@@ -917,9 +911,9 @@ btnPreview.addEventListener('click', () => {
 
   bodyHtml += renderLinkedInPreview(editCorps.value)
 
-  const h = editHashtags.value.split(/\s+/).filter(h => h)
-  if (h.length) {
-    bodyHtml += `<div class="li-hashtags">${h.map(t => `<span class="li-hashtag">${esc(t)}</span>`).join(' ')}</div>`
+  const hashtags = editHashtags.value.split(/\s+/).filter(Boolean)
+  if (hashtags.length) {
+    bodyHtml += `<div class="li-hashtags">${hashtags.map(t => `<span class="li-hashtag">${esc(t)}</span>`).join(' ')}</div>`
   }
 
   liPreviewBody.innerHTML = bodyHtml
@@ -1241,7 +1235,6 @@ function loadCachedDashboard() {
   return false
 }
 
-var _dashSavedFilters = null
 let _dashLoading = false
 async function loadDashboard() {
   console.log('[DASH] loadDashboard appelé, _dashLoading=' + _dashLoading + ', userFiltered=' + _dashUserFiltered)
@@ -1442,7 +1435,7 @@ function setupVisibilityRefresh() {
 function renderDashboard(data) {
   var _savedUserFiltered = _dashUserFiltered
   console.log('[DASH] renderDashboard, _dashUserFiltered=' + _savedUserFiltered)
-  const { articles, sharepoint, synced } = data
+  const { sharepoint, synced } = data
   dashContent.innerHTML = ''
 
   const hasSynced = synced && synced.headers && synced.items && synced.items.length > 0
@@ -1481,7 +1474,7 @@ function renderDashboard(data) {
       'nature': ['nature'],
       'site': ['site'],
       'stockage': ['stockage'],
-      'stockage_adv': ['stockage_adv', 'stockage_adv', 'adveso'],
+      'stockage_adv': ['stockage_adv', 'adveso'],
     }
     var hk = function(s) { return s.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '') }
     var keys = hints[hint] || [hint]
@@ -1960,7 +1953,6 @@ function renderDashboard(data) {
     var chips = []
     var ff = window._dashFieldFilters || {}
     for (var fk in ff) {
-      var label = _baseHeaders.find(function(h) { return fk === h.toLowerCase().replace(/[\s\/]+/g, '_').replace(/[^a-z0-9_]/g, '') })
       chips.push({ type: 'field', label: ff[fk], remove: function(k) { return function() { delete window._dashFieldFilters[k]; applyGlobalFilters() } }(fk) })
     }
     if (statusSel && statusSel.value) {
@@ -2140,8 +2132,8 @@ function computeClientStats(headers, items) {
     if (de) {
       var key = de.replace(/[^a-zA-Z]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
       groups.demandeur[key] = (groups.demandeur[key] || 0) + 1
-      var prev = groups.demLabel[key]
-      if (!prev || (de.indexOf('\ufffd') < 0 && de.length >= prev.length)) groups.demLabel[key] = de
+      var prevDemandeur = groups.demLabel[key]
+      if (!prevDemandeur || (de.indexOf('\ufffd') < 0 && de.length >= prevDemandeur.length)) groups.demLabel[key] = de
     }
 
     addGroup(groups.conf1, groups.conf1Label, it[f.conf1])
@@ -2625,13 +2617,13 @@ function renderDataTable(headers, items, stats, statusField) {
 
   if (!_dashTableState.page) _dashTableState.page = 1
   
-  const PAGE_SIZE = 50
-  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
+  const TABLE_PAGE_SIZE = 50
+  const totalPages = Math.max(1, Math.ceil(items.length / TABLE_PAGE_SIZE))
   if (_dashTableState.page > totalPages) _dashTableState.page = totalPages
 
   const page = _dashTableState.page
-  const start = (page - 1) * PAGE_SIZE
-  const pageItems = items.slice(start, start + PAGE_SIZE)
+  const start = (page - 1) * TABLE_PAGE_SIZE
+  const pageItems = items.slice(start, start + TABLE_PAGE_SIZE)
 
   const rowsHtml = pageItems.map(item => {
     const status = (getCellValue(item, statusField) || '').toLowerCase().replace(/[\s\-]+/g, '-')

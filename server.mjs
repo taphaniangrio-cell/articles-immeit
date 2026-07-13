@@ -46,8 +46,8 @@ function openBrowser(url) {
   }
 }
 
-function writeHealthFile(status) {
-  var dir = getServerDir();
+function writeHealthFile(_status) {
+  const dir = getServerDir();
   ensureDir(dir);
   safeWriteFile(path.join(dir, 'server.port'), String(health.port || START_PORT));
   safeWriteFile(path.join(dir, 'server.pid'), String(process.pid));
