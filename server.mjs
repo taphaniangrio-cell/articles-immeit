@@ -261,7 +261,7 @@ function tryListen(port, maxAttempts = 10) {
     const url = `http://localhost:${port}`;
     console.log('');
     console.log('  ╔══════════════════════════════════════╗');
-    console.log('  ║     IMMEIT — Générateur d\'articles   ║');
+    console.log('  ║     IMMEIT Hub — Plateforme interne  ║');
     console.log('  ╠══════════════════════════════════════╣');
     console.log(`  ║  App   : ${url.padEnd(33)}║`);
     console.log(`  ║  API   : ${(url + '/api/').padEnd(33)}║`);
