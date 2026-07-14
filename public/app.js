@@ -1241,22 +1241,34 @@ function loadCachedDashboard() {
 }
 
 let _dashLoading = false
-async function loadDashboard() {
+async function loadDashboard(silent = false) {
   console.log('[DASH] loadDashboard appelé, _dashLoading=' + _dashLoading + ', userFiltered=' + _dashUserFiltered)
   if (_dashLoading) return
   _dashLoading = true
-  dashLoading.classList.remove('hidden')
+  
+  if (!silent) {
+    dashLoading.classList.remove('hidden')
+  }
   dashError.classList.add('hidden')
 
-  loadCachedDashboard()
+  if (!silent) {
+    loadCachedDashboard()
+  }
 
   try {
     const data = await api('/dashboard')
     window._dashLastLoaded = Date.now()
     window._lastSyncTime = Date.now()
+    
+    // Ne rafraîchir l'interface que si les données ont réellement changé
+    const dataHasChanged = !window._dashLastData || window._dashLastData.syncedAt !== data.syncedAt
     window._dashLastData = data
+    
     try { localStorage.setItem('immeit_dash_cache', JSON.stringify({ ...data, _cachedAt: Date.now() })) } catch {}
-    renderDashboard(data)
+    
+    if (dataHasChanged || !silent) {
+      renderDashboard(data)
+    }
     updateDashInfo()
     startSyncTimer()
   } catch (err) {
@@ -1266,7 +1278,9 @@ async function loadDashboard() {
     }
   } finally {
     _dashLoading = false
-    dashLoading.classList.add('hidden')
+    if (!silent) {
+      dashLoading.classList.add('hidden')
+    }
   }
   var _refreshBtn = document.getElementById('btn-dash-refresh')
   var _syncBtn = document.getElementById('btn-dash-sync')
@@ -1394,7 +1408,7 @@ function startSyncTimer() {
     // Réduction du délai à 15 secondes pour imiter le temps réel sur Vercel
     if (!_hf && Date.now() - (window._dashLastLoaded || 0) > 15000) {
       console.log('[DASH] Poll → pas de filtres actifs, reload')
-      loadDashboard()
+      loadDashboard(true) // Refresh silencieux
     } else if (_hf) {
       console.log('[DASH] Poll → filtres actifs, pas de reload')
     }
