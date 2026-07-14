@@ -31,6 +31,13 @@ module.exports = requireAuth(async (req, res) => {
       );
     } catch (e) { log('warn', 'dashboard_sync_db_write_failed', { error: e?.message }); }
 
+    try {
+      const alertManager = require('../lib/alert-manager');
+      await alertManager.processDiff(cache);
+    } catch (e) {
+      log('warn', 'dashboard_sync_diff_alert_failed', { error: e?.message });
+    }
+
     log('info', 'dashboard_sync', { items: items.length, source: cache.source });
 
     return res.status(200).json({ success: true, count: items.length, syncedAt: cache.syncedAt });
