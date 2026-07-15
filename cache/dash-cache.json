@@ -46660,9 +46660,9 @@
       "date_de_traitement_immeit": "46218",
       "date_dernire_maj_immeit": "46218",
       "conformit__la_premire_diffusion": "",
-      "stockage_adveso": "",
-      "stockage": "",
-      "mise__jour_kpi": "",
+      "stockage_adveso": "Non concerné",
+      "stockage": "Non",
+      "mise__jour_kpi": "Non",
       "remarque_immeit": "",
       "etat_davance_de_la_demande": "",
       "commentaire_p2m": "",
@@ -46690,9 +46690,9 @@
       "ecart_dheure_contractuel": ""
     }
   ],
-  "syncedAt": "2026-07-15T13:49:40.733Z",
+  "syncedAt": "2026-07-15T13:49:51.912Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
   "lastModifiedBy": "SIDOINE ISSA SIGA DIATTA (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-15T13:49:01Z"
+  "lastModifiedDateTime": "2026-07-15T13:49:47Z"
 }
