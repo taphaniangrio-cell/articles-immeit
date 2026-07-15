@@ -3734,7 +3734,7 @@
       "nature_de_la_demande": "Préventive",
       "nbe_gerico_apex": "1039115",
       "nom_du_banc_nom_entreprise": "SALLE BRUITS PARASITES",
-      "priodicit": "PRE3",
+      "priodicit": "PREV3",
       "not": "429904393",
       "date_de_dpt_du_dossier_sur_docinfo": "46044",
       "date_du_dpt_du_dossier_sur_docinfo_avec_une_date": "46044",
@@ -13727,7 +13727,7 @@
       "stockage_adveso": "Oui",
       "stockage": "Oui",
       "mise__jour_kpi": "Non",
-      "remarque_immeit": "• OS42 au format Word, non signé\n• Absence d'indification du BE sur le TDM (N°BE et Nom)\n• Des cases vides à remplir par des tirêts et NA pour les VM12 \"courbes de linéaritées\" non homologus (Dates de vérifications, de validités, et statut de conformité \"NA\")\n• RAS côté préventive\n• RAS pour les VM6M (courbe de linéarité et contrôle linéarité mis-échelle)\n• Un dossier COR BATI VM12 avec un N°OT \"429825194\" est joint au rapport alors qu'il n'était annoncé sur le tire du rapport ni sur le CR, ni sur le CR provisoire. \n• Dates de vérification des Vitesses rouleaux à corriger sur le TDM (27/08/2025 alors que réalisées le 13/02/2026)\nPour stockage sur ADVESO: Vérification Conforme sur site par INDUSTRELEC le 12/02/2026 avec le technicien PILLOT Benoit\nRapport reçu à nouveau le 23/02/2026\n• OS42 au format Word, toujours pas signé\n• Corrections apportées sur l'indification du BE sur le TDM (N°BE et Nom)\n• Correction apportées sur \"les cases vides à remplir par des tirêts et NA pour les VM12 \"courbes de linéaritées\" non homologués\"\n• Ras pour le reste\nRapport reçu à nouveau le 24/02/2026\n• OS42 joint au bon format et signé",
+      "remarque_immeit": "• OS42 au format Word, non signé\n• Absence d'indification du BE sur le TDM (N°BE et Nom)\n• Des cases vides à remplir par des tirêts et NA pour les VM12 \"courbes de linéaritées\" non homologués (Dates de vérifications, de validités, et statut de conformité \"NA\")\n• RAS côté préventive\n• RAS pour les VM6M (courbe de linéarité et contrôle linéarité mis-échelle)\n• Un dossier COR BATI VM12 avec un N°OT \"429825194\" est joint au rapport alors qu'il n'était annoncé sur le tire du rapport ni sur le CR, ni sur le CR provisoire. \n• Dates de vérification des Vitesses rouleaux à corriger sur le TDM (27/08/2025 alors que réalisées le 13/02/2026)\nPour stockage sur ADVESO: Vérification Conforme sur site par INDUSTRELEC le 12/02/2026 avec le technicien PILLOT Benoit\nRapport reçu à nouveau le 23/02/2026\n• OS42 au format Word, toujours pas signé\n• Corrections apportées sur l'indification du BE sur le TDM (N°BE et Nom)\n• Correction apportées sur \"les cases vides à remplir par des tirêts et NA pour les VM12 \"courbes de linéaritées\" non homologués\"\n• Ras pour le reste\nRapport reçu à nouveau le 24/02/2026\n• OS42 joint au bon format et signé",
       "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "23/02/2026 MV : Modifications demandées au prestataire pour tableau de mesureurs (dates pas renseignées en \"-\" + pas de désignation BE ni N° BE. Les dates pour \"vitesse rouleaux\" ne sont pas concernées car les voies vérifiées ne concernent que les FEM 27/28/29/30, bien renseignées au 13/02/2026.\nLe dépôt du rapport modifié sera demandé pour le 24/02 au minimum (date de réception de l'OS42 avec P2M).\n\n27/02/2026 MV : OK pour stockage Adveso",
       "conformit_de_la_demande": "Oui",
@@ -44961,7 +44961,7 @@
       "stockage_adveso": "Oui",
       "stockage": "Oui",
       "mise__jour_kpi": "Non",
-      "remarque_immeit": "• Côté PREV, RAS. A noter quatre opérations non réalisées (4NR [2PREV3 et 2PREV6]) pour le même motif \"CLA-755 retiré du contrat\"\n• Sur les CR et CR provisoir, absence du VM6 et de son numéro OT malgré que les opérations VM6 sont bien mentionnées sur le PMP\n  * Ce qui est mentionné: N° OT (429895179 et 430223588) Plan d'entretien (PRE 6M et PRE 3M)\n• La date de Validit bouteille (Essence) (14/06/2026) est antérieure à la date de vérifcation 17/06/2026 sur Bouteille test Essence-Diesel+Compa POSTCAT BRC2 et Bouteille test Essence-Diesel+Compa PRECAT BRC2\n• Absence signature intervenant et nom de l'approbateur sur Bouteille test Essence-Diesel+Compa POSTCAT BRC2 et Bouteille test Essence-Diesel+Compa PRECAT BRC2\nPour stockage ADVESO: Vérification conforme sur site effectuée le 16/06/2026 par l'entreprise INDUSTRELEC avec le technicien Julien BERUT",
+      "remarque_immeit": "• Côté PREV, RAS. A noter quatre opérations non réalisées (4NR [2PREV3 et 2PREV6]) pour le même motif \"CLA-755 retiré du contrat\"\n• Sur les CR et CR provisoir, absence du VM6 et de son numéro OT malgré que les opérations VM6 sont bien mentionnées sur le PMP\n  * Ce qui est mentionné: N° OT (429895179 et 430223588) Plan d'entretien (PRE 6M et PRE 3M)\n• La date de Validité bouteille (Essence) (14/06/2026) est antérieure à la date de vérifcation 17/06/2026 sur Bouteille test Essence-Diesel+Compa POSTCAT BRC2 et Bouteille test Essence-Diesel+Compa PRECAT BRC2\n• Absence signature intervenant et nom de l'approbateur sur Bouteille test Essence-Diesel+Compa POSTCAT BRC2 et Bouteille test Essence-Diesel+Compa PRECAT BRC2\nPour stockage ADVESO: Vérification conforme sur site effectuée le 16/06/2026 par l'entreprise INDUSTRELEC avec le technicien Julien BERUT",
       "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "",
       "conformit_de_la_demande": "Oui",
@@ -46690,9 +46690,9 @@
       "ecart_dheure_contractuel": ""
     }
   ],
-  "syncedAt": "2026-07-15T13:36:51.937Z",
+  "syncedAt": "2026-07-15T13:37:40.770Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
   "lastModifiedBy": "SIDOINE ISSA SIGA DIATTA (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-15T13:34:57Z"
+  "lastModifiedDateTime": "2026-07-15T13:37:34Z"
 }
