@@ -47248,10 +47248,10 @@
       "gestionnaire_demandes": "Moustapha NIANG",
       "type_de_demande": "Contrôle des documents de maintenance",
       "nature_de_la_demande": "Métrologique",
-      "nbe_gerico_apex": "",
-      "nom_du_banc_nom_entreprise": "",
+      "nbe_gerico_apex": "1303649",
+      "nom_du_banc_nom_entreprise": "BAIE DSPACE SCALF 19",
       "priodicit": "VM18",
-      "not": "",
+      "not": "430432403",
       "date_de_dpt_du_dossier_sur_docinfo": "46219",
       "date_du_dpt_du_dossier_sur_docinfo_avec_une_date": "46219",
       "date_de_rception_des_demandes": "",
@@ -47288,9 +47288,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-16T14:03:23.166Z",
+  "syncedAt": "2026-07-16T14:04:24.736Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
-  "lastModifiedBy": "IBRAHIMA KHALIL SECK (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-16T14:01:24Z"
+  "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)",
+  "lastModifiedDateTime": "2026-07-16T14:03:33Z"
 }
