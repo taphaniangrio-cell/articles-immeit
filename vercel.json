@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": null,
-  "outputDirectory": "public",
+  "buildCommand": "cd temp-react && npm install && npx vite build",
+  "outputDirectory": "temp-react/dist",
   "crons": [
     {
       "path": "/api/sync",
@@ -32,13 +32,13 @@
     {
       "source": "/",
       "headers": [
-        { "key": "Cache-Control", "value": "public, no-cache, no-store, must-revalidate" }
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     },
     {
-      "source": "/(.*)\\.html",
+      "source": "/index.html",
       "headers": [
-        { "key": "Cache-Control", "value": "public, no-cache, no-store, must-revalidate" }
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     },
     {

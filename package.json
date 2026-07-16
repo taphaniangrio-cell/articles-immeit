@@ -5,6 +5,8 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "node server.mjs",
+    "dev:front": "cd temp-react && npx vite --port 5173",
+    "build:front": "cd temp-react && npx vite build",
     "local": "start.bat",
     "db:init": "psql $DATABASE_URL -f db/schema.sql",
     "db:migrate": "node scripts/migrate-supabase.js",
