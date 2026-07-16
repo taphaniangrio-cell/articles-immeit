@@ -47261,7 +47261,7 @@
       "stockage_adveso": "",
       "stockage": "Non",
       "mise__jour_kpi": "Non",
-      "remarque_immeit": "• Une opération REG 12 réalisée et jugée conforme au niveau CR partie PMP alors que non annoncée sur le titre ni sur le plan de prévention\n• RAS sur l'ensemble des CVs métrologieques et non métrologiques\nPour stockage sur ADVESO: Vérification Conforme sur site par l'entreprise INDUSTRELEC le 09/06/2026 avec le technicien Brice MENEZ",
+      "remarque_immeit": "• Une opération REG 12 réalisée et jugée conforme au niveau CR partie PMP alors que non annoncée sur le titre ni sur le plan de prévention\n• RAS sur l'ensemble des CVs métrologieques et non métrologiques (\nPour stockage sur ADVESO: Vérification non conforme sur site par l'entreprise INDUSTRELEC le 10/06/2026 avec le technicien Brice MENEZ",
       "etat_davance_de_la_demande": "En cours de traitement IMMEIT",
       "commentaire_p2m": "",
       "conformit_de_la_demande": "",
@@ -47307,7 +47307,7 @@
       "stockage_adveso": "Non concerné",
       "stockage": "Non",
       "mise__jour_kpi": "Non",
-      "remarque_immeit": "• Absence de la fiche CERFA\n• Trois opérations non-réalisées pour motif d'inéxistence et d'absence de raccord de prise de pression",
+      "remarque_immeit": "• Absence de la fiche CERFA\n• Sept opérations non-réalisées (7NR) pour motif d'inéxistence",
       "etat_davance_de_la_demande": "En attente validation P2M",
       "commentaire_p2m": "",
       "conformit_de_la_demande": "",
@@ -47341,7 +47341,7 @@
       "type_de_demande": "Contrôle des documents de maintenance",
       "nature_de_la_demande": "Préventive\nRéglementaire",
       "nbe_gerico_apex": "1285410",
-      "nom_du_banc_nom_entreprise": "",
+      "nom_du_banc_nom_entreprise": "Production EG 8/13 B1/B2 GF02 SW",
       "priodicit": "PREV12\nREG48",
       "not": "430260312\n430056074",
       "date_de_dpt_du_dossier_sur_docinfo": "46219",
@@ -47353,7 +47353,7 @@
       "stockage_adveso": "Non concerné",
       "stockage": "Non",
       "mise__jour_kpi": "Non",
-      "remarque_immeit": "• Absence de la fiche CERFA\n• Trois opérations non-réalisées pour motif d'inéxistence et d'absence de raccord de prise de pression",
+      "remarque_immeit": "• Absence de la fiche CERFA\n• Sept opérations non-réalisées (7NR) pour motif d'inéxistence",
       "etat_davance_de_la_demande": "",
       "commentaire_p2m": "",
       "conformit_de_la_demande": "",
@@ -47380,9 +47380,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-16T14:34:25.840Z",
+  "syncedAt": "2026-07-16T14:35:23.458Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
   "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-16T14:34:09Z"
+  "lastModifiedDateTime": "2026-07-16T14:34:56Z"
 }
