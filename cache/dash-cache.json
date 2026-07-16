@@ -47031,7 +47031,7 @@
       "stockage_adveso": "",
       "stockage": "Non",
       "mise__jour_kpi": "Non",
-      "remarque_immeit": "• Une opération non conforme (1NR) [Contrôle fonctionnement pressostat air alimentation des plots du marbre]=>\"Préssostat HS\" mais avec un ZSAD (Pressostat presence air du marbre non fonctionnel. ZSAD 430507516.)\n• On a vingt quatre opérations non réalisées (24NR) dont 11 pour un problème de périodicité, 02 pour le motif de \"machine révisé en 2025\"....",
+      "remarque_immeit": "• Pour la partie PREV, on a une opération non conforme (1NC) [Contrôle fonctionnement pressostat air alimentation des plots du marbre]=>\"Préssostat HS\" mais avec un ZSAD (Pressostat presence air du marbre non fonctionnel. ZSAD 430507516.)\n• On a vingt quatre opérations non réalisées (24NR) dont 11 pour un problème de périodicité, 02 pour le motif de \"machine révisé en 2025\"....\n•",
       "etat_davance_de_la_demande": "",
       "commentaire_p2m": "",
       "conformit_de_la_demande": "",
@@ -47058,9 +47058,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-16T12:59:22.893Z",
+  "syncedAt": "2026-07-16T13:00:23.615Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
   "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-16T12:57:26Z"
+  "lastModifiedDateTime": "2026-07-16T12:59:41Z"
 }
