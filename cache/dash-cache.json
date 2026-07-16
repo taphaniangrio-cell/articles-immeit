@@ -47353,7 +47353,7 @@
       "stockage_adveso": "Non concerné",
       "stockage": "Non",
       "mise__jour_kpi": "Non",
-      "remarque_immeit": "• Incohérence sur le N°BE sur la première page de l'entête (1289828) et celui sur la deuxième page (1285410)\n• Absence de la fiche CERFA\n• Sept opérations non-réalisées (7NR) dont 5NR pour motif d'inéxistence et 2NR pour motif \"Pas de raccord de prise de pression\"",
+      "remarque_immeit": "• Incohérence sur le N° et la désignation du BE sur la première page de l'entête (1289828) et celui sur la deuxième page (1285410)\n• Absence de la fiche CERFA\n• Sept opérations non-réalisées (7NR) dont 5NR pour motif d'inéxistence et 2NR pour motif \"Pas de raccord de prise de pression\"",
       "etat_davance_de_la_demande": "En attente validation P2M",
       "commentaire_p2m": "",
       "conformit_de_la_demande": "",
@@ -47380,9 +47380,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-16T14:46:24.617Z",
+  "syncedAt": "2026-07-16T14:47:24.733Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
   "lastModifiedBy": "IBRAHIMA KHALIL SECK (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-16T14:44:41Z"
+  "lastModifiedDateTime": "2026-07-16T14:46:37Z"
 }
