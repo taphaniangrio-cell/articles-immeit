@@ -42,24 +42,35 @@ function excelToDate(val: string): Date | null {
 
 function excelAllDates(val: string): Date[] {
   if (!val) return [];
+  const raw = String(val).replace(/\\[rn]+/g, '\n');
   const dates: Date[] = [];
-  const candidates = String(val).split(/[,;\n\r]+/);
+  const candidates = raw.split(/[,;\n\r]+/);
   for (const c of candidates) {
-    const v = c.trim();
+    const v = c.trim().replace(/^["']+|["']+$/g, '');
     if (!v) continue;
     let d: Date | null = null;
     if (/^\d+(\.\d+)?$/.test(v)) {
-      d = new Date(1899, 11, 30 + parseFloat(v));
-      if (isNaN(d.getTime()) || d.getFullYear() <= 2000) d = null;
-    } else if (v.includes('/')) {
-      const parts = v.split('/');
-      if (parts.length === 3) {
-        d = new Date(+parts[2], +parts[1] - 1, +parts[0]);
-        if (isNaN(d.getTime()) || d.getFullYear() <= 2000) d = null;
+      const serial = parseFloat(v);
+      if (serial > 30000 && serial < 60000) {
+        d = new Date(1899, 11, 30 + serial);
       }
+      if (!d || isNaN(d.getTime()) || d.getFullYear() < 2020) d = null;
     } else {
-      d = new Date(v);
-      if (isNaN(d.getTime()) || d.getFullYear() <= 2000) d = null;
+      let parts: string[] = [];
+      if (v.includes('/')) parts = v.split('/');
+      else if (v.includes('-')) parts = v.split('-');
+      else if (v.includes('.')) parts = v.split('.');
+      if (parts.length === 3) {
+        const nums = parts.map(Number);
+        if (nums.some(isNaN)) { d = null; }
+        else if (nums[0] > 31) d = new Date(nums[0], nums[1] - 1, nums[2]);
+        else d = new Date(nums[2], nums[1] - 1, nums[0]);
+        if (d && (isNaN(d.getTime()) || d.getFullYear() < 2020)) d = null;
+      }
+      if (!d) {
+        const parsed = new Date(v);
+        if (!isNaN(parsed.getTime()) && parsed.getFullYear() >= 2020) d = parsed;
+      }
     }
     if (d && !dates.some(x => x.getTime() === d!.getTime())) {
       dates.push(d);
@@ -105,7 +116,9 @@ function toDist(obj: Record<string, number>, labelMap?: Record<string, string>) 
     .sort((a, b) => b.count - a.count);
 }
 
-function computeStats(headers: string[], items: Record<string, string>[]) {
+function computeStats(headers: string[], items: Record<string, string>[], dateStartMs?: number, dateEndMs?: number) {
+  const filterStartMk = dateStartMs !== undefined ? (() => { const d = new Date(dateStartMs); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })() : undefined;
+  const filterEndMk = dateEndMs !== undefined ? (() => { const d = new Date(dateEndMs - 86400000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })() : undefined;
   const f = {
     avancement: findHeader(headers, "Etat d'avance de la demande"),
     type: findHeader(headers, 'Type de demande'),
@@ -175,6 +188,9 @@ function computeStats(headers: string[], items: Record<string, string>[]) {
       const seenMonths = new Set<string>();
       for (const d of dates) {
         const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (filterStartMk !== undefined && filterEndMk !== undefined) {
+          if (mk < filterStartMk || mk > filterEndMk) continue;
+        }
         if (!seenMonths.has(mk)) {
           seenMonths.add(mk);
           groups.monthly[mk] = (groups.monthly[mk] || 0) + 1;
@@ -393,6 +409,8 @@ export function DashboardPage({ showToast }: { showToast: (msg: string, type?: '
 
   const dateStartMs = useMemo(() => dateStart ? new Date(dateStart).getTime() : 0, [dateStart]);
   const dateEndMs = useMemo(() => dateEnd ? new Date(dateEnd).getTime() + 86400000 : Infinity, [dateEnd]);
+  const filterStartMk = useMemo(() => dateStart ? (() => { const d = new Date(dateStart); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })() : '', [dateStart]);
+  const filterEndMk = useMemo(() => dateEnd ? (() => { const d = new Date(dateEnd); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })() : '', [dateEnd]);
   const normFilterStatus = useMemo(() => filterStatus ? norm(filterStatus) : '', [filterStatus]);
   const normSearch = useMemo(() => filterSearch ? norm(filterSearch) : '', [filterSearch]);
   const normNature = useMemo(() => filterNature ? norm(filterNature) : '', [filterNature]);
@@ -406,9 +424,14 @@ export function DashboardPage({ showToast }: { showToast: (msg: string, type?: '
     let result = items;
     if (dateField) {
       result = result.filter(item => {
-        const dates = excelAllDates(item[dateField]);
+        const raw = item[dateField];
+        if (!raw || !raw.trim()) return false;
+        const dates = excelAllDates(raw);
         if (dates.length === 0) return true;
-        return dates.some(d => d.getTime() >= dateStartMs && d.getTime() <= dateEndMs);
+        return dates.some(d => {
+          const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          return mk >= filterStartMk && mk <= filterEndMk;
+        });
       });
     }
     if (normSearch) {
@@ -432,11 +455,11 @@ export function DashboardPage({ showToast }: { showToast: (msg: string, type?: '
       result = result.filter(item => norm(item[bancField] || '') === normBanc);
     }
     return result;
-  }, [items, dateField, dateStartMs, dateEndMs, normSearch, searchableFields, natureField, typeField, siteField, demandeurField, bancField, normNature, normType, normSite, normDemandeur, normBanc]);
+  }, [items, dateField, filterStartMk, filterEndMk, normSearch, searchableFields, natureField, typeField, siteField, demandeurField, bancField, normNature, normType, normSite, normDemandeur, normBanc]);
 
   const dateFilteredStats = useMemo(() =>
-    dateFilteredItems.length > 0 && headers.length > 0 ? computeStats(headers, dateFilteredItems) : null,
-  [headers, dateFilteredItems]);
+    dateFilteredItems.length > 0 && headers.length > 0 ? computeStats(headers, dateFilteredItems, dateStartMs, dateEndMs) : null,
+  [headers, dateFilteredItems, dateStartMs, dateEndMs]);
 
   const filteredItems = useMemo(() => items.filter(item => {
     if (normFilterStatus) {
@@ -463,14 +486,19 @@ export function DashboardPage({ showToast }: { showToast: (msg: string, type?: '
       if (!match) return false;
     }
     if (dateField) {
-      const dates = excelAllDates(item[dateField]);
-      if (dates.length > 0 && !dates.some(d => d.getTime() >= dateStartMs && d.getTime() <= dateEndMs)) return false;
+      const raw = item[dateField];
+      if (!raw || !raw.trim()) return false;
+      const dates = excelAllDates(raw);
+      if (dates.length > 0 && !dates.some(d => {
+        const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return mk >= filterStartMk && mk <= filterEndMk;
+      })) return false;
     }
     return true;
-  }), [items, statusField, natureField, typeField, siteField, demandeurField, bancField, searchableFields, dateField, normFilterStatus, normNature, normType, normSite, normDemandeur, normBanc, normSearch, dateStartMs, dateEndMs]);
+  }), [items, statusField, natureField, typeField, siteField, demandeurField, bancField, searchableFields, dateField, normFilterStatus, normNature, normType, normSite, normDemandeur, normBanc, normSearch, filterStartMk, filterEndMk]);
 
   const isFiltered = filterStatus !== '' || filterSearch !== '' || filterNature !== '' || filterType !== '' || filterSite !== '' || filterDemandeur !== '' || filterBanc !== '' || (dateStart !== '' && dateStart !== defaultDateStart);
-  const stats = useMemo(() => filteredItems.length > 0 && headers.length > 0 ? computeStats(headers, filteredItems) : null, [headers, filteredItems]);
+  const stats = useMemo(() => filteredItems.length > 0 && headers.length > 0 ? computeStats(headers, filteredItems, dateStartMs, dateEndMs) : null, [headers, filteredItems, dateStartMs, dateEndMs]);
   const total = stats?.total || 0;
 
   const resetFilters = () => {
@@ -733,28 +761,34 @@ export function DashboardPage({ showToast }: { showToast: (msg: string, type?: '
                       </div>
                     );
                   }
-                  items.push(...crossItems.slice(0, 3));
+                   items.push(...crossItems.slice(0, 3));
                   if (isFiltered && dateField) {
                     const multiDates = filteredItems.filter(it => {
                       const dates = excelAllDates(it[dateField] || '');
                       return dates.length > 1;
                     });
                     if (multiDates.length > 0) {
-                      const examples = multiDates.slice(0, 2).map(it => {
-                        const dates = excelAllDates(it[dateField] || '').sort((a, b) => a.getTime() - b.getTime());
+                      const examples = multiDates.map((it, idx) => {
+                        const raw = it[dateField] || '';
+                        const dates = excelAllDates(raw).sort((a, b) => a.getTime() - b.getTime());
                         const fmt = (d: Date) => `${d.getDate()}/${d.getMonth() + 1}`;
-                        const num = it['N\u00b0(BE / GERICO / APEX)'] || it['N\u00b0'] || '';
-                        const first = fmt(dates[0]);
-                        const last = fmt(dates[dates.length - 1]);
-                        return <span key={num + first}>{num && <strong>{num}</strong>} {first}{dates.length > 2 ? `→${dates.length - 1}×` : ''}→{last}</span>;
+                        const numKey = bancField || Object.keys(it).find(k => /be|gerico|apex/i.test(k)) || '';
+                        const num = numKey ? (it[numKey] || '') : '';
+                        const allDates = dates.map(d => fmt(d)).join(', ');
+                        const natureKey = findHeader(headers, 'Nature de la demande');
+                        const otKey = findHeader(headers, 'N°OT');
+                        const nature = natureKey ? (it[natureKey] || '').replace(/\n/g, ' ').trim() : '';
+                        const ot = otKey ? (it[otKey] || '').trim() : '';
+                        const detail = [nature, ot && ot !== '-' ? `OT: ${ot}` : ''].filter(Boolean).join(' · ');
+                        return <div key={`${num}-${idx}`} className="ml-4"><strong>{num || '?'}</strong> : {allDates} <span className="text-gray-300 text-[10px]">({dates.length}d)</span>{detail && <span className="text-gray-400 text-[10px] ml-1">— {detail}</span>}</div>;
                       });
                       items.push(
                         <div key="resub" className="flex items-start gap-2">
                           <span className="w-2 h-2 rounded-full shrink-0 mt-[5px] bg-indigo-500"></span>
-                          <span className="text-xs text-gray-700 leading-relaxed">
+                          <div className="text-xs text-gray-700 leading-relaxed">
                             <strong>{multiDates.length}</strong> rapport{multiDates.length > 1 ? 's' : ''} reçu{multiDates.length > 1 ? 's' : ''} plusieurs fois :
-                            <span className="text-gray-400"> {examples}</span>
-                          </span>
+                            <div className="text-gray-500 mt-1 space-y-0.5">{examples}</div>
+                          </div>
                         </div>
                       );
                     }
@@ -774,7 +808,7 @@ export function DashboardPage({ showToast }: { showToast: (msg: string, type?: '
                       <div key="cur" className="flex items-start gap-2">
                         <span className={`w-2 h-2 rounded-full shrink-0 mt-[5px] ${dotColor}`}></span>
                         <span className="text-xs text-gray-700 leading-relaxed">
-                          <strong>{shortMonth} en cours : {last.count} rapports</strong> sur {dayOfMonth} jours
+                          <strong>{shortMonth} en cours : {last.count} traitements</strong> sur {dayOfMonth} jours
                           <span className={`ml-1 font-semibold ${color}`}>{pct > 0 ? '+' : ''}{pct}% vs {fmtMonth(prev.month).replace('20', "'")}</span>
                         </span>
                       </div>
@@ -783,7 +817,7 @@ export function DashboardPage({ showToast }: { showToast: (msg: string, type?: '
                       <div key="proj" className="flex items-start gap-2">
                         <span className="w-2 h-2 rounded-full shrink-0 mt-[5px] bg-violet-500"></span>
                         <span className="text-xs text-gray-700 leading-relaxed">
-                          Projection fin {shortMonth} : <strong>{projected} rapports</strong>
+                          Projection fin {shortMonth} : <strong>{projected} traitements</strong>
                           <span className="text-gray-400"> (rythme actuel : {dailyRate}/jour)</span>
                         </span>
                       </div>
@@ -797,7 +831,7 @@ export function DashboardPage({ showToast }: { showToast: (msg: string, type?: '
                       <div key="cur" className="flex items-start gap-2">
                         <span className={`w-2 h-2 rounded-full shrink-0 mt-[5px] ${dotColor}`}></span>
                         <span className="text-xs text-gray-700 leading-relaxed">
-                          <strong>{fmtMonth(last.month).replace('20', "'")} : {last.count} rapports</strong>
+                          <strong>{fmtMonth(last.month).replace('20', "'")} : {last.count} traitements</strong>
                           <span className={`ml-1 font-semibold ${color}`}>{pct > 0 ? '+' : ''}{pct}% vs {fmtMonth(prev.month).replace('20', "'")}</span>
                         </span>
                       </div>
@@ -807,7 +841,7 @@ export function DashboardPage({ showToast }: { showToast: (msg: string, type?: '
                     <div key="total" className="flex items-start gap-2">
                       <span className="w-2 h-2 rounded-full shrink-0 mt-[5px] bg-[#0A66C2]"></span>
                       <span className="text-xs text-gray-700 leading-relaxed">
-                        Total {fmtMonth(mt[0].month).replace('20', "'")}–{fmtMonth(last.month).replace('20', "'")} : <strong>{totalAll.toLocaleString()} rapports</strong>
+                        Total {fmtMonth(mt[0].month).replace('20', "'")}–{fmtMonth(last.month).replace('20', "'")} : <strong>{totalAll.toLocaleString()} traitements</strong>
                         <span className="text-gray-400"> (moyenne : {avg}/mois)</span>
                       </span>
                     </div>
