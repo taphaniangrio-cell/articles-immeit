@@ -47170,12 +47170,12 @@
       "stockage": "Non concerné",
       "mise__jour_kpi": "Non concerné",
       "remarque_immeit": "• RAS",
-      "etat_davance_de_la_demande": "En attente validation P2M",
+      "etat_davance_de_la_demande": "Validée par P2M : A solder par IMMEIT",
       "commentaire_p2m": "",
-      "conformit_de_la_demande": "",
+      "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
       "explication_en_cas_de_nonconformit": "",
-      "date_de_validation_p2m": "",
+      "date_de_validation_p2m": "46219",
       "dure_de_traitement_jours_1": "0",
       "echance_contractuelle_jours_1": "2",
       "ecart_de_traitement_jour_1": "-2",
@@ -47426,9 +47426,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-17T09:21:11.041Z",
+  "syncedAt": "2026-07-17T09:22:09.835Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
   "lastModifiedBy": "NATACHA DUVAL (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-17T09:19:31Z"
+  "lastModifiedDateTime": "2026-07-17T09:21:58Z"
 }
