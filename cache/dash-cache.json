@@ -46522,11 +46522,11 @@
       "date_de_traitement_immeit": "46213",
       "date_dernire_maj_immeit": "46213",
       "conformit__la_premire_diffusion": "Oui",
-      "stockage_adveso": "",
+      "stockage_adveso": "Oui",
       "stockage": "Non concerné",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• Trois (3) tests sans accord dans  le Check Out Protocol \n - 1 PNC Flow - Pumpe (AVL)\n - 2 Validation APC (executed et certificate)\nPour stockage sur ADVESO: Vérification Conforme hors site par AVL le 15/06/2026, Armin Sejdic & Josef Brucher\nA noter que le Banc est introuvable sur DocInfo",
-      "etat_davance_de_la_demande": "Validée par P2M : A solder par IMMEIT",
+      "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "",
       "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
@@ -46569,7 +46569,7 @@
       "date_dernire_maj_immeit": "46213",
       "conformit__la_premire_diffusion": "Oui",
       "stockage_adveso": "",
-      "stockage": "Non",
+      "stockage": "Oui",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• Trois (3) tests sans accord dans  le Check Out Protocol \n - 1 PNC Flow - Pumpe (AVL)\n - 2 Validation APC (executed et certificate)\nPour stockage sur ADVESO: Vérification Conforme effectuée hors site par l'entreprise AVL le 01/06/2026 avec les techniciens Sasa PANCIC, Robert HOEFLER, Thomas Faul and-Kranz  & Wolfgang Schlatzer",
       "etat_davance_de_la_demande": "Validée par P2M : A solder par IMMEIT",
@@ -47426,9 +47426,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-17T10:39:13.230Z",
+  "syncedAt": "2026-07-17T10:40:10.780Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
-  "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-17T10:38:13Z"
+  "lastModifiedBy": "IBRAHIMA KHALIL SECK (EXTERNAL)",
+  "lastModifiedDateTime": "2026-07-17T10:39:19Z"
 }
