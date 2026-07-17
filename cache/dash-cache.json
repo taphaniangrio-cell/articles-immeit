@@ -66,7 +66,7 @@
       "stockage": "Non concerné",
       "mise__jour_kpi": "Non concerné",
       "remarque_immeit": "• Absence de quelque informations pour finaliser la saisie; en attente retour TM\n• Saisie finalisée",
-      "etat_davance_de_la_demande": "Validée par P2M : A solder par IMMEIT",
+      "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "RAS",
       "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
@@ -112,7 +112,7 @@
       "stockage": "Oui",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• Une opération «Test sécurité arrêt(s) d'urgence (1Op)» – REG12 apparaît sur CR au niveau de la PMP, alors qu’il s’agit exclusivement d’une VM\n• Une incohérence est constatée entre le titre du rapport, où figure la mention VM18, et le CR au niveau de la PMP, où la mention VM60 est indiquée.\n• RAS pour l’ensemble des quatre CVs contrôlés.\n• Pour le stockage ADVESO: Vérification Conforme réalisée sur site le 03/12/2025 par l’entreprise INDUSTRELEC, avec l’intervention du technicien Brice MENEZ",
-      "etat_davance_de_la_demande": "Validée par P2M : A solder par IMMEIT",
+      "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "BON POUR STOCKAGE MALGRER LES INCOHERENCES QUI SONT A CORRIGER MAIS QUE LE ROP NA PAS ENCORE MIS LA PMP SOUS LA BOITE AUX LETTRES",
       "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
@@ -5798,7 +5798,7 @@
     {
       "_row": 127,
       "site": "Carrières",
-      "demandeurs": "Maël CANO",
+      "demandeurs": "Mal CANO",
       "gestionnaire_demandes": "Moustapha NIANG",
       "type_de_demande": "Contrôle des documents de maintenance",
       "nature_de_la_demande": "Métrologique",
@@ -23985,7 +23985,7 @@
       "stockage_adveso": "Oui",
       "stockage": "Oui",
       "mise__jour_kpi": "Non",
-      "remarque_immeit": "• Rapport déjà jugé non-conforme suite à un CV non-conforme \"CI2026-SCALF03-VM18-DSAnOut-01\" : Les voies DS2621_1_AnaOut 09 et 10 : pas de signal mesuré sur les pins du BOB éclaté HY_HYB_01 et sur les pins du connecteur Hypertac HY_HYB_01.\n• La fiche de non-conformité est vide sur le contenu\n• A noter aussi que les valeurs des incertitudes ne sont pas mentionnées dans les tableaux des valeurs mesurées sur l'ensemble des CVs \nPour stockage sur Adveso: Vérification Non - conforme sur site par l'entreprise INDUSTRELEC le 17/02/2026 avec le technicien Nicolas PIANON\nRapport reçu à nouveau le 10/04/2026\n• Unique changement, la fiche de non conformité a maintenant un contenu\nRapport reçu à nouveau le 10/04/2026\n• Les valeurs des incertitudes sont maintenant intégrées dans l'ensemble des CVs",
+      "remarque_immeit": "• Rapport déjà jugé non-conforme suite à un CV non-conforme \"CI2026-SCALF03-VM18-DSAnOut-01\" : Les voies DS2621_1_AnaOut 09 et 10 : pas de signal mesuré sur les pins du BOB claté HY_HYB_01 et sur les pins du connecteur Hypertac HY_HYB_01.\n• La fiche de non-conformité est vide sur le contenu\n• A noter aussi que les valeurs des incertitudes ne sont pas mentionnées dans les tableaux des valeurs mesurées sur l'ensemble des CVs \nPour stockage sur Adveso: Vérification Non - conforme sur site par l'entreprise INDUSTRELEC le 17/02/2026 avec le technicien Nicolas PIANON\nRapport reçu à nouveau le 10/04/2026\n• Unique changement, la fiche de non conformité a maintenant un contenu\nRapport reçu à nouveau le 10/04/2026\n• Les valeurs des incertitudes sont maintenant intégrées dans l'ensemble des CVs",
       "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "10/04/2026 REPRISE DU RAPPORT EN COURS\n10/04/2026 REMISE DU RAPPORT SUR BOITES AU LETTRE",
       "conformit_de_la_demande": "",
@@ -28662,7 +28662,7 @@
       "site": "Belchamp",
       "demandeurs": "Jean-François LANSALOT",
       "gestionnaire_demandes": "Ibrahima Khalil SECK",
-      "type_de_demande": "Contrôle des documents de maintenance",
+      "type_de_demande": "Contrle des documents de maintenance",
       "nature_de_la_demande": "Métrologique",
       "nbe_gerico_apex": "RD2006706",
       "nom_du_banc_nom_entreprise": "Convertisseur Charge/Tension",
@@ -33233,7 +33233,7 @@
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• RAS pour l'ensemble des CEs\n• A noter que le CR est reçu sans page de garde\nPour stockage sur ADVESO: Etalonnage étalonné hors-site par l'entreprise KISTLER le 26/02/2026 avec les techniciens Pasqualino Mulè et Steven Weber",
       "etat_davance_de_la_demande": "Soldée par IMMEIT",
-      "commentaire_p2m": "22/05/2026 MV : Rapport KISTLER donc pas de page de garde. Les rapports précédents étaient ralisés à l'identique. OK pour stockage comme précisé.",
+      "commentaire_p2m": "22/05/2026 MV : Rapport KISTLER donc pas de page de garde. Les rapports précédents étaient réalisés à l'identique. OK pour stockage comme précisé.",
       "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
       "explication_en_cas_de_nonconformit": "",
@@ -47426,9 +47426,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-17T15:04:29.134Z",
+  "syncedAt": "2026-07-17T15:05:28.625Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
   "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-17T15:02:33Z"
+  "lastModifiedDateTime": "2026-07-17T15:04:29Z"
 }
