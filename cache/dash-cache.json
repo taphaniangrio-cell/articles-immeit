@@ -46614,11 +46614,11 @@
       "date_de_traitement_immeit": "46213",
       "date_dernire_maj_immeit": "46213",
       "conformit__la_premire_diffusion": "Oui",
-      "stockage_adveso": "",
+      "stockage_adveso": "Oui",
       "stockage": "Oui",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• Cinq (5) tests sans accord dans  le Check Out Protocol \n - 1 PNC Flow - Pump (AVL)\n - 2 Pre. Validation APC (executed et certificate)\n - 2 Calibration APC (executed et certificate)\nPour stockage sur ADVESO: Vérification Conforme effectuée hors site par l'entreprise AVL le 28/05/2026 avec les techniciens Benjamin FALK, Robert HOEFLER  & Christian SCHMITT",
-      "etat_davance_de_la_demande": "Validée par P2M : A solder par IMMEIT",
+      "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "",
       "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
@@ -47426,9 +47426,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-17T10:52:22.013Z",
+  "syncedAt": "2026-07-17T10:53:10.845Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
-  "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-17T10:51:51Z"
+  "lastModifiedBy": "IBRAHIMA KHALIL SECK (EXTERNAL)",
+  "lastModifiedDateTime": "2026-07-17T10:52:11Z"
 }
