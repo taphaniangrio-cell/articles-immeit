@@ -112,7 +112,7 @@
       "stockage": "Oui",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• Une opération «Test sécurité arrêt(s) d'urgence (1Op)» – REG12 apparaît sur CR au niveau de la PMP, alors qu’il s’agit exclusivement d’une VM\n• Une incohérence est constatée entre le titre du rapport, où figure la mention VM18, et le CR au niveau de la PMP, où la mention VM60 est indiquée.\n• RAS pour l’ensemble des quatre CVs contrôlés.\n• Pour le stockage ADVESO: Vérification Conforme réalisée sur site le 03/12/2025 par l’entreprise INDUSTRELEC, avec l’intervention du technicien Brice MENEZ",
-      "etat_davance_de_la_demande": "Soldée par IMMEIT",
+      "etat_davance_de_la_demande": "Validée par P2M : A solder par IMMEIT",
       "commentaire_p2m": "BON POUR STOCKAGE MALGRER LES INCOHERENCES QUI SONT A CORRIGER MAIS QUE LE ROP NA PAS ENCORE MIS LA PMP SOUS LA BOITE AUX LETTRES",
       "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
@@ -33233,7 +33233,7 @@
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• RAS pour l'ensemble des CEs\n• A noter que le CR est reçu sans page de garde\nPour stockage sur ADVESO: Etalonnage étalonné hors-site par l'entreprise KISTLER le 26/02/2026 avec les techniciens Pasqualino Mulè et Steven Weber",
       "etat_davance_de_la_demande": "Soldée par IMMEIT",
-      "commentaire_p2m": "22/05/2026 MV : Rapport KISTLER donc pas de page de garde. Les rapports précédents étaient réalisés à l'identique. OK pour stockage comme précisé.",
+      "commentaire_p2m": "22/05/2026 MV : Rapport KISTLER donc pas de page de garde. Les rapports précédents étaient ralisés à l'identique. OK pour stockage comme précisé.",
       "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
       "explication_en_cas_de_nonconformit": "",
@@ -47426,9 +47426,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-17T14:54:28.728Z",
+  "syncedAt": "2026-07-17T14:55:29.069Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
   "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-17T14:51:55Z"
+  "lastModifiedDateTime": "2026-07-17T14:54:34Z"
 }
