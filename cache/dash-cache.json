@@ -47032,8 +47032,8 @@
       "stockage": "Non",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• Pour la partie PREV, on a une opération non conforme (1NC) [Contrôle fonctionnement pressostat air alimentation des plots du marbre]=>\"Préssostat HS\" mais avec un ZSAD (Pressostat presence air du marbre non fonctionnel. ZSAD 430507516.)\n• On a vingt quatre opérations non réalisées (24NR) dont 11 pour un problème de périodicité, 02 pour le motif de \"machine révisé en 2025\"....\n• RAS sur l'ensemble des CVs ainsi que sur le TDM\nPour stockage sur ADVESO: Vérification Conforme sur site par l'entreprise INDUSTRELEC le 22/06/2026 avec Nicolas PIANON",
-      "etat_davance_de_la_demande": "En attente validation P2M",
-      "commentaire_p2m": "",
+      "etat_davance_de_la_demande": "Validée par P2M : A solder par IMMEIT",
+      "commentaire_p2m": "OK pour archivage MAIS avec date au 24/06/2026 sur ADVESO (FT)",
       "conformit_de_la_demande": "",
       "date_dvaluation_en_cas_de_non_conformit": "",
       "explication_en_cas_de_nonconformit": "",
@@ -47380,9 +47380,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-17T07:53:11.924Z",
+  "syncedAt": "2026-07-17T07:54:15.367Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
-  "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-16T15:10:14Z"
+  "lastModifiedBy": "FANNY TAALBI (EXTERNAL)",
+  "lastModifiedDateTime": "2026-07-17T07:53:41Z"
 }
