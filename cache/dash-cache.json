@@ -45974,8 +45974,8 @@
       "stockage": "Non",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• Absence OS42\n• Absence CR (CR provisoir OK)\n• Absence N°OT (4 OT présentent dont 1 en double; les mêmes que sur le CR (PREV12 REG12) reçu hier\n• RAS pour les CVs et TDM\nPour stockage sur ADVESO: Vérification conforme effectuée sur site par l'entreprise INDUSTRELEC le 01/07/2026 par le technicien Tom BILLET",
-      "etat_davance_de_la_demande": "En attente validation P2M",
-      "commentaire_p2m": "",
+      "etat_davance_de_la_demande": "En attente de traitement IMMEIT",
+      "commentaire_p2m": "17/07/2026: JFL > Nouvelle version avec OS42",
       "conformit_de_la_demande": "",
       "date_dvaluation_en_cas_de_non_conformit": "",
       "explication_en_cas_de_nonconformit": "",
@@ -47380,9 +47380,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-17T08:29:09.819Z",
+  "syncedAt": "2026-07-17T08:30:09.998Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
   "lastModifiedBy": "JEAN FRANCOIS LANSALOT (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-17T08:25:12Z"
+  "lastModifiedDateTime": "2026-07-17T08:29:46Z"
 }
