@@ -108,7 +108,7 @@ export function LineChart({ data, maxMonth, minMonth, average }: { data: { month
         {average != null && average > 0 && (
           <>
             <line x1={edgePad} y1={yScale(average)} x2={edgePad + innerW} y2={yScale(average)} stroke="#F59E0B" strokeWidth="1" strokeDasharray="4 3" />
-            <text x={edgePad - 2} y={yScale(average) - 4} fontSize="7" fill="#F59E0B" fontWeight="600" textAnchor="end">{average}</text>
+            <text x={edgePad - 2} y={yScale(average) + 10} fontSize="7" fill="#F59E0B" fontWeight="600" textAnchor="end">{average}</text>
           </>
         )}
         <polyline fill="none" stroke="#0A66C2" strokeWidth="2" points={points} />
