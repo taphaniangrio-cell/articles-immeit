@@ -848,7 +848,8 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
                   const worst = completedOnly.length > 0 ? completedOnly.reduce((a, b) => a.count < b.count ? a : b) : null;
                   const maxLabel = best ? fmtMonth(best.month) : undefined;
                   const minLabel = worst && best && worst.month !== best.month ? fmtMonth(worst.month) : undefined;
-                  return <LineChart data={stats.monthlyTrend.map(m => ({ month: fmtMonth(m.month), count: m.count }))} maxMonth={maxLabel} minMonth={minLabel} />;
+                  const avgCompleted = completedOnly.length > 0 ? Math.round(completedOnly.reduce((s, m) => s + m.count, 0) / completedOnly.length) : undefined;
+                  return <LineChart data={stats.monthlyTrend.map(m => ({ month: fmtMonth(m.month), count: m.count }))} maxMonth={maxLabel} minMonth={minLabel} average={avgCompleted} />;
                 })()}
               </div>
               <div className="flex-1 space-y-3 pt-1">

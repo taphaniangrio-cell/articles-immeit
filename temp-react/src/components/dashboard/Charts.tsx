@@ -85,7 +85,7 @@ export function DonutChart({ data, colorMap, onFilterClick }: { data: { label: s
   );
 }
 
-export function LineChart({ data, maxMonth, minMonth }: { data: { month: string; count: number }[]; maxMonth?: string; minMonth?: string }) {
+export function LineChart({ data, maxMonth, minMonth, average }: { data: { month: string; count: number }[]; maxMonth?: string; minMonth?: string; average?: number }) {
   const w = 340, pad = 24, h = 110, labelH = 18, edgePad = 30;
   const maxCount = Math.max(...data.map(d => d.count), 1);
   const innerW = w - edgePad * 2;
@@ -105,6 +105,12 @@ export function LineChart({ data, maxMonth, minMonth }: { data: { month: string;
           </linearGradient>
         </defs>
         <polygon fill="url(#areaGrad)" points={`${edgePad},${h} ${points} ${edgePad + innerW},${h}`} />
+        {average != null && average > 0 && (
+          <>
+            <line x1={edgePad} y1={yScale(average)} x2={edgePad + innerW} y2={yScale(average)} stroke="#F59E0B" strokeWidth="1" strokeDasharray="4 3" />
+            <text x={edgePad + innerW + 4} y={yScale(average) + 3} fontSize="8" fill="#F59E0B" fontWeight="bold">{average}</text>
+          </>
+        )}
         <polyline fill="none" stroke="#0A66C2" strokeWidth="2" points={points} />
         {data.map((d, i) => {
           const isMax = maxMonth && d.month === maxMonth;
