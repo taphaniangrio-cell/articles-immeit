@@ -172,7 +172,7 @@ function computeStats(headers: string[], items: Record<string, string>[], dateSt
 
     const de = (it[f.demandeur] || '').trim();
     if (de) {
-      const key = de.replace(/[^a-zA-Z]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+      const key = norm(de);
       groups.demandeur[key] = (groups.demandeur[key] || 0) + 1;
       const prev = demandeurLabels[key];
       if (!prev || (de.indexOf('\uFFFD') < 0 && de.length >= prev.length)) demandeurLabels[key] = de;
@@ -576,12 +576,16 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
     }
     const unique = (field: string): string[] => {
       if (!field) return [];
-      const set = new Set<string>();
+      const map = new Map<string, string>();
       base.forEach(item => {
         const val = (item[field] || '').trim();
-        if (val) set.add(val);
+        if (val) {
+          const key = norm(val);
+          const prev = map.get(key);
+          if (!prev || val.length >= prev.length) map.set(key, val);
+        }
       });
-      return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+      return Array.from(map.values()).sort((a, b) => a.localeCompare(b, 'fr'));
     };
     const dateSet = new Set<string>();
     if (dateField) {
