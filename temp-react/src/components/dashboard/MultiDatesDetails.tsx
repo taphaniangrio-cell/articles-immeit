@@ -48,8 +48,8 @@ function getFilterLabel(params: URLSearchParams) {
   const ds = params.get('dateStart');
   const de = params.get('dateEnd');
   if (ds || de) {
-    const start = ds ? fmtMonth(ds) : 'Début';
-    const end = de ? fmtMonth(de) : 'Maintenant';
+    const start = ds ? fmt(ds) : 'Début';
+    const end = de ? fmt(de) : 'Maintenant';
     parts.push(`${start} → ${end}`);
   }
   return parts.join(' · ') || 'Tous les rapports';
