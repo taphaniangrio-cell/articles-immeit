@@ -24,12 +24,27 @@ module.exports = requireAuth(async (req, res) => {
     fileCache = syncEngine.loadCache();
   } catch {}
 
-  let dbState = { isOpen: false, consecutiveFails: 0 };
+  let dbState = { isOpen: false, consecutiveFails: 0, healthy: false, poolStats: null };
   try {
     const db = require('../lib/db');
+    const start = Date.now();
     await db.query('SELECT 1');
+    const latency = Date.now() - start;
+    dbState = {
+      isOpen: true,
+      consecutiveFails: 0,
+      healthy: db.isHealthy(),
+      latency,
+      poolStats: db.getPoolStats(),
+    };
   } catch (err) {
-    dbState = { isOpen: true, consecutiveFails: 1, lastError: err.message };
+    dbState = {
+      isOpen: false,
+      consecutiveFails: 1,
+      healthy: false,
+      lastError: err.message,
+      poolStats: null,
+    };
   }
 
   const spConfigured = !!(process.env.SHAREPOINT_TENANT_ID && process.env.SHAREPOINT_CLIENT_ID && process.env.SHAREPOINT_CLIENT_SECRET);

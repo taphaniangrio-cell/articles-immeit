@@ -31,9 +31,17 @@ module.exports = requireAuth(async (req, res) => {
       // (Ceci ne devrait normalement jamais arriver en production)
       const sharepointData = await timeoutPromise(sharepoint.fetchDashboardData(), LIVE_TIMEOUT);
       if (sharepointData && sharepointData.items?.length > 0) {
+        let liveItems = sharepointData.items;
+        if (sharepointData.headers && liveItems.length > 0) {
+          const filtered = sharepoint.filterDataRows(liveItems, sharepointData.headers);
+          if (filtered.length !== liveItems.length) {
+            log('info', 'dash_live_filtered', { before: liveItems.length, after: filtered.length });
+            liveItems = filtered;
+          }
+        }
         displayData = {
           headers: sharepointData.headers,
-          items: sharepointData.items,
+          items: liveItems,
           syncedAt: new Date().toISOString(),
           source: sharepointData.source || 'sharepoint_live',
         };
