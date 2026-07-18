@@ -158,7 +158,8 @@ function computeStats(headers: string[], items: Record<string, string>[], dateSt
   function addGroup(slugMap: Record<string, number>, lMap: Record<string, string>, raw: string | undefined) {
     const v = (raw || '').trim();
     if (!v) return;
-    const gk = v.replace(/[^ -~]+/g, '').toLowerCase();
+    // Normaliser pour le regroupement : lowercase, retirer \\uFFFD, normaliser les espaces
+    const gk = v.toLowerCase().normalize('NFC').replace(/\uFFFD/g, '').replace(/[\s\u00a0]+/g, ' ').trim();
     slugMap[gk] = (slugMap[gk] || 0) + 1;
     const prev = lMap[gk];
     if (!prev || (v.indexOf('\uFFFD') < 0 && v.length >= prev.length)) lMap[gk] = v;

@@ -48,8 +48,9 @@ module.exports = requireAuth(async (req, res) => {
         await saveToDBCache(displayData);
       }
     } else {
-      // Filtrer les données du cache avant de les envoyer
+      // Nettoyage Unicode + filtrage les données du cache avant de les envoyer
       if (displayData.items && displayData.headers && displayData.items.length > 0) {
+        sharepoint.stripItemsUnicode(displayData.items);
         const filtered = sharepoint.filterDataRows(displayData.items, displayData.headers);
         if (filtered.length !== displayData.items.length) {
           displayData = { ...displayData, items: filtered, _rawCount: displayData.items.length };

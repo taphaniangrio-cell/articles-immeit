@@ -38,9 +38,9 @@ module.exports = requireAuth(async (req, res) => {
       log('warn', 'dashboard_sync_diff_alert_failed', { error: e?.message });
     }
 
-    log('info', 'dashboard_sync', { items: items.length, source: cache.source });
+    log('info', 'dashboard_sync', { items: filteredItems.length, removed: items.length - filteredItems.length, source: cache.source });
 
-    return res.status(200).json({ success: true, count: items.length, syncedAt: cache.syncedAt });
+    return res.status(200).json({ success: true, count: filteredItems.length, syncedAt: cache.syncedAt });
   } catch (err) {
     log('error', 'dashboard_sync_error', { error: err.message });
     return res.status(500).json({ error: err.message });

@@ -2,6 +2,7 @@ const db = require('../lib/db');
 const { requireAuth } = require('../lib/auth');
 const cors = require('../lib/cors');
 const sharepoint = require('../lib/sharepoint');
+const { normalizeKey, normMatch } = require('../lib/normalize');
 
 function excelAllDates(val) {
   if (!val) return [];
@@ -38,15 +39,11 @@ function excelAllDates(val) {
   return dates;
 }
 
-function normMatch(s) {
-  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s\u00a0]+/g, ' ').trim().toLowerCase();
-}
-
 function findHeader(headers, name) {
   const target = normMatch(name);
   const found = headers.find(h => normMatch(h).includes(target)) || '';
   if (!found) return '';
-  return String(found).trim().toLowerCase().replace(/[\s\u00a0\/]+/g, '_').replace(/[^a-z0-9_]/g, '');
+  return normalizeKey(found);
 }
 
 function norm(v) {
@@ -64,6 +61,9 @@ module.exports = requireAuth(async (req, res) => {
 
     let headers = cachedData.headers || [];
     let items = cachedData.items;
+
+    // Nettoyage Unicode sur les données du cache
+    sharepoint.stripItemsUnicode(items);
 
     if (headers.length > 0 && items.length > 0) {
       const filtered = sharepoint.filterDataRows(items, headers);
