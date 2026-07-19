@@ -29,7 +29,7 @@ export function BarChart({ data, colorMap, onFilterClick }: { data: { label: str
     <div className="space-y-1.5">
       {data.map(d => (
         <div key={d.label} className={`flex items-center gap-2 ${onFilterClick ? 'cursor-pointer hover:opacity-80' : ''}`} onClick={() => onFilterClick?.(d.label)}>
-          <span className="text-xs text-gray-600 w-32 truncate shrink-0">{d.label}</span>
+          <span className="text-xs text-gray-600 w-20 md:w-32 truncate shrink-0">{d.label}</span>
           <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
             <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(d.count / maxCount) * 100}%`, backgroundColor: colorMap?.[d.label] || '#0A66C2' }} />
           </div>

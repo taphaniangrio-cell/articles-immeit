@@ -7,7 +7,7 @@ const typeStyles: Record<string, string> = {
 
 export function ToastContainer({ toasts, onRemove }: { toasts: { id: number; message: string; type: string }[]; onRemove: (id: number) => void }) {
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-50 flex flex-col gap-2 sm:max-w-sm">
       {toasts.map(t => (
         <div key={t.id} className={`border-l-4 p-3 rounded shadow-lg text-sm animate-slide-up ${typeStyles[t.type] || typeStyles.info}`}>
           <div className="flex justify-between items-center gap-2">

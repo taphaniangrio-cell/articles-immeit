@@ -148,7 +148,7 @@ export default function MultiDatesDetails() {
 
         {data && !loading && (
           <>
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
               <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm card-hover count-pop">
                 <div className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-1">Rapports filtrés</div>
                 <div className="text-2xl font-bold text-gray-900">{data.totalFiltered.toLocaleString()}</div>

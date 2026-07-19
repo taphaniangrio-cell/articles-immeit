@@ -307,7 +307,7 @@ function MultiSelect({ label, options, selected, onChange }: {
         {selected.length === 0 ? `Toutes` : `${selected.length} sel.`}
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[200px] max-h-[260px] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed sm:absolute z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[200px] max-h-[260px] flex flex-col left-2 sm:left-auto" onClick={e => e.stopPropagation()}>
           {options.length > 8 && (
             <div className="p-1.5 border-b border-gray-100">
               <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher…"
@@ -736,7 +736,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
           ))}
         </select>
         ) : null}
-        <input type="text" value={filterSearch} onChange={e => setFilterSearch(e.target.value)} placeholder="Mot-clé…" className="px-2 py-1.5 border border-gray-200 rounded text-xs min-w-[180px]" />
+        <input type="text" value={filterSearch} onChange={e => setFilterSearch(e.target.value)} placeholder="Mot-clé…" className="px-2 py-1.5 border border-gray-200 rounded text-xs w-full sm:w-auto sm:min-w-[180px]" />
         <button onClick={resetFilters} className={`ml-auto px-3 py-1.5 rounded-lg text-xs transition-colors ${isFiltered ? 'bg-[#DC2626] text-white hover:bg-[#B91C1C]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Filtres</button>
       </div>
 
@@ -814,7 +814,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
           {/* Health Score — intégré dans Insights ci-dessus */}
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
             {[
               { label: 'Total rapports', value: total, color: '#0A66C2' },
               { label: 'Total traitements', value: totalTraitements, color: '#7C3AED' },
@@ -832,8 +832,8 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
 
           {/* Insights */}
           <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-            <div className="flex gap-6 items-start">
-              <div className="w-[55%] shrink-0">
+            <div className="flex flex-col md:flex-row gap-6 items-start">
+              <div className="w-full md:w-[55%] shrink-0">
                 {isFiltered && (
                   <div className="text-[10px] text-gray-400 mb-1 pl-1">
                     {total.toLocaleString()} rapport{total > 1 ? 's' : ''} filtré{total > 1 ? 's' : ''} sur {dateOnlyItems.length.toLocaleString()}

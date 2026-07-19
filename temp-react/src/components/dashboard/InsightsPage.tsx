@@ -46,10 +46,10 @@ export function InsightsPage({ setView }: { setView: (v: 'articles' | 'dashboard
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <h1 className="text-lg font-bold text-gray-800">Détail des rapports reçus plusieurs fois</h1>
         <button onClick={() => setView('dashboard')}
-          className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition-colors">
+          className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm hover:bg-gray-200 transition-colors self-start">
           ← Retour au tableau de bord
         </button>
       </div>

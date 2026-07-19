@@ -14,10 +14,10 @@ export function Topbar({ title }: { title: string }) {
 
   return (
     <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0">
-      <h1 className="text-lg font-semibold text-gray-800 max-md:hidden">{title}</h1>
+      <h1 className="text-lg font-semibold text-gray-800 truncate">{title}</h1>
       <div className="flex items-center gap-3 ml-auto">
         {models && (
-          <div className="flex items-center gap-2 text-sm max-md:hidden">
+          <div className="flex items-center gap-2 text-sm">
             <select
               value={provider}
               onChange={e => { setProvider(e.target.value); localStorage.setItem('immeit_ai_provider', e.target.value); }}

@@ -190,7 +190,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
 
       {/* Status bar */}
       {statut !== 'archive' && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs">
           {['brouillon', 'en_revision', 'valide', 'publie'].map((s, i) => (
             <React.Fragment key={s}>
               {i > 0 && <span className="text-gray-300">→</span>}
@@ -285,7 +285,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
 
       {/* Action bar */}
       <div className="flex items-center justify-between p-3 border-t border-gray-200 bg-white shrink-0">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button onClick={handleSave} className="px-4 py-2 bg-[#0A66C2] text-white rounded-lg text-sm font-medium hover:bg-[#084a8f]">↓ Enregistrer</button>
           <button onClick={handleValidate} disabled={statut !== 'brouillon' && statut !== 'en_revision'} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-30">✓ Valider</button>
           <button onClick={handlePublish} className="px-4 py-2 bg-[#0A66C2]/10 text-[#0A66C2] rounded-lg text-sm font-medium hover:bg-[#0A66C2]/20">⌘ Copier LinkedIn</button>
