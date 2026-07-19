@@ -159,7 +159,7 @@ function computeStats(headers: string[], items: Record<string, string>[], dateSt
     const v = (raw || '').trim();
     if (!v) return;
     // Normaliser pour le regroupement : lowercase, retirer \\uFFFD, normaliser les espaces
-    const gk = v.toLowerCase().normalize('NFC').replace(/\uFFFD/g, '').replace(/[\s\u00a0]+/g, ' ').trim();
+    const gk = v.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\uFFFD/g, '').replace(/[\s\u00a0]+/g, ' ').trim();
     slugMap[gk] = (slugMap[gk] || 0) + 1;
     const prev = lMap[gk];
     if (!prev || (v.indexOf('\uFFFD') < 0 && v.length >= prev.length)) lMap[gk] = v;
