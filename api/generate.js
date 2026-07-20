@@ -46,12 +46,23 @@ module.exports = requireAuth(async (req, res) => {
 
     const article = await generateArticle(news, feedback || '', resolvedProvider, resolvedModel, sanitizedPrompt || null);
 
-    if (!article.titre_interne && !article.corps) {
-      log('error', 'generate_empty_response', { article });
+    const titre = (article.titre_interne || '').trim();
+    const corps = (article.corps || '').trim();
+
+    if (!titre && !corps) {
+      log('error', 'generate_empty_response', { article: JSON.stringify(article).slice(0, 500) });
       throw new Error('La réponse IA est vide. Réessaie ou change de modèle.');
     }
+    if (titre.length < 3) {
+      log('error', 'generate_titre_too_short', { titre, corpsLength: corps.length });
+      throw new Error('Le titre généré est trop court. Réessaie.');
+    }
+    if (corps.length < 20) {
+      log('error', 'generate_corps_too_short', { titre, corpsLength: corps.length });
+      throw new Error('Le contenu généré est trop court. Réessaie.');
+    }
 
-    log('info', 'generate_article_parsed', { titre: article.titre_interne, corpsLength: (article.corps || '').length, modelUsed: article._modelUsed });
+    log('info', 'generate_article_parsed', { titre: titre.slice(0, 50), corpsLength: corps.length, modelUsed: article._modelUsed });
 
     let images = [];
     try {

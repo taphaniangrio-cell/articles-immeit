@@ -54,8 +54,8 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
 
   useEffect(() => {
     if (!article) return;
+    if (loadedRef.current && article.id === editingId) return;
     loadedRef.current = false;
-    if (article.id === editingId) return;
     setEditingId(article.id);
     setTitre(article.titre_interne || '');
     setAccrocheA(article.accroche_a || '');

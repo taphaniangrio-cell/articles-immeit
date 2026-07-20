@@ -35,7 +35,7 @@ export function ArticlesPage() {
       const res = await generateApi.create(payload);
       if (res.article) {
         setSelected(res.article);
-        loadArticles();
+        await loadArticles();
         showToast('Article généré', 'success');
         setNewsModal(false);
       }
@@ -44,7 +44,7 @@ export function ArticlesPage() {
     } finally {
       setGenerating(false);
     }
-  }, []);
+  }, [loadArticles, showToast]);
 
   const handleCustomGenerate = () => {
     if (!customPrompt.trim()) return;
