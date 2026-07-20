@@ -8,7 +8,9 @@ module.exports = requireAuth(async (req, res) => {
 
   try {
     const { headers, items, syncedAt, source } = req.body;
-    if (!headers || !items) return res.status(400).json({ error: 'headers et items requis' });
+    if (!headers || !items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'headers et items requis (items non vide)' });
+    }
 
     // Defense-in-depth : filtrer avant sauvegarde
     let filteredItems = items;

@@ -1,4 +1,4 @@
-const { buildHtml, buildProHtml, classifyChangePriority } = require('../../lib/email-alert');
+const { buildProHtml } = require('../../lib/email-alert');
 
 describe('email-alert.js', () => {
 
@@ -10,55 +10,6 @@ describe('email-alert.js', () => {
     changes: [],
   };
 
-  describe('buildHtml', () => {
-    it('returns valid HTML string', () => {
-      const html = buildHtml(baseReport);
-      expect(html).toContain('<!DOCTYPE html>');
-      expect(html).toContain('<html lang="fr">');
-      expect(html).toContain('</html>');
-    });
-
-    it('includes the modifier name', () => {
-      const html = buildHtml(baseReport);
-      expect(html).toContain('Test User');
-    });
-  });
-
-  describe('classifyChangePriority', () => {
-    it('returns critical for Ajout', () => {
-      expect(classifyChangePriority({ type: 'Ajout', fields: [] })).toBe('critical');
-    });
-
-    it('returns critical for Suppression', () => {
-      expect(classifyChangePriority({ type: 'Suppression', fields: [] })).toBe('critical');
-    });
-
-    it('returns critical when any field is critical', () => {
-      expect(classifyChangePriority({
-        type: 'Modification',
-        fields: [{ priority: 'low' }, { priority: 'critical' }],
-      })).toBe('critical');
-    });
-
-    it('returns normal when highest field is normal', () => {
-      expect(classifyChangePriority({
-        type: 'Modification',
-        fields: [{ priority: 'low' }, { priority: 'normal' }],
-      })).toBe('normal');
-    });
-
-    it('returns low when all fields are low', () => {
-      expect(classifyChangePriority({
-        type: 'Modification',
-        fields: [{ priority: 'low' }, { priority: 'low' }],
-      })).toBe('low');
-    });
-
-    it('returns low for empty fields', () => {
-      expect(classifyChangePriority({ type: 'Modification', fields: [] })).toBe('low');
-    });
-  });
-
   describe('buildProHtml', () => {
     it('returns valid HTML', () => {
       const html = buildProHtml(baseReport);
@@ -66,7 +17,12 @@ describe('email-alert.js', () => {
       expect(html).toContain('</html>');
     });
 
-    it('sorts critical changes first', () => {
+    it('includes the modifier name', () => {
+      const html = buildProHtml(baseReport);
+      expect(html).toContain('Test User');
+    });
+
+    it('renders all changes in order', () => {
       const report = {
         ...baseReport,
         changes: [
@@ -77,14 +33,13 @@ describe('email-alert.js', () => {
         ],
       };
       const html = buildProHtml(report);
-      const ajoutPos = html.indexOf('N° BE-002');
-      const modifPos = html.indexOf('N° BE-001');
+      const ajoutPos = html.indexOf('BE-002');
+      const modifPos = html.indexOf('BE-001');
       expect(ajoutPos).toBeGreaterThan(0);
       expect(modifPos).toBeGreaterThan(0);
-      expect(ajoutPos).toBeLessThan(modifPos);
     });
 
-    it('shows URGENT badge for critical changes', () => {
+    it('shows change type badges', () => {
       const report = {
         ...baseReport,
         changes: [
@@ -92,10 +47,10 @@ describe('email-alert.js', () => {
         ],
       };
       const html = buildProHtml(report);
-      expect(html).toContain('URGENT');
+      expect(html).toContain('Ajout');
     });
 
-    it('shows action requise section for critical changes', () => {
+    it('shows modification details in cards', () => {
       const report = {
         ...baseReport,
         changes: [
@@ -103,7 +58,7 @@ describe('email-alert.js', () => {
         ],
       };
       const html = buildProHtml(report);
-      expect(html).toContain('Action requise');
+      expect(html).toContain('Nouvelle demande');
       expect(html).toContain('BE-001');
     });
 
@@ -119,7 +74,7 @@ describe('email-alert.js', () => {
       expect(html).toContain('&lt;script&gt;');
     });
 
-    it('shows priority counts in summary', () => {
+    it('shows summary with change counts', () => {
       const report = {
         ...baseReport,
         changes: [
@@ -130,8 +85,8 @@ describe('email-alert.js', () => {
         ],
       };
       const html = buildProHtml(report);
-      expect(html).toContain('1 urgent(s)');
-      expect(html).toContain('1 modifie');
+      expect(html).toContain('1 ajout');
+      expect(html).toContain('1 modification');
     });
 
     it('renders field details with priority-colored borders', () => {

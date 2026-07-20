@@ -71,14 +71,8 @@ CREATE TRIGGER articles_updated_at
 BEFORE UPDATE ON articles
 FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- Alert deduplication: tracks which changes have been alerted
-CREATE TABLE IF NOT EXISTS alert_dedup (
-  change_hash TEXT PRIMARY KEY,
-  first_seen TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  last_alerted TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_alert_dedup_last_alerted ON alert_dedup(last_alerted);
+-- Alert deduplication table removed — emails are now sent on every change detected.
+-- DROP TABLE IF EXISTS alert_dedup;
 
 -- Alert history: audit trail of all sent alert emails
 CREATE TABLE IF NOT EXISTS alert_history (

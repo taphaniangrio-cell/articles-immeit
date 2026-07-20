@@ -1,13 +1,7 @@
 const { query } = require('../lib/db');
 
 const SQL = `
-CREATE TABLE IF NOT EXISTS alert_dedup (
-  change_hash TEXT PRIMARY KEY,
-  first_seen TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  last_alerted TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_alert_dedup_last_alerted ON alert_dedup(last_alerted);
+DROP TABLE IF EXISTS alert_dedup;
 
 CREATE TABLE IF NOT EXISTS alert_history (
   id SERIAL PRIMARY KEY,
