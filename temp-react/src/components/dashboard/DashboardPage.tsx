@@ -27,15 +27,34 @@ function excelToDate(val: string): Date | null {
       const d = new Date(1899, 11, 30 + parseFloat(v));
       if (!isNaN(d.getTime()) && d.getFullYear() > 2000) return d;
     }
+    let d: Date | null = null;
     if (v.includes('/')) {
       const parts = v.split('/');
       if (parts.length === 3) {
-        const d = new Date(+parts[2], +parts[1] - 1, +parts[0]);
+        const datePart = parts[2].split(/[\sT]+/)[0];
+        const nums = [+parts[0], +parts[1], +Number(datePart)];
+        if (nums[0] > 31) { d = new Date(nums[0], nums[1] - 1, nums[2]); }
+        else { d = new Date(nums[2], nums[1] - 1, nums[0]); }
         if (!isNaN(d.getTime()) && d.getFullYear() > 2000) return d;
+        d = null;
       }
     }
-    const d = new Date(v);
-    if (!isNaN(d.getTime()) && d.getFullYear() > 2000) return d;
+    if (v.includes('-') || v.includes('.')) {
+      const sep = v.includes('-') ? '-' : '.';
+      const parts = v.split(sep);
+      if (parts.length === 3) {
+        const datePart = parts[2].split(/[\sT]+/)[0];
+        const nums = [+parts[0], +parts[1], +Number(datePart)];
+        if (nums.some(isNaN)) { d = null; }
+        else if (nums[0] > 31) d = new Date(nums[0], nums[1] - 1, nums[2]);
+        else d = new Date(nums[2], nums[1] - 1, nums[0]);
+        if (d && (isNaN(d.getTime()) || d.getFullYear() < 2020)) d = null;
+      }
+    }
+    if (!d) {
+      const parsed = new Date(v);
+      if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 2000) return parsed;
+    }
   }
   return null;
 }
@@ -61,7 +80,7 @@ export function excelAllDates(val: string): Date[] {
       else if (v.includes('-')) parts = v.split('-');
       else if (v.includes('.')) parts = v.split('.');
       if (parts.length === 3) {
-        const nums = parts.map(Number);
+        const nums = parts.map((p, i) => i === 2 ? Number(p.split(/[\sT]+/)[0]) : Number(p));
         if (nums.some(isNaN)) { d = null; }
         else if (nums[0] > 31) d = new Date(nums[0], nums[1] - 1, nums[2]);
         else d = new Date(nums[2], nums[1] - 1, nums[0]);
@@ -115,7 +134,9 @@ function delaiStats(vals: number[]) {
   return {
     min: sorted[0], max: sorted[sorted.length - 1],
     avg: Math.round((sum / vals.length) * 10) / 10,
-    median: sorted[Math.floor(sorted.length / 2)],
+    median: sorted.length % 2 === 0
+      ? Math.round(((sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2) * 10) / 10
+      : sorted[Math.floor(sorted.length / 2)],
     count: vals.length,
     zeroPct: vals.length > 0 ? Math.round((zc / vals.length) * 100) : 0,
     gtZero: vals.length - zc,
@@ -576,19 +597,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
   [headers, dateFilteredItems, dateStartMs, dateEndMs]);
 
   const columnOptions = useMemo(() => {
-    let base = items;
-    if (dateField) {
-      base = base.filter(item => {
-        const raw = item[dateField];
-        if (!raw || !raw.trim()) return false;
-        const dates = excelAllDates(raw);
-        if (dates.length === 0) return true;
-        return dates.some(d => {
-          const dk = toDateKey(d);
-          return dk >= filterStartDk && dk <= filterEndDk;
-        });
-      });
-    }
+    const base = dateFilteredItems;
     const unique = (field: string): string[] => {
       if (!field) return [];
       const map = new Map<string, string>();
@@ -623,7 +632,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
       status: unique(statusField),
       banc: unique(bancField),
     };
-  }, [items, dateField, filterStartDk, filterEndDk, siteField, demandeurField, natureField, statusField, bancField]);
+  }, [dateFilteredItems, dateField]);
 
   const filteredItems = useMemo(() => items.filter(item => {
     if (normFilterStatus) {
@@ -671,7 +680,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
   const stats = useMemo(() => filteredItems.length > 0 && headers.length > 0 ? computeStats(headers, filteredItems, dateStartMs, dateEndMs) : null, [headers, filteredItems, dateStartMs, dateEndMs]);
   const total = stats?.total || 0;
   const totalTraitements = useMemo(() => {
-    if (!dateField) return 0;
+    if (!dateField) return filteredItems.length;
     let c = 0;
     for (const item of filteredItems) {
       const raw = item[dateField];
@@ -835,7 +844,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
               { label: 'Conf. 1ère diffusion', value: `${stats.tauxConf1}%`, color: stats.tauxConf1 >= 80 ? '#10B981' : stats.tauxConf1 >= 60 ? '#F59E0B' : '#EF4444' },
               { label: 'Conf. vérification', value: `${stats.tauxConfDem}%`, color: stats.tauxConfDem >= 80 ? '#10B981' : stats.tauxConfDem >= 60 ? '#F59E0B' : '#EF4444' },
               { label: 'J+0', value: `${stats.duree.zeroPct}%`, color: stats.duree.zeroPct >= 90 ? '#10B981' : stats.duree.zeroPct >= 70 ? '#F59E0B' : '#EF4444' },
-              { label: 'Écart moyen', value: `${Math.abs(stats.ecart.avg)}j`, color: stats.ecart.avg <= 0 ? '#10B981' : stats.ecart.avg <= 3 ? '#F59E0B' : '#EF4444' },
+              { label: 'Écart moyen', value: `${stats.ecart.avg > 0 ? '+' : ''}${stats.ecart.avg}j`, color: stats.ecart.avg <= 0 ? '#10B981' : stats.ecart.avg <= 3 ? '#F59E0B' : '#EF4444' },
             ].map(kpi => (
               <div key={kpi.label} className="bg-white rounded-xl border border-gray-200 p-4 text-center">
                 <p className="text-xs text-gray-500 mb-1">{kpi.label}</p>

@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 function getColor(colorMap: Record<string, string> | string[] | undefined, label: string, idx: number) {
   if (!colorMap) return '#ddd';
   if (Array.isArray(colorMap)) return colorMap[idx] || '#ddd';
@@ -5,16 +7,16 @@ function getColor(colorMap: Record<string, string> | string[] | undefined, label
 }
 
 export function GaugeChart({ value, max = 100, label, color = '#0A66C2' }: { value: number; max?: number; label: string; color?: string }) {
-  const pct = Math.min(value / max, 1);
-  const circumference = 2 * Math.PI * 40;
-  const offset = circumference * (1 - pct);
+  const pct = max > 0 ? Math.min(value / max, 1) : 0;
+  const arcLen = Math.PI * 44;
+  const offset = arcLen * (1 - pct);
 
   return (
     <div className="flex flex-col items-center">
       <svg width="130" height="120" viewBox="0 0 130 120">
         <path d="M 15 65 A 44 44 0 0 1 115 65" fill="none" stroke="#e5e7eb" strokeWidth="16" strokeLinecap="round" />
         {pct > 0 && (
-          <path d="M 15 65 A 44 44 0 0 1 115 65" fill="none" stroke={color} strokeWidth="16" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset} />
+          <path d="M 15 65 A 44 44 0 0 1 115 65" fill="none" stroke={color} strokeWidth="16" strokeLinecap="round" strokeDasharray={arcLen} strokeDashoffset={offset} />
         )}
         <text x="65" y="48" textAnchor="middle" fontSize="28" fontWeight="800" fill="#374151">{Math.round(pct * 100)}%</text>
       </svg>
@@ -41,12 +43,12 @@ export function BarChart({ data, colorMap, onFilterClick }: { data: { label: str
 }
 
 export function DonutChart({ data, colorMap, onFilterClick }: { data: { label: string; count: number }[]; colorMap?: Record<string, string> | string[]; onFilterClick?: (label: string) => void }) {
-  const total = data.reduce((s, d) => s + d.count, 0) || 1;
+  const total = data.reduce((s, d) => s + d.count, 0);
   let acc = 0;
   const slices = data.map(d => {
-    const start = (acc / total) * 360;
+    const start = total > 0 ? (acc / total) * 360 : 0;
     acc += d.count;
-    const end = (acc / total) * 360;
+    const end = total > 0 ? (acc / total) * 360 : 0;
     return { ...d, start, end };
   });
 
@@ -57,26 +59,26 @@ export function DonutChart({ data, colorMap, onFilterClick }: { data: { label: s
   return (
     <div className="flex flex-col items-center">
       <svg width="120" height="120" viewBox="0 0 100 100">
-        {slices.map(s => {
+        {slices.map((s, i) => {
           const x1 = cx + r * Math.cos(toRad(s.start));
           const y1 = cy + r * Math.sin(toRad(s.start));
           const x2 = cx + r * Math.cos(toRad(s.end));
           const y2 = cy + r * Math.sin(toRad(s.end));
           const large = s.end - s.start > 180 ? 1 : 0;
           return (
-            <path key={s.label} d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`} fill={getColor(colorMap, s.label, slices.indexOf(s))} />
+            <path key={`${s.label}-${i}`} d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`} fill={getColor(colorMap, s.label, i)} />
           );
         })}
         <circle cx={cx} cy={cy} r={r * 0.55} fill="white" />
-        <text x={cx} y={cy - 3} textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="bold" fill="#374151">{total}</text>
+        <text x={cx} y={cy - 3} textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="bold" fill="#374151">{total > 0 ? total : '—'}</text>
         <text x={cx} y={cy + 9} textAnchor="middle" dominantBaseline="central" fontSize="7" fill="#9CA3AF">total</text>
       </svg>
       <div className="w-full mt-1 space-y-1">
         {data.map((d, i) => (
-          <div key={d.label} className={`flex items-center gap-1.5 text-[10px] text-gray-500 ${onFilterClick ? 'cursor-pointer hover:opacity-80' : ''}`} onClick={() => onFilterClick?.(d.label)}>
+          <div key={`${d.label}-${i}`} className={`flex items-center gap-1.5 text-[10px] text-gray-500 ${onFilterClick ? 'cursor-pointer hover:opacity-80' : ''}`} onClick={() => onFilterClick?.(d.label)}>
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getColor(colorMap, d.label, i) }} />
             <span className="truncate flex-1">{d.label}</span>
-            <span className="font-medium">{Math.round((d.count / total) * 100)}%</span>
+            <span className="font-medium">{total > 0 ? Math.round((d.count / total) * 100) : 0}%</span>
             <span className="text-gray-400">{d.count}</span>
           </div>
         ))}
@@ -86,6 +88,7 @@ export function DonutChart({ data, colorMap, onFilterClick }: { data: { label: s
 }
 
 export function LineChart({ data, maxMonth, minMonth, average }: { data: { month: string; count: number }[]; maxMonth?: string; minMonth?: string; average?: number }) {
+  const gradId = useId();
   const w = 340, pad = 24, h = 110, labelH = 18, edgePad = 30;
   const maxCount = Math.max(...data.map(d => d.count), 1);
   const innerW = w - edgePad * 2;
@@ -93,18 +96,18 @@ export function LineChart({ data, maxMonth, minMonth, average }: { data: { month
   const yScale = (c: number) => pad + (h - pad * 2) * (1 - c / maxCount);
 
   const points = data.map((d, i) => `${edgePad + i * pw},${yScale(d.count)}`).join(' ');
-  const svgW = w + edgePad * 2;
+  const svgW = w;
 
   return (
     <div>
       <svg viewBox={`0 0 ${svgW} ${h + labelH}`} className="w-full" preserveAspectRatio="xMidYMid meet">
         <defs>
-          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#0A66C2" stopOpacity="0.2" />
             <stop offset="100%" stopColor="#0A66C2" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <polygon fill="url(#areaGrad)" points={`${edgePad},${h} ${points} ${edgePad + innerW},${h}`} />
+        <polygon fill={`url(#${gradId})`} points={`${edgePad},${h} ${points} ${edgePad + innerW},${h}`} />
         {average != null && average > 0 && (
           <>
             <line x1={edgePad} y1={yScale(average)} x2={edgePad + innerW} y2={yScale(average)} stroke="#F59E0B" strokeWidth="1" strokeDasharray="4 3" />

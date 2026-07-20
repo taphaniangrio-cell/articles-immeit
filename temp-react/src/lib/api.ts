@@ -18,6 +18,14 @@ export async function api<T = any>(path: string, options: RequestInit & { timeou
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
 
+  if (fetchOpts.signal) {
+    if (fetchOpts.signal.aborted) {
+      controller.abort();
+    } else {
+      fetchOpts.signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+  }
+
   try {
     const res = await fetch(url, { ...fetchOpts, headers, credentials: 'same-origin', signal: controller.signal });
     if (res.status === 401) {

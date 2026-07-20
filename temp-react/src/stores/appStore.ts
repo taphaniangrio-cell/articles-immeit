@@ -69,6 +69,7 @@ export const useStore = create<AppState>((set, get) => ({
   logout: async () => {
     try { await authApi.logout(); } catch {}
     localStorage.removeItem('immeit_session');
-    set({ session: false, view: 'articles' });
+    localStorage.removeItem('immeit_dash_cache');
+    set({ session: false, view: 'articles', dashboardData: null });
   },
 }));
