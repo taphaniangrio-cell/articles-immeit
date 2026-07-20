@@ -110,16 +110,6 @@ function excelAllDatesInRange(val: string, startDk: string, endDk: string): Date
   });
 }
 
-function fmtDate(val: string): string {
-  if (!val) return '—';
-  const d = excelToDate(val);
-  if (!d) return '—';
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-
 function parseNum(val: any): number {
   if (val == null) return NaN;
   const n = parseFloat(String(val).replace(',', '.').replace(/[^0-9.\-]/g, ''));
@@ -393,6 +383,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
   const [filterBanc, setFilterBanc] = useState<string[]>([]);
   const [filterDateDepot, setFilterDateDepot] = useState<string[]>([]);
   const [tablePage, setTablePage] = useState(0);
+  const userAdjustedDates = useRef(false);
   const PAGE_SIZE = 50;
 
   useEffect(() => { setTablePage(0); }, [filterStatus, filterSearch, filterNature, filterSite, filterType, filterDemandeur, filterBanc, filterDateDepot, dateStart, dateEnd]);
@@ -423,17 +414,17 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
     })();
   }, []);
 
-  // Compute default dateStart (earliest deposit date) once data is loaded
+  // Compute default dateStart (earliest deposit date) whenever data changes
   useEffect(() => {
-    if (!dashboardData || dateStart) return;
+    if (!dashboardData || userAdjustedDates.current) return;
     const h = dashboardData.synced?.headers || dashboardData.sharepoint?.headers || [];
     const it = dashboardData.synced?.items || dashboardData.sharepoint?.items || [];
     if (h.length === 0 || it.length === 0) return;
-    const dateField = findHeader(h, "Date de dépôt du dossier sur docinfo");
-    if (!dateField) return;
+    const df = findHeader(h, "Date de dépôt du dossier sur docinfo");
+    if (!df) return;
     let minTs = Infinity;
     for (const item of it) {
-      const dates = excelAllDates(item[dateField]);
+      const dates = excelAllDates(item[df]);
       for (const d of dates) {
         if (d.getTime() < minTs) minTs = d.getTime();
       }
@@ -577,7 +568,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
     return result;
   }, [items, dateField, filterStartDk, filterEndDk, normSearch, searchableFields, natureField, typeField, siteField, demandeurField, bancField, normNature, normType, normSite, normDemandeur, normBanc, filterDateDepot]);
 
-  // Items filtrés uniquement par la plage de dates (sans filtres dimensions) — pour le "sur X" du texte
+  // Items filtrés uniquement par la plage de dates + dates dépôt (sans filtres dimensions) — pour le "sur X" du texte
   const dateOnlyItems = useMemo(() => {
     if (!dateField) return items;
     return items.filter(item => {
@@ -587,10 +578,12 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
       if (dates.length === 0) return true;
       return dates.some(d => {
         const dk = toDateKey(d);
-        return dk >= filterStartDk && dk <= filterEndDk;
+        if (dk < filterStartDk || dk > filterEndDk) return false;
+        if (filterDateDepot.length > 0 && !filterDateDepot.includes(fmtDDMMYYYY(d))) return false;
+        return true;
       });
     });
-  }, [items, dateField, filterStartDk, filterEndDk]);
+  }, [items, dateField, filterStartDk, filterEndDk, filterDateDepot]);
 
   const dateFilteredStats = useMemo(() =>
     dateFilteredItems.length > 0 && headers.length > 0 ? computeStats(headers, dateFilteredItems, dateStartMs, dateEndMs) : null,
@@ -698,6 +691,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
     setFilterDemandeur('');
     setFilterBanc([]);
     setFilterDateDepot([]);
+    userAdjustedDates.current = false;
     setDateStart(defaultDateStart);
     setDateEnd(defaultDateEnd);
   };
@@ -749,8 +743,8 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 mb-4 text-xs">
-        <input type="date" value={dateStart} onChange={e => setDateStart(e.target.value)} className="px-2 py-1.5 border border-gray-200 rounded text-xs" title="Date début" />
-        <input type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value || new Date().toISOString().slice(0, 10))} className="px-2 py-1.5 border border-gray-200 rounded text-xs" title="Date fin" />
+        <input type="date" value={dateStart} onChange={e => { userAdjustedDates.current = true; setDateStart(e.target.value); }} className="px-2 py-1.5 border border-gray-200 rounded text-xs" title="Date début" />
+        <input type="date" value={dateEnd} onChange={e => { userAdjustedDates.current = true; setDateEnd(e.target.value || new Date().toISOString().slice(0, 10)); }} className="px-2 py-1.5 border border-gray-200 rounded text-xs" title="Date fin" />
         {dateFilteredStats ? (
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-2 py-1.5 border border-gray-200 rounded text-xs">
           <option value="">Tous les statuts</option>
@@ -760,7 +754,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
         </select>
         ) : null}
         <input type="text" value={filterSearch} onChange={e => setFilterSearch(e.target.value)} placeholder="Mot-clé…" className="px-2 py-1.5 border border-gray-200 rounded text-xs w-full sm:w-auto sm:min-w-[180px]" />
-        <button onClick={resetFilters} className={`ml-auto px-3 py-1.5 rounded-lg text-xs transition-colors ${isFiltered ? 'bg-[#DC2626] text-white hover:bg-[#B91C1C]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>Filtres</button>
+        <button onClick={resetFilters} className={`ml-auto px-3 py-1.5 rounded-lg text-xs transition-colors ${isFiltered ? 'bg-[#DC2626] text-white hover:bg-[#B91C1C]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{isFiltered ? 'Effacer' : 'Filtres'}</button>
       </div>
 
       {/* Filtres chips */}
@@ -810,7 +804,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
           ))}
           {((dateStart && dateStart !== defaultDateStart) || (dateEnd && dateEnd !== defaultDateEnd)) ? (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-              {dateStart.split('-').reverse().join('-')} → {dateEnd.split('-').reverse().join('-')}
+              {dateStart.split('-').reverse().join('/')} → {dateEnd.split('-').reverse().join('/')}
               <button onClick={() => { setDateStart(defaultDateStart); setDateEnd(defaultDateEnd); }} className="ml-0.5 hover:text-blue-900 font-bold">×</button>
             </span>
           ) : null}
