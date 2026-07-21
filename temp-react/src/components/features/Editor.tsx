@@ -36,10 +36,15 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     try {
       const activeAccroche = accrocheActive === 'a' ? accrocheA : accrocheB;
       const fullCorps = activeAccroche ? activeAccroche + '\n\n' + corps : corps;
+      const primaryImage = selectedImage >= 0 && images[selectedImage] ? images[selectedImage] : null;
       await articleApi.update(editingId, {
         titre_interne: titre, accroche_a: accrocheA, accroche_b: accrocheB,
         accroche_active: accrocheActive, corps: fullCorps, hashtags: formatHashtags(hashtags),
         source_news_source: source,
+        image_options: images,
+        image_url: primaryImage?.url || null,
+        image_photographer: primaryImage?.photographer || null,
+        image_photographer_url: primaryImage?.photographer_url || null,
       });
       setDirty(false);
       showToast('Sauvegardé', 'success');
@@ -48,7 +53,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
       console.error('[Editor saveFn]', e.message, { editingId, titre, corps: corps?.substring(0, 50) });
       showToast(e.message || 'Erreur de sauvegarde', 'error');
     }
-  }, [editingId, titre, accrocheA, accrocheB, accrocheActive, corps, hashtags, source]);
+  }, [editingId, titre, accrocheA, accrocheB, accrocheActive, corps, hashtags, source, images, selectedImage]);
 
   const loadedRef = useRef(false);
 
