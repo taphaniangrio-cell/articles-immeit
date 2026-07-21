@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useStore } from '../../stores/appStore';
 import { generateApi, newsApi } from '../../lib/api';
 import { useToast } from '../../contexts/ToastContext';
@@ -8,9 +8,17 @@ import { Editor } from './Editor';
 import type { Article, NewsItem } from '../../types';
 
 export function ArticlesPage() {
-  const { editingId, setEditingId, isDirty, loadArticles } = useStore();
+  const { articles, editingId, setEditingId, isDirty, loadArticles } = useStore();
   const { showToast } = useToast();
   const [selected, setSelected] = useState<Article | null>(null);
+  const autoSelectedRef = useRef(false);
+
+  useEffect(() => {
+    if (!autoSelectedRef.current && !selected && articles.length > 0) {
+      autoSelectedRef.current = true;
+      setSelected(articles[0]);
+    }
+  }, [articles, selected]);
   const [newsModal, setNewsModal] = useState(false);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [customPrompt, setCustomPrompt] = useState('');
@@ -69,6 +77,7 @@ export function ArticlesPage() {
     if (isDirty && !window.confirm('Tu as des modifications non sauvegardées. Quitter quand même ?')) return;
     setSelected(null);
     setEditingId(null);
+    autoSelectedRef.current = false;
   };
 
   return (

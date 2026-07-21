@@ -36,9 +36,11 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     if (!editingId) return;
     setSaveStatus('⏳ Sauvegarde...');
     try {
+      const activeAccroche = accrocheActive === 'a' ? accrocheA : accrocheB;
+      const fullCorps = activeAccroche ? activeAccroche + '\n\n' + corps : corps;
       await articleApi.update(editingId, {
         titre_interne: titre, accroche_a: accrocheA, accroche_b: accrocheB,
-        accroche_active: accrocheActive, corps, hashtags: formatHashtags(hashtags),
+        accroche_active: accrocheActive, corps: fullCorps, hashtags: formatHashtags(hashtags),
         source_news_source: source,
       });
       setDirty(false);
@@ -63,7 +65,12 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     setAccrocheA(article.accroche_a || '');
     setAccrocheB(article.accroche_b || '');
     setAccrocheActive(article.accroche_active || 'a');
-    setCorps(article.corps || '');
+    const accrocheText = (article.accroche_active === 'a' ? article.accroche_a : article.accroche_b) || '';
+    let body = article.corps || '';
+    if (accrocheText && body.startsWith(accrocheText)) {
+      body = body.substring(accrocheText.length).replace(/^\n+/, '');
+    }
+    setCorps(body);
     setHashtags(article.hashtags?.join(' ') || '');
     setSource(article.source_news_source || '');
     setIaInfo(article.ia_provider ? `${article.ia_provider} / ${article.ia_model}` : '');
@@ -84,8 +91,10 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     if (loadedRef.current && !isDirty) setDirty(true);
   }, [isDirty, setDirty]);
 
-  const charCount = corps.length;
-  const wordCount = corps.split(/\s+/).filter(Boolean).length;
+  const activeAccroche = accrocheActive === 'a' ? accrocheA : accrocheB;
+  const fullText = activeAccroche ? activeAccroche + '\n\n' + corps : corps;
+  const charCount = fullText.length;
+  const wordCount = fullText.split(/\s+/).filter(Boolean).length;
 
   const handleSave = async () => {
     if (!editingId) {
@@ -98,9 +107,12 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   const handleValidate = async () => {
     if (!editingId) return;
     try {
-      await articleApi.update(editingId, { statut: 'valide' });
+      const activeAccroche = accrocheActive === 'a' ? accrocheA : accrocheB;
+      const fullCorps = activeAccroche ? activeAccroche + '\n\n' + corps : corps;
+      await articleApi.update(editingId, { statut: 'valide', corps: fullCorps });
       setStatut('valide');
-      showToast('Article valide', 'success');
+      setCorps(fullCorps);
+      showToast('Article validé — accroche intégrée au corps', 'success');
       loadArticles();
     } catch (e: any) {
       showToast(e.message || 'Erreur lors de la validation', 'error');
@@ -110,11 +122,14 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   const handlePublish = async () => {
     if (!editingId) return;
     try {
-      const text = formatForLinkedIn(corps);
+      const activeAccroche = accrocheActive === 'a' ? accrocheA : accrocheB;
+      const fullCorps = activeAccroche ? activeAccroche + '\n\n' + corps : corps;
+      const text = formatForLinkedIn(fullCorps);
       const clipOk = await navigator.clipboard.writeText(text).then(() => true).catch(() => false);
-      await articleApi.update(editingId, { statut: 'publie' });
+      await articleApi.update(editingId, { statut: 'publie', corps: fullCorps });
       setStatut('publie');
-      showToast(clipOk ? 'Copié et publié' : 'Publié (copie presse-papiers échouée)', clipOk ? 'success' : 'warning');
+      setCorps(fullCorps);
+      showToast(clipOk ? 'Copié et publié — accroche intégrée' : 'Publié (copie presse-papiers échouée)', clipOk ? 'success' : 'warning');
       loadArticles();
     } catch (e: any) {
       showToast(e.message || 'Erreur lors de la publication', 'error');
@@ -351,6 +366,9 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
       <Modal open={previewOpen} onClose={() => setPreviewOpen(false)} title="👁 Aperçu LinkedIn">
         <div className="prose prose-sm max-w-none">
           {images[0] && <img src={images[0].url} alt="" className="w-full rounded-lg mb-4 max-h-64 object-cover" />}
+          {(accrocheActive === 'a' ? accrocheA : accrocheB) && (
+            <p className="text-sm font-semibold mb-3">{accrocheActive === 'a' ? accrocheA : accrocheB}</p>
+          )}
           <div className="whitespace-pre-wrap text-sm">{formatForLinkedIn(corps)}</div>
           {hashtags && <p className="mt-4 text-[#0A66C2]">{hashtags}</p>}
         </div>
