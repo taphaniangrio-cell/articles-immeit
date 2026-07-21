@@ -34,12 +34,10 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   const saveFn = useCallback(async () => {
     if (!editingId) return;
     try {
-      const activeAccroche = accrocheActive === 'a' ? accrocheA : accrocheB;
-      const fullCorps = activeAccroche ? activeAccroche + '\n\n' + corps : corps;
       const primaryImage = selectedImage >= 0 && images[selectedImage] ? images[selectedImage] : null;
       await articleApi.update(editingId, {
         titre_interne: titre, accroche_a: accrocheA, accroche_b: accrocheB,
-        accroche_active: accrocheActive, corps: fullCorps, hashtags: formatHashtags(hashtags),
+        accroche_active: accrocheActive, corps, hashtags: formatHashtags(hashtags),
         source_news_source: source,
         image_options: images,
         image_url: primaryImage?.url || null,
@@ -56,6 +54,22 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   }, [editingId, titre, accrocheA, accrocheB, accrocheActive, corps, hashtags, source, images, selectedImage]);
 
   const loadedRef = useRef(false);
+  const lastIntegratedRef = useRef('');
+
+  const handleAccrocheSelect = useCallback((letter: 'a' | 'b') => {
+    const newAccroche = letter === 'a' ? accrocheA : accrocheB;
+    let newCorps = corps;
+    if (lastIntegratedRef.current && newCorps.startsWith(lastIntegratedRef.current)) {
+      newCorps = newCorps.substring(lastIntegratedRef.current.length).replace(/^\n+/, '');
+    }
+    if (newAccroche) {
+      newCorps = newAccroche + '\n\n' + newCorps;
+    }
+    lastIntegratedRef.current = newAccroche;
+    setCorps(newCorps);
+    setAccrocheActive(letter);
+    setDirty(true);
+  }, [accrocheA, accrocheB, corps]);
 
   useEffect(() => {
     if (!article) return;
@@ -71,6 +85,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     if (accrocheText && body.startsWith(accrocheText)) {
       body = body.substring(accrocheText.length).replace(/^\n+/, '');
     }
+    lastIntegratedRef.current = '';
     setCorps(body);
     setHashtags(article.hashtags?.join(' ') || '');
     setSource(article.source_news_source || '');
@@ -107,12 +122,9 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   const handleValidate = async () => {
     if (!editingId) return;
     try {
-      const activeAccroche = accrocheActive === 'a' ? accrocheA : accrocheB;
-      const fullCorps = activeAccroche ? activeAccroche + '\n\n' + corps : corps;
-      await articleApi.update(editingId, { statut: 'valide', corps: fullCorps });
+      await articleApi.update(editingId, { statut: 'valide', corps });
       setStatut('valide');
-      setCorps(fullCorps);
-      showToast('Article validé — accroche intégrée au corps', 'success');
+      showToast('Article validé', 'success');
       loadArticles();
     } catch (e: any) {
       showToast(e.message || 'Erreur lors de la validation', 'error');
@@ -122,14 +134,11 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   const handlePublish = async () => {
     if (!editingId) return;
     try {
-      const activeAccroche = accrocheActive === 'a' ? accrocheA : accrocheB;
-      const fullCorps = activeAccroche ? activeAccroche + '\n\n' + corps : corps;
-      const text = formatForLinkedIn(fullCorps);
+      const text = formatForLinkedIn(corps);
       const clipOk = await navigator.clipboard.writeText(text).then(() => true).catch(() => false);
-      await articleApi.update(editingId, { statut: 'publie', corps: fullCorps });
+      await articleApi.update(editingId, { statut: 'publie', corps });
       setStatut('publie');
-      setCorps(fullCorps);
-      showToast(clipOk ? 'Copié et publié — accroche intégrée' : 'Publié (copie presse-papiers échouée)', clipOk ? 'success' : 'warning');
+      showToast(clipOk ? 'Copié et publié' : 'Publié (copie presse-papiers échouée)', clipOk ? 'success' : 'warning');
       loadArticles();
     } catch (e: any) {
       showToast(e.message || 'Erreur lors de la publication', 'error');
@@ -294,7 +303,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
             {(['a', 'b'] as const).map(letter => (
               <label key={letter} className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${accrocheActive === letter ? 'border-[#0A66C2] bg-blue-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
                 <div className="flex items-center gap-2 mb-2">
-                  <input type="radio" name="accroche" checked={accrocheActive === letter} onChange={() => setAccrocheActive(letter)} className="accent-[#0A66C2]" />
+                  <input type="radio" name="accroche" checked={accrocheActive === letter} onChange={() => handleAccrocheSelect(letter)} className="accent-[#0A66C2]" />
                   <span className="text-xs font-medium">{letter === 'a' ? 'Directe / Choc' : 'Question / Réflexion'}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${letter === 'a' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{letter === 'a' ? 'A' : 'B'}</span>
                 </div>
@@ -365,9 +374,6 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
       <Modal open={previewOpen} onClose={() => setPreviewOpen(false)} title="👁 Aperçu LinkedIn">
         <div className="prose prose-sm max-w-none">
           {images[0] && <img src={images[0].url} alt="" className="w-full rounded-lg mb-4 max-h-64 object-cover" />}
-          {(accrocheActive === 'a' ? accrocheA : accrocheB) && (
-            <p className="text-sm font-semibold mb-3">{accrocheActive === 'a' ? accrocheA : accrocheB}</p>
-          )}
           <div className="whitespace-pre-wrap text-sm">{formatForLinkedIn(corps)}</div>
           {hashtags && <p className="mt-4 text-[#0A66C2]">{hashtags}</p>}
         </div>
