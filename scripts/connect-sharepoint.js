@@ -75,6 +75,30 @@ async function main() {
     if (!token) throw new Error('Aucun jeton obtenu');
     console.log('  ✅ Connecté — jeton stocké en base de données (partagé avec Vercel).\n');
 
+    // Nettoyage : supprimer l'ancienne clé DB 'msal_token_cache' si elle contient
+    // un token brut (format {token, expiresAt}) au lieu du cache MSAL complet.
+    // Cela corrige le bug de collision de clé qui cassait le refresh silencieux.
+    try {
+      const db = require('../lib/db');
+      const r = await db.query('SELECT cache_data FROM dashboard_cache WHERE cache_key = $1', ['msal_token_cache']);
+      if (r.rows.length > 0) {
+        let d = r.rows[0].cache_data;
+        if (typeof d === 'string') { try { d = JSON.parse(d); } catch {} }
+        if (d && d.blob) {
+          let blob = d.blob;
+          if (typeof blob === 'string') { try { blob = JSON.parse(blob); } catch {} }
+          // Si c'est un token brut (a .token et .expiresAt), c'est le format corrompu
+          if (blob && blob.token && blob.expiresAt) {
+            await db.query('DELETE FROM dashboard_cache WHERE cache_key = $1', ['msal_token_cache']);
+            console.log('  🧹 Ancien cache token brut nettoyé de la base (corrigé le bug de collision).\n');
+          }
+        }
+      }
+    } catch (e) {
+      // Best-effort, pas bloquant
+      console.log('  ⚠ Nettoyage DB ignoré:', e.message);
+    }
+
     console.log('  🔍 Vérification (lecture du fichier de suivi)...');
     const data = await sharepoint.fetchDashboardData();
     if (data.connected) {

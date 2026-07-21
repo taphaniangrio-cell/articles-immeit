@@ -50,9 +50,13 @@ export const useStore = create<AppState>((set, get) => ({
   setModels: (m) => set({ models: m }),
 
   loadArticles: async () => {
-    const { filter, currentPage } = get();
-    const res = await articleApi.list({ statut: filter || undefined, limit: 10, page: currentPage });
-    set({ articles: res.articles || [], totalArticles: res.total || 0 });
+    try {
+      const { filter, currentPage } = get();
+      const res = await articleApi.list({ statut: filter || undefined, limit: 10, page: currentPage });
+      set({ articles: res.articles || [], totalArticles: res.total || 0 });
+    } catch {
+      // En cas d'erreur, garder les articles existants
+    }
   },
 
   login: async (password) => {

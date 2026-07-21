@@ -107,10 +107,10 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     if (!editingId) return;
     try {
       const text = formatForLinkedIn(corps);
-      await navigator.clipboard.writeText(text).catch(() => {});
+      const clipOk = await navigator.clipboard.writeText(text).then(() => true).catch(() => false);
       await articleApi.update(editingId, { statut: 'publie' });
       setStatut('publie');
-      showToast('Copie et publie', 'success');
+      showToast(clipOk ? 'Copié et publié' : 'Publié (copie presse-papiers échouée)', clipOk ? 'success' : 'warning');
       loadArticles();
     } catch (e: any) {
       showToast(e.message || 'Erreur lors de la publication', 'error');
@@ -177,7 +177,22 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
       if (a.accroche_b) setAccrocheB(a.accroche_b);
       if (a.corps) setCorps(a.corps);
       if (a.hashtags) setHashtags(Array.isArray(a.hashtags) ? a.hashtags.join(' ') : a.hashtags);
-      showToast('Article regenere', 'success');
+      // Sauvegarder automatiquement après régénération
+      if (editingId) {
+        try {
+          await articleApi.update(editingId, {
+            accroche_a: a.accroche_a || accrocheA,
+            accroche_b: a.accroche_b || accrocheB,
+            corps: a.corps || corps,
+            hashtags: a.hashtags || hashtags,
+          });
+          showToast('Article régénéré et sauvegardé', 'success');
+        } catch {
+          showToast('Article régénéré (non sauvegardé)', 'warning');
+        }
+      } else {
+        showToast('Article régénéré', 'success');
+      }
       setRegenOpen(false);
     } catch (e: any) {
       showToast(e.message, 'error');
@@ -275,7 +290,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
           <label className="text-xs font-medium text-gray-500 uppercase mb-2 block">Corps de l'article</label>
           <textarea value={corps} onChange={e => { setCorps(e.target.value); markDirty(); }} className="w-full min-h-[320px] text-sm border-0 outline-none resize-none" placeholder="Rédigez l'article ici…" />
           <div className="flex justify-end gap-4 text-xs text-gray-400 mt-2">
-            <span className={charCount > 2900 ? 'text-yellow-600' : charCount > 3000 ? 'text-red-600' : ''}>{charCount} / 3000 car.</span>
+            <span className={charCount > 3000 ? 'text-red-600' : charCount > 2900 ? 'text-yellow-600' : ''}>{charCount} / 3000 car.</span>
             <span>{wordCount} mots ({Math.round(wordCount / LINKEDIN_TARGET * 100)}% cible LinkedIn)</span>
           </div>
         </div>
@@ -286,7 +301,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
           <input value={hashtags} onChange={e => { setHashtags(e.target.value); markDirty(); }} placeholder="#maintenance #GMAO" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0A66C2]" />
           <div className="flex flex-wrap gap-1 mt-2">
             {SUGGESTED_HASHTAGS.map(h => (
-              <button key={h} onClick={() => setHashtags(prev => `${prev} ${h}`.trim())} className="text-xs px-2 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-600">{h}</button>
+              <button key={h} onClick={() => { if (!hashtags.includes(h)) setHashtags(prev => `${prev} ${h}`.trim()); }} className="text-xs px-2 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-600">{h}</button>
             ))}
           </div>
         </div>
@@ -295,7 +310,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
         <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <label className="text-xs font-medium text-gray-500 uppercase block mb-1">Source</label>
-            <input value={source} onChange={e => setSource(e.target.value)} className="w-full text-sm border-0 outline-none bg-transparent" />
+            <input value={source} onChange={e => { setSource(e.target.value); markDirty(); }} className="w-full text-sm border-0 outline-none bg-transparent" />
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <label className="text-xs font-medium text-gray-500 uppercase block mb-1">IA / Modèle</label>

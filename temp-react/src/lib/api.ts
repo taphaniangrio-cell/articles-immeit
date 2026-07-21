@@ -9,8 +9,9 @@ export async function api<T = any>(path: string, options: RequestInit & { timeou
   const { timeout = 20000, ...fetchOpts } = options;
   const url = `${API_BASE}${path}`;
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (fetchOpts.method && fetchOpts.method !== 'GET') {
+  const headers: Record<string, string> = {};
+  if (fetchOpts.method && fetchOpts.method !== 'GET' && fetchOpts.method !== 'HEAD') {
+    headers['Content-Type'] = 'application/json';
     const csrf = getCookie('csrf');
     if (csrf) headers['X-CSRF-Token'] = csrf;
   }

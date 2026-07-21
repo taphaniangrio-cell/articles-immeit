@@ -6,6 +6,7 @@ const cors = require('../lib/cors');
 const { CONSTANTS } = require('../lib/constants');
 
 const ALLOWED_STATUTS = new Set(['brouillon', 'en_revision', 'valide', 'publie', 'archive']);
+const ALLOWED_ACCROCHE = new Set(['a', 'b']);
 
 module.exports = requireAuth(async (req, res) => {
   if (cors(res, req)) return;
@@ -67,8 +68,14 @@ module.exports = requireAuth(async (req, res) => {
           }
           body.corps = body.corps.trim();
         }
+        if (body.accroche_active !== undefined && !ALLOWED_ACCROCHE.has(body.accroche_active)) {
+          return res.status(400).json({ error: 'accroche_active invalide (a ou b)' });
+        }
+        if (body.hashtags !== undefined && !Array.isArray(body.hashtags) && typeof body.hashtags !== 'string') {
+          return res.status(400).json({ error: 'hashtags invalide' });
+        }
         const article = await db.updateArticle(parsedId, body);
-        if (!article) return res.status(404).json({ error: 'Article introuvable' });
+        if (!article) return res.status(400).json({ error: 'Aucun champ valide à modifier' });
         return res.status(200).json({ article });
       }
 
@@ -85,6 +92,9 @@ module.exports = requireAuth(async (req, res) => {
         return res.status(405).json({ error: 'Méthode non autorisée' });
     }
   } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Un article avec cette source existe déjà' });
+    }
     log('error', 'articles_error', { method, id: id || null, error: err.message });
     return res.status(500).json({ error: 'Erreur interne. Réessaie.' });
   }

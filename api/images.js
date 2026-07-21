@@ -3,6 +3,25 @@ const { requireAuth } = require('../lib/auth');
 const cors = require('../lib/cors');
 const { CONSTANTS } = require('../lib/constants');
 
+// Cache en mémoire pour les recherches d'images (TTL 30 min)
+const imageCache = new Map();
+const CACHE_TTL = 30 * 60 * 1000;
+
+function getCached(key) {
+  const entry = imageCache.get(key);
+  if (entry && Date.now() - entry.ts < CACHE_TTL) return entry.data;
+  imageCache.delete(key);
+  return null;
+}
+
+function setCache(key, data) {
+  if (imageCache.size > 200) {
+    const oldest = imageCache.keys().next().value;
+    imageCache.delete(oldest);
+  }
+  imageCache.set(key, { data, ts: Date.now() });
+}
+
 module.exports = requireAuth(async (req, res) => {
   if (cors(res, req)) return;
 
@@ -26,6 +45,10 @@ module.exports = requireAuth(async (req, res) => {
   }
 
   try {
+    // Vérifier le cache en mémoire
+    const cached = getCached(q);
+    if (cached) return res.status(200).json(cached);
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
 
@@ -50,7 +73,9 @@ module.exports = requireAuth(async (req, res) => {
       alt: p.alt || '',
     }));
 
-    return res.status(200).json({ photos });
+    const result = { photos };
+    setCache(q, result);
+    return res.status(200).json(result);
   } catch {
     return res.status(502).json({ error: 'Erreur réseau Pexels' });
   }

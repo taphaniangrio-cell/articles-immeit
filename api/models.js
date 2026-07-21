@@ -16,7 +16,6 @@ module.exports = requireAuth(async (req, res) => {
       models[key] = {
         label: config.label,
         enabled: !!keyValue,
-        needsKey: config.needsKey,
         models: config.models,
         default: config.default,
       };

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useStore } from '../../stores/appStore';
-import { generateApi, newsApi, imagesApi } from '../../lib/api';
+import { generateApi, newsApi } from '../../lib/api';
 import { useToast } from '../../contexts/ToastContext';
 import { Modal } from '../ui/Modal';
 import { ArticlesList } from './ArticlesList';
@@ -8,17 +8,13 @@ import { Editor } from './Editor';
 import type { Article, NewsItem } from '../../types';
 
 export function ArticlesPage() {
-  const { editingId, setEditingId, loadArticles } = useStore();
+  const { editingId, setEditingId, isDirty, loadArticles } = useStore();
   const { showToast } = useToast();
   const [selected, setSelected] = useState<Article | null>(null);
   const [newsModal, setNewsModal] = useState(false);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [customPrompt, setCustomPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
-
-  useEffect(() => {
-    loadArticles();
-  }, []);
 
   const handleSelect = (article: Article | null) => {
     if (article && article.id) {
@@ -70,6 +66,7 @@ export function ArticlesPage() {
   };
 
   const handleBack = () => {
+    if (isDirty && !window.confirm('Tu as des modifications non sauvegardées. Quitter quand même ?')) return;
     setSelected(null);
     setEditingId(null);
   };
