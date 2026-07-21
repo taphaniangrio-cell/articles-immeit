@@ -95,7 +95,7 @@ module.exports = requireAuth(async (req, res) => {
     if (err.code === '23505') {
       return res.status(409).json({ error: 'Un article avec cette source existe déjà' });
     }
-    log('error', 'articles_error', { method, id: id || null, error: err.message });
+    log('error', 'articles_error', { method, id: id || null, error: err.message, code: err.code });
     return res.status(500).json({ error: 'Erreur interne. Réessaie.' });
   }
 });
