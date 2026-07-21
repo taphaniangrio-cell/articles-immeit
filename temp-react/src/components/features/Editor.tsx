@@ -26,7 +26,6 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   const [imageSearchOpen, setImageSearchOpen] = useState(false);
   const [imageQuery, setImageQuery] = useState('');
   const [imageResults, setImageResults] = useState<any[]>([]);
-  const [saveStatus, setSaveStatus] = useState('');
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenFeedback, setRegenFeedback] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -34,7 +33,6 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
 
   const saveFn = useCallback(async () => {
     if (!editingId) return;
-    setSaveStatus('⏳ Sauvegarde...');
     try {
       const activeAccroche = accrocheActive === 'a' ? accrocheA : accrocheB;
       const fullCorps = activeAccroche ? activeAccroche + '\n\n' + corps : corps;
@@ -44,12 +42,10 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
         source_news_source: source,
       });
       setDirty(false);
-      setSaveStatus('✓ Sauvegardé');
+      showToast('Sauvegardé', 'success');
       loadArticles();
-      setTimeout(() => setSaveStatus(''), 2000);
     } catch (e: any) {
       console.error('[Editor saveFn]', e.message, { editingId, titre, corps: corps?.substring(0, 50) });
-      setSaveStatus('✗ Erreur');
       showToast(e.message || 'Erreur de sauvegarde', 'error');
     }
   }, [editingId, titre, accrocheA, accrocheB, accrocheActive, corps, hashtags, source]);
@@ -78,7 +74,6 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     setImages(article.image_options || []);
     setSelectedImage(article.image_url ? 0 : -1);
     setDirty(false);
-    setSaveStatus('');
     loadedRef.current = true;
     const datesStr = [];
     if (article.date_creation) datesStr.push(`Créé: ${article.date_creation.slice(0, 10)}`);
@@ -339,7 +334,6 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
             <label className="text-xs font-medium text-gray-500 uppercase block mb-1">Dates</label>
             <div className="text-sm text-gray-600">{dates || '—'}</div>
           </div>
-          <div className="col-span-full text-xs text-gray-400">{saveStatus}</div>
         </div>
       </div>
 
