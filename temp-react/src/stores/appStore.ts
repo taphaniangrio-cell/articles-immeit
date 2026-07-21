@@ -28,8 +28,22 @@ interface AppState {
   logout: () => Promise<void>;
 }
 
+const SESSION_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function isSessionValid(): boolean {
+  const flag = localStorage.getItem('immeit_session');
+  const ts = localStorage.getItem('immeit_session_ts');
+  if (flag !== '1') return false;
+  if (ts && Date.now() - parseInt(ts, 10) > SESSION_MAX_AGE) {
+    localStorage.removeItem('immeit_session');
+    localStorage.removeItem('immeit_session_ts');
+    return false;
+  }
+  return true;
+}
+
 export const useStore = create<AppState>((set, get) => ({
-  session: localStorage.getItem('immeit_session') === '1',
+  session: isSessionValid(),
   view: (localStorage.getItem('immeit_last_view') as 'articles' | 'dashboard' | 'insights') || 'articles',
   articles: [],
   filter: '',
@@ -52,10 +66,12 @@ export const useStore = create<AppState>((set, get) => ({
   loadArticles: async () => {
     try {
       const { filter, currentPage } = get();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
       const res = await articleApi.list({ statut: filter || undefined, limit: 10, page: currentPage });
+      clearTimeout(timer);
       set({ articles: res.articles || [], totalArticles: res.total || 0 });
     } catch (e) {
-      // En cas d'erreur, garder les articles existants
       console.error('loadArticles error:', e);
     }
   },
@@ -64,6 +80,7 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       await authApi.login(password);
       localStorage.setItem('immeit_session', '1');
+      localStorage.setItem('immeit_session_ts', Date.now().toString());
       set({ session: true });
       return true;
     } catch {
@@ -74,6 +91,7 @@ export const useStore = create<AppState>((set, get) => ({
   logout: async () => {
     try { await authApi.logout(); } catch {}
     localStorage.removeItem('immeit_session');
+    localStorage.removeItem('immeit_session_ts');
     localStorage.removeItem('immeit_dash_cache');
     set({ session: false, view: 'articles', dashboardData: null });
   },

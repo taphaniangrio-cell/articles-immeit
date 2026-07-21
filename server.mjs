@@ -195,11 +195,13 @@ async function handleApi(req, res, pathname, url) {
 
 function handleSSE(req, res) {
   const id = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  const origin = req.headers.origin || '';
+  const corsOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': corsOrigin,
     'X-Accel-Buffering': 'no',
   });
 

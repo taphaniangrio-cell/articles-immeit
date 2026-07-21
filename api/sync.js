@@ -1,4 +1,5 @@
 const cors = require('../lib/cors');
+const crypto = require('crypto');
 const { requireAuth } = require('../lib/auth');
 const { log } = require('../lib/logger');
 const autoSync = require('../lib/auto-sync');
@@ -7,7 +8,11 @@ async function isCronAuthorized(req) {
   if (req.headers['x-vercel-cron'] === '1') return true;
   const auth = req.headers['authorization'] || '';
   const secret = process.env.CRON_SECRET || process.env.GITHUB_TOKEN;
-  if (auth.startsWith('Bearer ') && secret && auth.slice(7) === secret) return true;
+  if (auth.startsWith('Bearer ') && secret) {
+    const token = auth.slice(7);
+    if (token.length !== secret.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(secret));
+  }
   return false;
 }
 

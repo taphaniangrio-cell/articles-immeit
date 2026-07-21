@@ -1,7 +1,7 @@
 export function esc(str: string): string {
-  const div = document.createElement('div');
-  div.appendChild(document.createTextNode(str));
-  return div.innerHTML;
+  const el = document.createElement('span');
+  el.textContent = str;
+  return el.innerHTML;
 }
 
 export function fmtDate(d: string | Date): string {
@@ -48,7 +48,7 @@ export function formatForLinkedIn(text: string): string {
 export function formatHashtags(input: string): string {
   return input
     .split(/[\s,;]+/)
-    .map(t => t.trim().replace(/^#/, '').replace(/[^a-zA-Z0-9_éèêëàâäùûüôöîïç]/g, ''))
+    .map(t => t.trim().replace(/^#/, '').replace(/[^a-zA-Z0-9_éèêëàâäùûüôöîïçÉÈÊËÀÂÄÙÛÜÔÖÎÏÇ]/g, ''))
     .filter(Boolean)
     .map(t => `#${t}`)
     .join(' ');

@@ -6,7 +6,7 @@ import { SkeletonCard } from '../ui/Skeleton';
 import { PAGE_SIZE, fmtDate } from '../../lib/utils';
 import type { Article } from '../../types';
 
-export function ArticlesList({ onSelect }: { onSelect: (article: Article) => void }) {
+export function ArticlesList({ onSelect }: { onSelect: (article: Article | null) => void }) {
   const { articles, filter, currentPage, totalArticles, editingId, loadArticles } = useStore();
   const setFilter = useStore(s => s.setFilter);
   const setCurrentPage = useStore(s => s.setCurrentPage);
@@ -23,7 +23,7 @@ export function ArticlesList({ onSelect }: { onSelect: (article: Article) => voi
     <div className="w-80 shrink-0 border-r border-gray-200 bg-gray-50/50 flex flex-col max-md:w-full max-md:border-r-0">
       <div className="p-3 border-b border-gray-100 bg-white">
         <button
-          onClick={() => onSelect(null as any)}
+          onClick={() => onSelect(null)}
           className="w-full py-2.5 bg-[#0A66C2] text-white rounded-xl text-sm font-semibold hover:bg-[#084a8f] active:scale-[0.98] transition-all shadow-sm shadow-[#0A66C2]/20"
         >
           + Nouvel article

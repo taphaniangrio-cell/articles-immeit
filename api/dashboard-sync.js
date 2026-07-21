@@ -1,10 +1,18 @@
-const { requireAuth } = require('../lib/auth');
+const { requireAuth, requireCsrf } = require('../lib/auth');
+const rateLimit = require('../lib/rateLimit');
 const { log } = require('../lib/logger');
 const { getCacheDir, safeWriteFile } = require('../lib/cache-dir');
 const sharepoint = require('../lib/sharepoint');
 
 module.exports = requireAuth(async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST requis' });
+
+  if (!requireCsrf(req, res)) return;
+
+  const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+  if (!rateLimit(ip, 'dashboard-sync', { max: 10, windowMs: 60000 })) {
+    return res.status(429).json({ error: 'Trop de requêtes. Réessayez dans 1 minute.' });
+  }
 
   try {
     const { headers, items, syncedAt, source } = req.body;
@@ -45,6 +53,6 @@ module.exports = requireAuth(async (req, res) => {
     return res.status(200).json({ success: true, count: filteredItems.length, syncedAt: cache.syncedAt });
   } catch (err) {
     log('error', 'dashboard_sync_error', { error: err.message });
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Erreur interne. Réessaie.' });
   }
 });

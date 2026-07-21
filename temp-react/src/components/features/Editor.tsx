@@ -4,6 +4,7 @@ import { articleApi, generateApi, imagesApi } from '../../lib/api';
 import { StatusBadge } from '../ui/Badge';
 import { formatHashtags, SUGGESTED_HASHTAGS, LINKEDIN_TARGET, formatForLinkedIn } from '../../lib/utils';
 import { useToast } from '../../contexts/ToastContext';
+import { useAutoSave } from '../../hooks/useAutoSave';
 import { Modal } from '../ui/Modal';
 import type { Article, NewsItem } from '../../types';
 
@@ -30,20 +31,28 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   const [regenFeedback, setRegenFeedback] = useState('');
   const [generating, setGenerating] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const loadedRef = useRef(false);
+  const lastIntegratedRef = useRef('');
+
+  const getFullPayload = useCallback(() => {
+    const primaryImage = selectedImage >= 0 && images[selectedImage] ? images[selectedImage] : null;
+    return {
+      titre_interne: titre, accroche_a: accrocheA, accroche_b: accrocheB,
+      accroche_active: accrocheActive, corps, hashtags: formatHashtags(hashtags),
+      source_news_source: source,
+      image_options: images,
+      image_url: primaryImage?.url || null,
+      image_photographer: primaryImage?.photographer || null,
+      image_photographer_url: primaryImage?.photographer_url || null,
+    };
+  }, [titre, accrocheA, accrocheB, accrocheActive, corps, hashtags, source, images, selectedImage]);
 
   const saveFn = useCallback(async () => {
     if (!editingId) return;
     try {
-      const primaryImage = selectedImage >= 0 && images[selectedImage] ? images[selectedImage] : null;
-      await articleApi.update(editingId, {
-        titre_interne: titre, accroche_a: accrocheA, accroche_b: accrocheB,
-        accroche_active: accrocheActive, corps, hashtags: formatHashtags(hashtags),
-        source_news_source: source,
-        image_options: images,
-        image_url: primaryImage?.url || null,
-        image_photographer: primaryImage?.photographer || null,
-        image_photographer_url: primaryImage?.photographer_url || null,
-      });
+      await articleApi.update(editingId, getFullPayload());
       setDirty(false);
       showToast('Sauvegardé', 'success');
       loadArticles();
@@ -51,10 +60,17 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
       console.error('[Editor saveFn]', e.message, { editingId, titre, corps: corps?.substring(0, 50) });
       showToast(e.message || 'Erreur de sauvegarde', 'error');
     }
-  }, [editingId, titre, accrocheA, accrocheB, accrocheActive, corps, hashtags, source, images, selectedImage]);
+  }, [editingId, getFullPayload, loadArticles, showToast, setDirty, corps, titre]);
 
-  const loadedRef = useRef(false);
-  const lastIntegratedRef = useRef('');
+  useAutoSave(saveFn, isDirty, editingId, 5000);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty) { e.preventDefault(); e.returnValue = ''; }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
 
   const handleAccrocheSelect = useCallback((letter: 'a' | 'b') => {
     const newAccroche = letter === 'a' ? accrocheA : accrocheB;
@@ -69,7 +85,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     setCorps(newCorps);
     setAccrocheActive(letter);
     setDirty(true);
-  }, [accrocheA, accrocheB, corps]);
+  }, [accrocheA, accrocheB, corps, setDirty]);
 
   useEffect(() => {
     if (!article) return;
@@ -91,8 +107,14 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     setSource(article.source_news_source || '');
     setIaInfo(article.ia_provider ? `${article.ia_provider} / ${article.ia_model}` : '');
     setStatut(article.statut || 'brouillon');
-    setImages(article.image_options || []);
-    setSelectedImage(article.image_url ? 0 : -1);
+    const opts = article.image_options || [];
+    setImages(opts);
+    if (article.image_url && opts.length > 0) {
+      const idx = opts.findIndex((img: any) => img.url === article.image_url);
+      setSelectedImage(idx >= 0 ? idx : 0);
+    } else {
+      setSelectedImage(-1);
+    }
     setDirty(false);
     loadedRef.current = true;
     const datesStr = [];
@@ -100,44 +122,48 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     if (article.date_validation) datesStr.push(`Validé: ${article.date_validation.slice(0, 10)}`);
     if (article.date_publication) datesStr.push(`Publié: ${article.date_publication.slice(0, 10)}`);
     setDates(datesStr.join(' | '));
-  }, [article?.id]);
+  }, [article?.id, editingId, setEditingId, setDirty]);
 
   const markDirty = useCallback(() => {
     if (loadedRef.current && !isDirty) setDirty(true);
   }, [isDirty, setDirty]);
 
-  const activeAccroche = accrocheActive === 'a' ? accrocheA : accrocheB;
-  const fullText = activeAccroche ? activeAccroche + '\n\n' + corps : corps;
-  const charCount = fullText.length;
-  const wordCount = fullText.split(/\s+/).filter(Boolean).length;
+  const charCount = corps.length;
+  const wordCount = corps.split(/\s+/).filter(Boolean).length;
 
   const handleSave = async () => {
-    if (!editingId) {
-      console.warn('[Editor] handleSave called without editingId');
-      return;
+    if (!editingId || saving) return;
+    setSaving(true);
+    try {
+      await saveFn();
+    } finally {
+      setSaving(false);
     }
-    await saveFn();
   };
 
-  const handleValidate = async () => {
+  const handleStatusChange = async (newStatus: string) => {
     if (!editingId) return;
     try {
-      await articleApi.update(editingId, { statut: 'valide', corps });
-      setStatut('valide');
-      showToast('Article validé', 'success');
+      await articleApi.update(editingId, { ...getFullPayload(), statut: newStatus });
+      setStatut(newStatus as Article['statut']);
+      setDirty(false);
+      showToast(newStatus === 'valide' ? 'Article validé' : newStatus === 'publie' ? 'Publié' : newStatus === 'archive' ? 'Archivé' : 'Restauré', 'success');
       loadArticles();
     } catch (e: any) {
-      showToast(e.message || 'Erreur lors de la validation', 'error');
+      showToast(e.message || 'Erreur', 'error');
     }
   };
+
+  const handleValidate = () => handleStatusChange('valide');
 
   const handlePublish = async () => {
     if (!editingId) return;
     try {
       const text = formatForLinkedIn(corps);
       const clipOk = await navigator.clipboard.writeText(text).then(() => true).catch(() => false);
-      await articleApi.update(editingId, { statut: 'publie', corps });
+      await articleApi.update(editingId, { ...getFullPayload(), statut: 'publie' });
       setStatut('publie');
+      setDirty(false);
       showToast(clipOk ? 'Copié et publié' : 'Publié (copie presse-papiers échouée)', clipOk ? 'success' : 'warning');
       loadArticles();
     } catch (e: any) {
@@ -145,37 +171,17 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     }
   };
 
-  const handleArchive = async () => {
-    if (!editingId) return;
-    try {
-      await articleApi.update(editingId, { statut: 'archive' });
-      setStatut('archive');
-      showToast('Archive', 'info');
-      loadArticles();
-    } catch (e: any) {
-      showToast(e.message || "Erreur lors de l'archivage", 'error');
-    }
-  };
-
-  const handleRestore = async () => {
-    if (!editingId) return;
-    try {
-      await articleApi.update(editingId, { statut: 'brouillon' });
-      setStatut('brouillon');
-      showToast('Restaure', 'success');
-      loadArticles();
-    } catch (e: any) {
-      showToast(e.message || 'Erreur lors de la restauration', 'error');
-    }
-  };
+  const handleArchive = () => handleStatusChange('archive');
+  const handleRestore = () => handleStatusChange('brouillon');
 
   const handleDelete = async () => {
     if (!editingId || !confirm('Supprimer cet article ?')) return;
     try {
       await articleApi.delete(editingId);
       setEditingId(null);
-      showToast('Supprime', 'info');
+      showToast('Supprimé', 'info');
       loadArticles();
+      onBack();
     } catch (e: any) {
       showToast(e.message || 'Erreur lors de la suppression', 'error');
     }
@@ -205,16 +211,18 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
       if (a.accroche_b) setAccrocheB(a.accroche_b);
       if (a.corps) setCorps(a.corps);
       if (a.hashtags) setHashtags(Array.isArray(a.hashtags) ? a.hashtags.join(' ') : a.hashtags);
-      // Sauvegarder automatiquement après régénération
       if (editingId) {
         try {
+          const mergedCorps = a.corps || corps;
           await articleApi.update(editingId, {
             accroche_a: a.accroche_a || accrocheA,
             accroche_b: a.accroche_b || accrocheB,
-            corps: a.corps || corps,
-            hashtags: a.hashtags || hashtags,
+            corps: mergedCorps,
+            hashtags: formatHashtags(Array.isArray(a.hashtags) ? a.hashtags.join(' ') : (a.hashtags || hashtags)),
           });
+          lastIntegratedRef.current = '';
           showToast('Article régénéré et sauvegardé', 'success');
+          loadArticles();
         } catch {
           showToast('Article régénéré (non sauvegardé)', 'warning');
         }
@@ -280,9 +288,11 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
             <div className="flex gap-1">
               <button onClick={() => setImageSearchOpen(true)} className="text-xs px-2 py-1 bg-gray-100 rounded-md hover:bg-gray-200">+ Ajouter</button>
               {selectedImage >= 0 && (
-                <>
-                  <button onClick={() => setImages(prev => prev.filter((_, i) => i !== selectedImage))} className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded-md hover:bg-red-100">🗑</button>
-                </>
+                <button onClick={() => {
+                  setImages(prev => prev.filter((_, i) => i !== selectedImage));
+                  setSelectedImage(-1);
+                  markDirty();
+                }} className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded-md hover:bg-red-100">🗑</button>
               )}
             </div>
           </div>
@@ -329,7 +339,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
           <input value={hashtags} onChange={e => { setHashtags(e.target.value); markDirty(); }} placeholder="#maintenance #GMAO" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0A66C2]" />
           <div className="flex flex-wrap gap-1 mt-2">
             {SUGGESTED_HASHTAGS.map(h => (
-              <button key={h} onClick={() => { if (!hashtags.includes(h)) setHashtags(prev => `${prev} ${h}`.trim()); }} className="text-xs px-2 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-600">{h}</button>
+              <button key={h} onClick={() => { if (!hashtags.includes(h)) { setHashtags(prev => `${prev} ${h}`.trim()); markDirty(); } }} className="text-xs px-2 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-600">{h}</button>
             ))}
           </div>
         </div>
@@ -354,7 +364,9 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
       {/* Action bar */}
       <div className="flex items-center justify-between p-3 border-t border-gray-200 bg-white shrink-0">
         <div className="flex flex-wrap gap-2">
-          <button onClick={handleSave} className="px-4 py-2 bg-[#0A66C2] text-white rounded-lg text-sm font-medium hover:bg-[#084a8f]">↓ Enregistrer</button>
+          <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-[#0A66C2] text-white rounded-lg text-sm font-medium hover:bg-[#084a8f] disabled:opacity-50">
+            {saving ? '⏳' : '↓'} Enregistrer
+          </button>
           <button onClick={handleValidate} disabled={statut !== 'brouillon' && statut !== 'en_revision'} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-30">✓ Valider</button>
           <button onClick={handlePublish} className="px-4 py-2 bg-[#0A66C2]/10 text-[#0A66C2] rounded-lg text-sm font-medium hover:bg-[#0A66C2]/20">⌘ Copier LinkedIn</button>
           <button onClick={() => setPreviewOpen(true)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">👁 Aperçu</button>
@@ -375,7 +387,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
         <div className="prose prose-sm max-w-none">
           {images[0] && <img src={images[0].url} alt="" className="w-full rounded-lg mb-4 max-h-64 object-cover" />}
           <div className="whitespace-pre-wrap text-sm">{formatForLinkedIn(corps)}</div>
-          {hashtags && <p className="mt-4 text-[#0A66C2]">{hashtags}</p>}
+          {hashtags && <p className="mt-4 text-[#0A66C2]">{formatHashtags(hashtags)}</p>}
         </div>
       </Modal>
 
@@ -395,7 +407,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
       </Modal>
 
       {/* Image search modal */}
-      <Modal open={imageSearchOpen} onClose={() => setImageSearchOpen(false)} title="Rechercher une image">
+      <Modal open={imageSearchOpen} onClose={() => { setImageSearchOpen(false); setImageResults([]); setImageQuery(''); }} title="Rechercher une image">
         <div className="space-y-3">
           <div className="flex gap-2">
             <input value={imageQuery} onChange={e => setImageQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleImageSearch()} placeholder="Rechercher..." className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
@@ -403,7 +415,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
           </div>
           <div className="grid grid-cols-3 gap-2 max-h-80 overflow-y-auto">
             {imageResults.map((img, i) => (
-              <button key={i} onClick={() => { setImages(prev => [...prev, { url: img.url, thumbnail: img.thumbnail, photographer: img.photographer, photographer_url: img.photographer_url, alt: img.alt }]); setImageSearchOpen(false); }} className="group relative">
+              <button key={i} onClick={() => { setImages(prev => [...prev, { url: img.url, thumbnail: img.thumbnail, photographer: img.photographer, photographer_url: img.photographer_url, alt: img.alt }]); setImageSearchOpen(false); setImageResults([]); setImageQuery(''); markDirty(); }} className="group relative">
                 <img src={img.thumbnail} alt="" className="w-full h-24 object-cover rounded-lg" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg" />
               </button>
