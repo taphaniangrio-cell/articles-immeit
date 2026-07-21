@@ -88,9 +88,11 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   const wordCount = corps.split(/\s+/).filter(Boolean).length;
 
   const handleSave = async () => {
-    if (editingId) {
-      await saveFn();
+    if (!editingId) {
+      console.warn('[Editor] handleSave called without editingId');
+      return;
     }
+    await saveFn();
   };
 
   const handleValidate = async () => {
