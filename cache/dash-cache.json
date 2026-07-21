@@ -48,7 +48,7 @@
     {
       "_row": 2,
       "site": "Carrières",
-      "demandeurs": "Fanny TAALBI",
+      "demandeurs": "Natacha DUVAL",
       "gestionnaire_demandes": "Ibrahima Khalil SECK",
       "type_de_demande": "Elaboration des plans de prévention",
       "nature_de_la_demande": "Gérico",
@@ -47748,9 +47748,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-21T11:46:56.811Z",
+  "syncedAt": "2026-07-21T12:20:45.492Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
-  "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-20T15:30:34Z"
+  "lastModifiedBy": "NATACHA DUVAL (EXTERNAL)",
+  "lastModifiedDateTime": "2026-07-21T12:18:27Z"
 }
