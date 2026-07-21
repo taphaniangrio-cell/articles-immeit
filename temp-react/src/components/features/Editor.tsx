@@ -104,7 +104,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     lastIntegratedRef.current = '';
     setCorps(body);
     setHashtags(article.hashtags?.join(' ') || '');
-    setSource(article.source_news_source || '');
+    setSource(article.source_news_source || article.source_news_titre || '');
     setIaInfo(article.ia_provider ? `${article.ia_provider} / ${article.ia_model}` : '');
     setStatut(article.statut || 'brouillon');
     const opts = article.image_options || [];
@@ -117,10 +117,16 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     }
     setDirty(false);
     loadedRef.current = true;
+    const fmtDateTime = (d: string) => {
+      const dt = new Date(d);
+      const date = dt.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+      const time = dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      return `${date} ${time}`;
+    };
     const datesStr = [];
-    if (article.date_creation) datesStr.push(`Créé: ${article.date_creation.slice(0, 10)}`);
-    if (article.date_validation) datesStr.push(`Validé: ${article.date_validation.slice(0, 10)}`);
-    if (article.date_publication) datesStr.push(`Publié: ${article.date_publication.slice(0, 10)}`);
+    if (article.date_creation) datesStr.push(`Créé: ${fmtDateTime(article.date_creation)}`);
+    if (article.date_validation) datesStr.push(`Validé: ${fmtDateTime(article.date_validation)}`);
+    if (article.date_publication) datesStr.push(`Publié: ${fmtDateTime(article.date_publication)}`);
     setDates(datesStr.join(' | '));
   }, [article?.id, editingId, setEditingId, setDirty]);
 
@@ -348,7 +354,11 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
         <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <label className="text-xs font-medium text-gray-500 uppercase block mb-1">Source</label>
-            <input value={source} onChange={e => { setSource(e.target.value); markDirty(); }} className="w-full text-sm border-0 outline-none bg-transparent" />
+            {source ? (
+              <div className="text-sm text-gray-700 font-medium">{source}</div>
+            ) : (
+              <input value={source} onChange={e => { setSource(e.target.value); markDirty(); }} placeholder="Ajouter une source…" className="w-full text-sm border-0 outline-none bg-transparent text-gray-400" />
+            )}
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <label className="text-xs font-medium text-gray-500 uppercase block mb-1">IA / Modèle</label>
