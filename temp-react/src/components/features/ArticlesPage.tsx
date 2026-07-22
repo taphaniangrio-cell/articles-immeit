@@ -3,8 +3,12 @@ import { useStore } from '../../stores/appStore';
 import { generateApi, newsApi } from '../../lib/api';
 import { useToast } from '../../contexts/ToastContext';
 import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Skeleton } from '../ui/Skeleton';
 import { ArticlesList } from './ArticlesList';
 import { Editor } from './Editor';
+import { Sparkles, Dice5 } from 'lucide-react';
 import type { Article, NewsItem } from '../../types';
 
 export function ArticlesPage() {
@@ -87,33 +91,51 @@ export function ArticlesPage() {
         <Editor article={selected} onBack={handleBack} />
       </div>
 
-      <Modal open={newsModal} onClose={() => setNewsModal(false)} title="Nouvel article ✦ IA">
+      <Modal open={newsModal} onClose={() => setNewsModal(false)} title="Nouvel article" size="lg">
         <div className="space-y-4">
           <div className="flex gap-2">
-            <input value={customPrompt} onChange={e => setCustomPrompt(e.target.value)} placeholder="Sujet libre..." className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" onKeyDown={e => e.key === 'Enter' && handleCustomGenerate()} />
-            <button onClick={handleCustomGenerate} disabled={generating || !customPrompt.trim()} className="px-4 py-2 bg-[#0A66C2] text-white rounded-lg text-sm whitespace-nowrap disabled:opacity-30">Générer</button>
+            <input
+              value={customPrompt}
+              onChange={e => setCustomPrompt(e.target.value)}
+              placeholder="Sujet libre..."
+              className="flex-1 h-9 px-3 text-sm border border-border rounded-lg bg-white placeholder:text-text-muted hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none transition-colors"
+              onKeyDown={e => e.key === 'Enter' && handleCustomGenerate()}
+            />
+            <Button onClick={handleCustomGenerate} disabled={generating || !customPrompt.trim()} loading={generating}>
+              <Sparkles size={14} />
+              Générer
+            </Button>
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-gray-400"><span className="flex-1 border-t border-gray-200" /> ou choisis une actualité <span className="flex-1 border-t border-gray-200" /></div>
+          <div className="flex items-center gap-3 text-xs text-text-muted">
+            <span className="flex-1 border-t border-border-light" />
+            ou choisis une actualité
+            <span className="flex-1 border-t border-border-light" />
+          </div>
 
           <div className="max-h-60 overflow-y-auto space-y-2">
             {news.map((n, i) => (
-              <button key={i} onClick={() => handleNewsGenerate(n)} className="w-full text-left p-3 rounded-lg border border-gray-100 hover:border-[#0A66C2] hover:shadow-sm transition-all">
-                <div className="text-sm font-medium text-gray-800">{n.titre}</div>
-                <div className="text-xs text-gray-400 mt-1">{n.source}</div>
-                {n.resume && <div className="text-xs text-gray-500 mt-1 line-clamp-2">{n.resume}</div>}
+              <button
+                key={i}
+                onClick={() => handleNewsGenerate(n)}
+                className="w-full text-left p-3 rounded-xl border border-border hover:border-primary hover:shadow-xs transition-all cursor-pointer"
+              >
+                <div className="text-sm font-medium text-text-primary">{n.titre}</div>
+                <div className="text-xs text-text-muted mt-1">{n.source}</div>
+                {n.resume && <div className="text-xs text-text-secondary mt-1 line-clamp-2">{n.resume}</div>}
               </button>
             ))}
           </div>
 
-          <button onClick={handleAiPick} disabled={generating || news.length === 0} className="w-full py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 disabled:opacity-30">
-            🎲 Laisser l'IA choisir
-          </button>
+          <Button variant="secondary" onClick={handleAiPick} disabled={generating || news.length === 0} className="w-full">
+            <Dice5 size={14} />
+            Laisser l'IA choisir
+          </Button>
 
           {generating && (
             <div className="text-center py-4">
-              <div className="animate-spin w-8 h-8 border-4 border-[#0A66C2] border-t-transparent rounded-full mx-auto mb-2" />
-              <p className="text-sm text-gray-500">Génération en cours...</p>
+              <Skeleton className="h-8 w-8 rounded-full mx-auto mb-2" />
+              <p className="text-sm text-text-muted">Génération en cours...</p>
             </div>
           )}
         </div>

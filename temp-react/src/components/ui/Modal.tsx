@@ -1,6 +1,22 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { cn } from '../../lib/utils';
+import { X } from 'lucide-react';
 
-export function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+interface ModalProps {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+const sizeStyles = {
+  sm: 'max-w-sm',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+};
+
+export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
   const ref = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -20,16 +36,42 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
     if (focusable.length > 0) focusable[0].focus();
   }, [open]);
 
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={(e) => { if (e.target === e.currentTarget) stableClose(); }}>
-      <div ref={ref} role="dialog" aria-modal="true" aria-label={title} className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto animate-scale-in">
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
-          <button onClick={stableClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in"
+      onClick={(e) => { if (e.target === e.currentTarget) stableClose(); }}
+    >
+      <div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={cn(
+          'bg-surface-elevated rounded-xl shadow-xl w-full max-h-[85vh] overflow-hidden animate-scale-in flex flex-col',
+          sizeStyles[size]
+        )}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
+          <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+          <button
+            onClick={stableClose}
+            className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer"
+          >
+            <X size={18} />
+          </button>
         </div>
-        <div className="p-4">{children}</div>
+        <div className="p-5 overflow-y-auto">{children}</div>
       </div>
     </div>
   );

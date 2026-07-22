@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useStore } from '../../stores/appStore';
 import { dashboardApi } from '../../lib/api';
-import { DashboardSkeleton } from '../ui/Skeleton';
+import { Skeleton } from '../ui/Skeleton';
+import { Card } from '../ui/Card';
+import { Button } from '../ui/Button';
 import { GaugeChart, BarChart, DonutChart, LineChart } from './Charts';
+import { RefreshCw, RotateCw, Bell, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Clock } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 /* ── helpers réutilisés de l'ancien app.js ── */
 
@@ -328,32 +332,37 @@ function MultiSelect({ label, options, selected, onChange }: {
   return (
     <div className="relative" ref={ref}>
       <button type="button" onClick={() => { setOpen(!open); setSearch(''); }}
-        className={`text-[10px] font-normal border rounded px-1.5 py-0.5 w-full text-left cursor-pointer hover:border-gray-300 focus:border-blue-300 focus:outline-none truncate ${selected.length > 0 ? 'text-blue-600 bg-blue-50 border-blue-200 font-medium' : 'text-gray-500 bg-white border-gray-200'}`}>
+        className={cn(
+          "text-[10px] font-normal border rounded-md px-1.5 py-0.5 w-full text-left cursor-pointer transition-colors truncate",
+          selected.length > 0
+            ? 'text-primary bg-primary-50 border-primary-200 font-medium'
+            : 'text-text-muted bg-white border-border hover:border-gray-300 focus:border-primary focus:outline-none'
+        )}>
         {selected.length === 0 ? `Toutes` : `${selected.length} sel.`}
       </button>
       {open && (
-        <div className="fixed sm:absolute z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[200px] max-h-[260px] flex flex-col left-2 sm:left-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed sm:absolute z-50 mt-1 bg-surface-elevated border border-border rounded-xl shadow-lg w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[200px] max-h-[260px] flex flex-col left-2 sm:left-auto animate-slide-down" onClick={e => e.stopPropagation()}>
           {options.length > 8 && (
-            <div className="p-1.5 border-b border-gray-100">
+            <div className="p-2 border-b border-border-light">
               <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher…"
-                className="w-full text-[10px] px-2 py-1 border border-gray-200 rounded focus:outline-none focus:border-blue-300" autoFocus />
+                className="w-full text-[10px] px-2 py-1 border border-border rounded-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10" autoFocus />
             </div>
           )}
-          <div className="flex items-center justify-between px-2 py-1 border-b border-gray-100 text-[10px]">
+          <div className="flex items-center justify-between px-2 py-1 border-b border-border-light text-[10px]">
             <button type="button" onClick={() => onChange(allFilteredSelected ? selected.filter(s => !filtered.includes(s)) : [...new Set([...selected, ...filtered])])}
-              className="text-blue-600 hover:text-blue-800 font-medium">{allFilteredSelected ? 'Effacer' : 'Tout'}</button>
-            <span className="text-gray-400">{selected.length}/{options.length}</span>
+              className="text-primary hover:text-primary-dark font-medium">{allFilteredSelected ? 'Effacer' : 'Tout'}</button>
+            <span className="text-text-muted">{selected.length}/{options.length}</span>
           </div>
           <div className="overflow-y-auto flex-1">
             {filtered.map(opt => (
-              <label key={opt} className="flex items-center gap-1.5 px-2 py-[3px] hover:bg-gray-50 cursor-pointer text-[10px]">
+              <label key={opt} className="flex items-center gap-1.5 px-2 py-[3px] hover:bg-surface-hover cursor-pointer text-[10px]">
                 <input type="checkbox" checked={selected.includes(opt)}
                   onChange={() => onChange(selected.includes(opt) ? selected.filter(v => v !== opt) : [...selected, opt])}
-                  className="rounded border-gray-300" />
+                  className="rounded border-gray-300 text-primary focus:ring-primary/20" />
                 <span className="truncate">{opt}</span>
               </label>
             ))}
-            {filtered.length === 0 && <div className="px-2 py-2 text-[10px] text-gray-400 text-center">Aucun résultat</div>}
+            {filtered.length === 0 && <div className="px-2 py-2 text-[10px] text-text-muted text-center">Aucun résultat</div>}
           </div>
         </div>
       )}
@@ -697,162 +706,169 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Tableau de bord IMMEIT</h1>
-          <p className="text-xs text-gray-400 mt-0.5">{updateInfo}</p>
+          <h1 className="text-xl font-bold text-text-primary">Tableau de bord IMMEIT</h1>
+          <p className="text-xs text-text-muted mt-0.5">{updateInfo}</p>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {(() => {
             const dist = dateFilteredStats?.avancementDist || [];
             const solderCount = dist.filter((a: any) => /valid.e.*p2m.*solder|a solder/i.test(a.label)).reduce((s: number, a: any) => s + a.count, 0);
             return (
               <span
-                className={`relative inline-flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 ${solderCount > 0 ? 'bg-red-100 animate-pulse' : 'bg-green-100'}`}
-                title={solderCount > 0 ? `${solderCount} demande${solderCount > 1 ? 's' : ''} à solder — allez stocker le rapport rapidement` : 'Aucune demande à solder'}
+                className={cn(
+                  "relative inline-flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0 transition-colors",
+                  solderCount > 0 ? 'bg-danger-light text-danger animate-pulse' : 'bg-success-light text-success'
+                )}
+                title={solderCount > 0 ? `${solderCount} demande${solderCount > 1 ? 's' : ''} à solder` : 'Aucune demande à solder'}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke={solderCount > 0 ? '#dc2626' : '#16a34a'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
+                <Bell size={16} />
                 {solderCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
                     {solderCount}
                   </span>
                 )}
               </span>
             );
           })()}
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => refreshData()}
             disabled={refreshLoading || syncLoading}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-xs font-medium transition-all shadow-sm active:scale-95 ${refreshLoading ? 'bg-blue-50 border-blue-200 text-blue-600 cursor-wait' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'}`}
+            loading={refreshLoading}
           >
-            <svg className={refreshLoading ? 'animate-spin' : ''} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            <RefreshCw size={14} className={refreshLoading ? 'animate-spin' : ''} />
             {refreshLoading ? 'Actualisation…' : 'Actualiser'}
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
             onClick={handleSync}
             disabled={syncLoading}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all shadow-sm active:scale-95 ${syncLoading ? 'bg-blue-400 cursor-wait animate-pulse' : 'bg-[#0A66C2] hover:bg-[#084a8f] hover:shadow-md'}`}
+            loading={syncLoading}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            <RotateCw size={14} />
             {syncLoading ? 'Sync…' : 'Sync'}
-          </button>
+          </Button>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2 mb-4 text-xs">
-        <input type="date" value={dateStart} onChange={e => { userAdjustedDates.current = true; setDateStart(e.target.value); }} className="px-2 py-1.5 border border-gray-200 rounded text-xs" title="Date début" />
-        <input type="date" value={dateEnd} onChange={e => { userAdjustedDates.current = true; setDateEnd(e.target.value || new Date().toISOString().slice(0, 10)); }} className="px-2 py-1.5 border border-gray-200 rounded text-xs" title="Date fin" />
-        {dateFilteredStats ? (
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-2 py-1.5 border border-gray-200 rounded text-xs">
-          <option value="">Tous les statuts</option>
-          {dateFilteredStats.avancementDist.map(d => (
-            <option key={d.label} value={d.label}>{d.label} ({d.count})</option>
-          ))}
-        </select>
-        ) : null}
-        <input type="text" value={filterSearch} onChange={e => setFilterSearch(e.target.value)} placeholder="Mot-clé…" className="px-2 py-1.5 border border-gray-200 rounded text-xs w-full sm:w-auto sm:min-w-[180px]" />
-        <button onClick={resetFilters} className={`ml-auto px-3 py-1.5 rounded-lg text-xs transition-colors ${isFiltered ? 'bg-[#DC2626] text-white hover:bg-[#B91C1C]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{isFiltered ? 'Effacer' : 'Filtres'}</button>
-      </div>
 
-      {/* Filtres chips */}
-      {isFiltered ? (
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          {filterStatus ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-              {filterStatus}
-              <button onClick={() => setFilterStatus('')} className="ml-0.5 hover:text-blue-900 font-bold">×</button>
-            </span>
+      {/* Filters */}
+      <Card className="p-4 mb-6">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <input type="date" value={dateStart} onChange={e => { userAdjustedDates.current = true; setDateStart(e.target.value); }}
+            className="h-8 px-2.5 border border-border rounded-lg text-xs bg-white hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none transition-colors" title="Date début" />
+          <input type="date" value={dateEnd} onChange={e => { userAdjustedDates.current = true; setDateEnd(e.target.value || new Date().toISOString().slice(0, 10)); }}
+            className="h-8 px-2.5 border border-border rounded-lg text-xs bg-white hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none transition-colors" title="Date fin" />
+          {dateFilteredStats ? (
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+              className="h-8 px-2.5 border border-border rounded-lg text-xs bg-white hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none transition-colors cursor-pointer">
+              <option value="">Tous les statuts</option>
+              {dateFilteredStats.avancementDist.map(d => (
+                <option key={d.label} value={d.label}>{d.label} ({d.count})</option>
+              ))}
+            </select>
           ) : null}
-          {filterNature ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">
-              {filterNature}
-              <button onClick={() => setFilterNature('')} className="ml-0.5 hover:text-purple-900 font-bold">×</button>
-            </span>
-          ) : null}
-          {filterType ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
-              {filterType}
-              <button onClick={() => setFilterType('')} className="ml-0.5 hover:text-amber-900 font-bold">×</button>
-            </span>
-          ) : null}
-          {filterSite ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
-              {filterSite}
-              <button onClick={() => setFilterSite('')} className="ml-0.5 hover:text-green-900 font-bold">×</button>
-            </span>
-          ) : null}
-          {filterDemandeur ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 text-rose-700 rounded-full text-xs font-medium">
-              {filterDemandeur}
-              <button onClick={() => setFilterDemandeur('')} className="ml-0.5 hover:text-rose-900 font-bold">×</button>
-            </span>
-          ) : null}
-          {filterBanc.map(b => (
-            <span key={b} className="inline-flex items-center gap-1 px-2.5 py-1 bg-cyan-50 text-cyan-700 rounded-full text-xs font-medium">
-              {b}
-              <button onClick={() => setFilterBanc(filterBanc.filter(v => v !== b))} className="ml-0.5 hover:text-cyan-900 font-bold">×</button>
-            </span>
-          ))}
-          {filterDateDepot.map(d => (
-            <span key={d} className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium">
-              {d}
-              <button onClick={() => setFilterDateDepot(filterDateDepot.filter(v => v !== d))} className="ml-0.5 hover:text-indigo-900 font-bold">×</button>
-            </span>
-          ))}
-          {((dateStart && dateStart !== defaultDateStart) || (dateEnd && dateEnd !== defaultDateEnd)) ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-              {dateStart.split('-').reverse().join('/')} → {dateEnd.split('-').reverse().join('/')}
-              <button onClick={() => { setDateStart(defaultDateStart); setDateEnd(defaultDateEnd); }} className="ml-0.5 hover:text-blue-900 font-bold">×</button>
-            </span>
-          ) : null}
+          <input type="text" value={filterSearch} onChange={e => setFilterSearch(e.target.value)} placeholder="Mot-clé…"
+            className="h-8 px-2.5 border border-border rounded-lg text-xs w-full sm:w-auto sm:min-w-[180px] bg-white placeholder:text-text-muted hover:border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none transition-colors" />
+          <Button
+            variant={isFiltered ? 'danger' : 'ghost'}
+            size="sm"
+            onClick={resetFilters}
+            className="ml-auto"
+          >
+            {isFiltered ? <><X size={14} /> Effacer</> : 'Filtres'}
+          </Button>
         </div>
-      ) : null}
 
-      {loading ? <DashboardSkeleton /> : error && !dashboardData ? (
-        <div className="text-center py-12">
-          <p className="text-red-500 text-sm mb-3">{error}</p>
-          <button onClick={() => refreshData()} className="px-4 py-2 bg-[#0A66C2] text-white rounded-lg text-sm">Réessayer</button>
+        {/* Active filter chips */}
+        {isFiltered && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-border-light">
+            {filterStatus && (
+              <FilterChip label={filterStatus} color="primary" onRemove={() => setFilterStatus('')} />
+            )}
+            {filterNature && (
+              <FilterChip label={filterNature} color="primary" onRemove={() => setFilterNature('')} />
+            )}
+            {filterType && (
+              <FilterChip label={filterType} color="primary" onRemove={() => setFilterType('')} />
+            )}
+            {filterSite && (
+              <FilterChip label={filterSite} color="primary" onRemove={() => setFilterSite('')} />
+            )}
+            {filterDemandeur && (
+              <FilterChip label={filterDemandeur} color="primary" onRemove={() => setFilterDemandeur('')} />
+            )}
+            {filterBanc.map(b => (
+              <FilterChip key={b} label={b} color="primary" onRemove={() => setFilterBanc(filterBanc.filter(v => v !== b))} />
+            ))}
+            {filterDateDepot.map(d => (
+              <FilterChip key={d} label={d} color="primary" onRemove={() => setFilterDateDepot(filterDateDepot.filter(v => v !== d))} />
+            ))}
+            {((dateStart && dateStart !== defaultDateStart) || (dateEnd && dateEnd !== defaultDateEnd)) && (
+              <FilterChip
+                label={`${dateStart.split('-').reverse().join('/')} → ${dateEnd.split('-').reverse().join('/')}`}
+                color="primary"
+                onRemove={() => { setDateStart(defaultDateStart); setDateEnd(defaultDateEnd); }}
+              />
+            )}
+          </div>
+        )}
+      </Card>
+
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-surface-elevated rounded-xl border border-border p-4">
+              <Skeleton className="h-3 w-20 mb-3" />
+              <Skeleton className="h-8 w-24 mb-2" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+          ))}
         </div>
+      ) : error && !dashboardData ? (
+        <Card className="text-center py-12">
+          <p className="text-danger text-sm mb-3">{error}</p>
+          <Button onClick={() => refreshData()}>Réessayer</Button>
+        </Card>
       ) : !allStats ? (
-        <div className="text-center py-12 text-gray-400">
-          <div className="text-5xl mb-3">🕐</div>
-          <p className="text-sm">En attente de synchronisation</p>
-        </div>
+        <Card className="text-center py-12">
+          <div className="text-text-muted mb-3"><Clock size={40} /></div>
+          <p className="text-sm text-text-secondary">En attente de synchronisation</p>
+        </Card>
       ) : !stats ? (
-        <div className="text-center py-12 text-gray-400">
-          <p className="text-sm">Aucun résultat pour les filtres sélectionnés</p>
-          <button onClick={resetFilters} className="mt-3 px-4 py-2 bg-[#0A66C2] text-white rounded-lg text-sm">Réinitialiser les filtres</button>
-        </div>
+        <Card className="text-center py-12">
+          <p className="text-sm text-text-secondary">Aucun résultat pour les filtres sélectionnés</p>
+          <Button onClick={resetFilters} className="mt-3">Réinitialiser les filtres</Button>
+        </Card>
       ) : (
         <>
-          {/* Health Score — intégré dans Insights ci-dessus */}
-
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
             {[
-              { label: 'Total rapports', value: total, color: '#0A66C2' },
-              { label: 'Total traitements', value: totalTraitements, color: '#7C3AED' },
-              { label: 'Conf. 1ère diffusion', value: `${stats.tauxConf1}%`, color: stats.tauxConf1 >= 80 ? '#10B981' : stats.tauxConf1 >= 60 ? '#F59E0B' : '#EF4444' },
-              { label: 'Conf. vérification', value: `${stats.tauxConfDem}%`, color: stats.tauxConfDem >= 80 ? '#10B981' : stats.tauxConfDem >= 60 ? '#F59E0B' : '#EF4444' },
-              { label: 'J+0', value: `${stats.duree.zeroPct}%`, color: stats.duree.zeroPct >= 90 ? '#10B981' : stats.duree.zeroPct >= 70 ? '#F59E0B' : '#EF4444' },
-              { label: 'Écart moyen', value: `${stats.ecart.avg > 0 ? '+' : ''}${stats.ecart.avg}j`, color: stats.ecart.avg <= 0 ? '#10B981' : stats.ecart.avg <= 3 ? '#F59E0B' : '#EF4444' },
+              { label: 'Total rapports', value: total, color: 'text-primary' },
+              { label: 'Total traitements', value: totalTraitements, color: 'text-purple-600' },
+              { label: 'Conf. 1ère diffusion', value: `${stats.tauxConf1}%`, color: stats.tauxConf1 >= 80 ? 'text-success' : stats.tauxConf1 >= 60 ? 'text-warning' : 'text-danger' },
+              { label: 'Conf. vérification', value: `${stats.tauxConfDem}%`, color: stats.tauxConfDem >= 80 ? 'text-success' : stats.tauxConfDem >= 60 ? 'text-warning' : 'text-danger' },
+              { label: 'J+0', value: `${stats.duree.zeroPct}%`, color: stats.duree.zeroPct >= 90 ? 'text-success' : stats.duree.zeroPct >= 70 ? 'text-warning' : 'text-danger' },
+              { label: 'Écart moyen', value: `${stats.ecart.avg > 0 ? '+' : ''}${stats.ecart.avg}j`, color: stats.ecart.avg <= 0 ? 'text-success' : stats.ecart.avg <= 3 ? 'text-warning' : 'text-danger' },
             ].map(kpi => (
-              <div key={kpi.label} className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-                <p className="text-xs text-gray-500 mb-1">{kpi.label}</p>
-                <p className="text-2xl font-bold" style={{ color: kpi.color }}>{kpi.value}</p>
-              </div>
+              <Card key={kpi.label} className="p-4 text-center">
+                <p className="text-xs text-text-muted mb-1">{kpi.label}</p>
+                <p className={cn("text-2xl font-bold", kpi.color)}>{kpi.value}</p>
+              </Card>
             ))}
           </div>
 
           {/* Insights */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+          <Card className="p-5 mb-6">
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <div className="w-full md:w-[55%] shrink-0">
                 {isFiltered && (
-                  <div className="text-[10px] text-gray-400 mb-1 pl-1">
+                  <div className="text-[10px] text-text-muted mb-1 pl-1">
                     {total.toLocaleString()} rapport{total > 1 ? 's' : ''} filtré{total > 1 ? 's' : ''} sur {dateOnlyItems.length.toLocaleString()}
                     {((dateStart && dateStart !== defaultDateStart) || (dateEnd && dateEnd !== defaultDateEnd)) && (
                       <span> — {dateStart.split('-').reverse().join('/')} → {dateEnd.split('-').reverse().join('/')}</span>
@@ -888,10 +904,10 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
                   const isDateFiltered = (dateStart && dateStart !== defaultDateStart) || (dateEnd && dateEnd !== defaultDateEnd);
                   items.push(
                     <div key="filtered" className="flex items-start gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#0A66C2] shrink-0 mt-[5px]"></span>
-                      <span className="text-xs text-gray-700 leading-relaxed">
+                      <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-[5px]"></span>
+                      <span className="text-xs text-text-secondary leading-relaxed">
                         <strong>{filterLabel}</strong> : {total.toLocaleString()} rapport{total > 1 ? 's' : ''}
-                        <span className="text-gray-400"> ({pct}% des {totalAll.toLocaleString()} rapports{isDateFiltered ? ' en date' : ''})</span>
+                        <span className="text-text-muted"> ({pct}% des {totalAll.toLocaleString()} rapports{isDateFiltered ? ' en date' : ''})</span>
                       </span>
                     </div>
                   );
@@ -1079,7 +1095,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
               })()}
           </div>
           </div>
-        </div>
+        </Card>
 
           {/* Avancement & Type */}
           {stats.avancementDist.length > 0 && stats.typeDist.length > 0 ? (
@@ -1129,62 +1145,62 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
           ) : null}
 
           {/* Data Table */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-              <h3 className="text-sm font-semibold text-gray-700">Données détaillées</h3>
+          <Card className="overflow-hidden">
+            <div className="px-5 py-4 border-b border-border-light">
+              <h3 className="text-sm font-semibold text-text-primary">Données détaillées</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-gray-50 text-gray-500 text-[10px]">
-                    <th className="text-left p-2 font-semibold w-8 align-top">#</th>
-                    <th className="text-left p-2 font-semibold align-top">
+                  <tr className="bg-surface text-text-muted text-[10px]">
+                    <th className="text-left p-2.5 font-semibold w-8 align-top">#</th>
+                    <th className="text-left p-2.5 font-semibold align-top">
                       <div className="flex items-center gap-1 mb-1">
                         <span>Dépôt</span>
                         <MultiSelect label="Dates" options={columnOptions.dates} selected={filterDateDepot} onChange={setFilterDateDepot} />
                       </div>
                     </th>
-                    <th className="text-left p-2 font-semibold max-md:hidden align-top">
+                    <th className="text-left p-2.5 font-semibold max-md:hidden align-top">
                       <div className="flex items-center gap-1 mb-1">
                         <span>Site</span>
                         <select value={filterSite} onChange={e => setFilterSite(e.target.value)}
-                          className="text-[10px] font-normal text-gray-600 bg-white border border-gray-200 rounded px-1 py-0.5 cursor-pointer hover:border-gray-300 focus:border-blue-300 focus:outline-none max-w-[100px]">
+                          className="text-[10px] font-normal text-text-secondary bg-white border border-border rounded-md px-1 py-0.5 cursor-pointer hover:border-gray-300 focus:border-primary focus:outline-none max-w-[100px]">
                           <option value="">Tous</option>
                           {columnOptions.site.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                       </div>
                     </th>
-                    <th className="text-left p-2 font-semibold max-md:hidden align-top">
+                    <th className="text-left p-2.5 font-semibold max-md:hidden align-top">
                       <div className="flex items-center gap-1 mb-1">
                         <span>Demand.</span>
                         <select value={filterDemandeur} onChange={e => setFilterDemandeur(e.target.value)}
-                          className="text-[10px] font-normal text-gray-600 bg-white border border-gray-200 rounded px-1 py-0.5 cursor-pointer hover:border-gray-300 focus:border-blue-300 focus:outline-none max-w-[100px]">
+                          className="text-[10px] font-normal text-text-secondary bg-white border border-border rounded-md px-1 py-0.5 cursor-pointer hover:border-gray-300 focus:border-primary focus:outline-none max-w-[100px]">
                           <option value="">Tous</option>
                           {columnOptions.demandeur.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                       </div>
                     </th>
-                    <th className="text-left p-2 font-semibold align-top">
+                    <th className="text-left p-2.5 font-semibold align-top">
                       <div className="flex items-center gap-1 mb-1">
                         <span>N°</span>
                         <MultiSelect label="N°" options={columnOptions.banc} selected={filterBanc} onChange={setFilterBanc} />
                       </div>
                     </th>
-                    <th className="text-left p-2 font-semibold align-top">
+                    <th className="text-left p-2.5 font-semibold align-top">
                       <div className="flex items-center gap-1 mb-1">
                         <span>Nature</span>
                         <select value={filterNature} onChange={e => setFilterNature(e.target.value)}
-                          className="text-[10px] font-normal text-gray-600 bg-white border border-gray-200 rounded px-1 py-0.5 cursor-pointer hover:border-gray-300 focus:border-blue-300 focus:outline-none max-w-[110px]">
+                          className="text-[10px] font-normal text-text-secondary bg-white border border-border rounded-md px-1 py-0.5 cursor-pointer hover:border-gray-300 focus:border-primary focus:outline-none max-w-[110px]">
                           <option value="">Toutes</option>
                           {columnOptions.nature.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                       </div>
                     </th>
-                    <th className="text-left p-2 font-semibold align-top">
+                    <th className="text-left p-2.5 font-semibold align-top">
                       <div className="flex items-center gap-1 mb-1">
                         <span>Status</span>
                         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                          className="text-[10px] font-normal text-gray-600 bg-white border border-gray-200 rounded px-1 py-0.5 cursor-pointer hover:border-gray-300 focus:border-blue-300 focus:outline-none max-w-[110px]">
+                          className="text-[10px] font-normal text-text-secondary bg-white border border-border rounded-md px-1 py-0.5 cursor-pointer hover:border-gray-300 focus:border-primary focus:outline-none max-w-[110px]">
                           <option value="">Tous</option>
                           {columnOptions.status.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
@@ -1208,12 +1224,16 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
                     }
 
                     return (
-                      <tr key={i} className={`border-t border-gray-50 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'} hover:bg-blue-50/40`}>
-                        <td className="p-3 text-gray-400 font-mono text-[11px]">{item._row || i + 1}</td>
-                        <td className="p-3 font-medium text-gray-700 text-[11px]">
+                      <tr key={i} className={cn(
+                        "border-t border-border-light transition-colors",
+                        i % 2 === 0 ? 'bg-white' : 'bg-surface/50',
+                        'hover:bg-primary-50/40'
+                      )}>
+                        <td className="p-3 text-text-muted font-mono text-[11px]">{item._row || i + 1}</td>
+                        <td className="p-3 font-medium text-text-primary text-[11px]">
                           {(() => {
                             const raw = item[tableHeaders.date];
-                            if (!raw) return <span className="text-gray-300">—</span>;
+                            if (!raw) return <span className="text-text-muted">—</span>;
                             const dates = excelAllDates(raw);
                             return dates.map((d, di) => {
                               const dd = String(d.getDate()).padStart(2, '0');
@@ -1223,68 +1243,72 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
                               const active = filterDateDepot.includes(key);
                               return (
                                 <button key={di} onClick={() => setFilterDateDepot(active ? filterDateDepot.filter(v => v !== key) : [...filterDateDepot, key])}
-                                  className={`inline-block mr-1 mb-0.5 px-1.5 py-[1px] rounded text-[10px] font-medium border transition-all cursor-pointer ${
+                                  className={cn(
+                                    "inline-block mr-1 mb-0.5 px-1.5 py-[1px] rounded text-[10px] font-medium border transition-all cursor-pointer",
                                     active
-                                      ? 'bg-indigo-100 text-indigo-700 border-indigo-200 ring-1 ring-indigo-200'
-                                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-200 hover:text-indigo-600'
-                                  }`}>{key}</button>
+                                      ? 'bg-primary-50 text-primary border-primary-200 ring-1 ring-primary-200'
+                                      : 'bg-white text-text-secondary border-border hover:border-primary/30 hover:text-primary'
+                                  )}>{key}</button>
                               );
                             });
                           })()}
                         </td>
-                        <td className={`max-md:hidden`}>
+                        <td className="max-md:hidden">
                           {site ? (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 ${
+                            <span className={cn(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer transition-all hover:ring-2 hover:ring-offset-1",
                               ['carrières','carriere'].some(s => site.toLowerCase().includes(s)) ? 'bg-orange-50 text-orange-700 hover:ring-orange-200' :
                               ['issy'].some(s => site.toLowerCase().includes(s)) ? 'bg-cyan-50 text-cyan-700 hover:ring-cyan-200' :
                               ['paris'].some(s => site.toLowerCase().includes(s)) ? 'bg-blue-50 text-blue-700 hover:ring-blue-200' :
                               ['lyon'].some(s => site.toLowerCase().includes(s)) ? 'bg-rose-50 text-rose-700 hover:ring-rose-200' :
-                              'bg-gray-100 text-gray-600 hover:ring-gray-200'
-                            }`}
+                              'bg-surface-hover text-text-secondary hover:ring-gray-200'
+                            )}
                               onClick={() => setFilterSite(site === filterSite ? '' : site)}>{site}</span>
-                          ) : <span className="p-3 text-gray-300">—</span>}
+                          ) : <span className="text-text-muted">—</span>}
                         </td>
-                        <td className={`max-md:hidden`}>
+                        <td className="max-md:hidden">
                           {demandeur ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium text-gray-600 bg-gray-100/80 cursor-pointer hover:bg-rose-100 hover:text-rose-700 transition-all"
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium text-text-secondary bg-surface-hover cursor-pointer hover:bg-rose-100 hover:text-rose-700 transition-all"
                               onClick={() => setFilterDemandeur(demandeur === filterDemandeur ? '' : demandeur)}>{demandeur}</span>
-                          ) : <span className="p-3 text-gray-300">—</span>}
+                          ) : <span className="text-text-muted">—</span>}
                         </td>
-                        <td className={`p-3`}>
+                        <td className="p-3">
                           {item[tableHeaders.banc] ? (
-                            <span className="font-mono text-gray-500 text-[11px] cursor-pointer hover:text-cyan-700 transition-colors"
+                            <span className="font-mono text-text-secondary text-[11px] cursor-pointer hover:text-primary transition-colors"
                               onClick={() => setFilterBanc(filterBanc.includes(item[tableHeaders.banc]) ? filterBanc.filter(v => v !== item[tableHeaders.banc]) : [...filterBanc, item[tableHeaders.banc]])}>{item[tableHeaders.banc]}</span>
-                          ) : <span className="text-gray-300">—</span>}
+                          ) : <span className="text-text-muted">—</span>}
                         </td>
-                        <td className={`p-3`}>
+                        <td className="p-3">
                           {nature ? (
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium cursor-pointer transition-all hover:ring-2 hover:ring-offset-1`}
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium cursor-pointer transition-all hover:ring-2 hover:ring-offset-1"
                               style={{ backgroundColor: getColor(natureColors, nature) + '18', color: getColor(natureColors, nature) }}
                               onClick={() => setFilterNature(nature === filterNature ? '' : nature)}>
                               <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: getColor(natureColors, nature) }}></span>
                               {nature}
                             </span>
-                          ) : <span className="p-3 text-gray-300">—</span>}
+                          ) : <span className="text-text-muted">—</span>}
                         </td>
-                        <td className={`p-3 cursor-pointer`} onClick={() => setFilterStatus(avancement === filterStatus ? '' : avancement)}>
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium transition-all hover:ring-2 hover:ring-offset-1 ${
-                            /termine|sold|clotur/i.test(avancement) ? 'bg-emerald-50 text-emerald-700 hover:ring-emerald-200' :
-                            /en.cours|instruction/i.test(avancement) ? 'bg-amber-50 text-amber-700 hover:ring-amber-200' :
-                            /nouvelle?|a.traiter|reouverte/i.test(avancement) ? 'bg-blue-50 text-blue-700 hover:ring-blue-200' :
-                            /attente|suspend/i.test(avancement) ? 'bg-slate-100 text-slate-600 hover:ring-slate-200' :
-                            /annul/i.test(avancement) ? 'bg-red-50 text-red-600 hover:ring-red-200' :
+                        <td className="p-3 cursor-pointer" onClick={() => setFilterStatus(avancement === filterStatus ? '' : avancement)}>
+                          <span className={cn(
+                            "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium transition-all hover:ring-2 hover:ring-offset-1",
+                            /termine|sold|clotur/i.test(avancement) ? 'bg-success-light text-emerald-700 hover:ring-emerald-200' :
+                            /en.cours|instruction/i.test(avancement) ? 'bg-warning-light text-amber-700 hover:ring-amber-200' :
+                            /nouvelle?|a.traiter|reouverte/i.test(avancement) ? 'bg-primary-50 text-primary hover:ring-primary-200' :
+                            /attente|suspend/i.test(avancement) ? 'bg-surface-hover text-text-secondary hover:ring-gray-200' :
+                            /annul/i.test(avancement) ? 'bg-danger-light text-red-600 hover:ring-red-200' :
                             /valide/i.test(avancement) ? 'bg-teal-50 text-teal-700 hover:ring-teal-200' :
-                            'bg-gray-100 text-gray-600 hover:ring-gray-200'
-                          }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full inline-block ${
-                              /termine|sold|clotur/i.test(avancement) ? 'bg-emerald-500' :
-                              /en.cours|instruction/i.test(avancement) ? 'bg-amber-500' :
-                              /nouvelle?|a.traiter|reouverte/i.test(avancement) ? 'bg-blue-500' :
-                              /attente|suspend/i.test(avancement) ? 'bg-slate-400' :
-                              /annul/i.test(avancement) ? 'bg-red-500' :
+                            'bg-surface-hover text-text-secondary hover:ring-gray-200'
+                          )}>
+                            <span className={cn(
+                              "w-1.5 h-1.5 rounded-full inline-block",
+                              /termine|sold|clotur/i.test(avancement) ? 'bg-success' :
+                              /en.cours|instruction/i.test(avancement) ? 'bg-warning' :
+                              /nouvelle?|a.traiter|reouverte/i.test(avancement) ? 'bg-primary' :
+                              /attente|suspend/i.test(avancement) ? 'bg-text-muted' :
+                              /annul/i.test(avancement) ? 'bg-danger' :
                               /valide/i.test(avancement) ? 'bg-teal-500' :
-                              'bg-gray-400'
-                            }`}></span>
+                              'bg-text-muted'
+                            )}></span>
                             {avancement}
                           </span>
                         </td>
@@ -1294,7 +1318,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
                 </tbody>
               </table>
               {filteredItems.length > PAGE_SIZE && (
-                <div className="p-3 flex items-center justify-between text-xs text-gray-500 border-t border-gray-100">
+                <div className="px-5 py-3 flex items-center justify-between text-xs text-text-muted border-t border-border-light">
                   <span>
                     {tablePage * PAGE_SIZE + 1}–{Math.min((tablePage + 1) * PAGE_SIZE, filteredItems.length)} sur {filteredItems.length.toLocaleString()}
                   </span>
@@ -1302,31 +1326,31 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
                     <button
                       disabled={tablePage === 0}
                       onClick={() => setTablePage(0)}
-                      className="px-2 py-1 rounded border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                    >«</button>
+                      className="p-1.5 rounded-md border border-border disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-hover transition-colors cursor-pointer"
+                    ><ChevronsLeft size={14} /></button>
                     <button
                       disabled={tablePage === 0}
                       onClick={() => setTablePage(p => p - 1)}
-                      className="px-2 py-1 rounded border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                    >‹</button>
-                    <span className="px-2 py-1 text-gray-700 font-medium">
+                      className="p-1.5 rounded-md border border-border disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-hover transition-colors cursor-pointer"
+                    ><ChevronLeft size={14} /></button>
+                    <span className="px-2 py-1 text-text-primary font-medium">
                       {tablePage + 1} / {Math.ceil(filteredItems.length / PAGE_SIZE)}
                     </span>
                     <button
                       disabled={(tablePage + 1) * PAGE_SIZE >= filteredItems.length}
                       onClick={() => setTablePage(p => p + 1)}
-                      className="px-2 py-1 rounded border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                    >›</button>
+                      className="p-1.5 rounded-md border border-border disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-hover transition-colors cursor-pointer"
+                    ><ChevronRight size={14} /></button>
                     <button
                       disabled={(tablePage + 1) * PAGE_SIZE >= filteredItems.length}
                       onClick={() => setTablePage(Math.ceil(filteredItems.length / PAGE_SIZE) - 1)}
-                      className="px-2 py-1 rounded border border-gray-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                    >»</button>
+                      className="p-1.5 rounded-md border border-border disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-hover transition-colors cursor-pointer"
+                    ><ChevronsRight size={14} /></button>
                   </div>
                 </div>
               )}
             </div>
-          </div>
+          </Card>
         </>
       )}
     </div>
@@ -1338,13 +1362,22 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
 function CollapsibleSection({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 ${className}`}>
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-4 text-sm font-semibold text-gray-700">
+    <Card className={className}>
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between p-4 text-sm font-semibold text-text-primary cursor-pointer hover:bg-surface-hover rounded-xl transition-colors">
         {title}
-        <span className={`transition-transform ${open ? 'rotate-180' : ''}`}>▼</span>
+        <ChevronDown size={16} className={cn("text-text-muted transition-transform", open && 'rotate-180')} />
       </button>
-      {open && <div className="p-4 pt-0">{children}</div>}
-    </div>
+      {open && <div className="px-4 pb-4">{children}</div>}
+    </Card>
+  );
+}
+
+function FilterChip({ label, color, onRemove }: { label: string; color: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-50 text-primary rounded-full text-xs font-medium">
+      {label}
+      <button onClick={onRemove} className="ml-0.5 hover:text-primary-dark cursor-pointer"><X size={12} /></button>
+    </span>
   );
 }
 

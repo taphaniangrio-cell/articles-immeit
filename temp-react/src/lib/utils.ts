@@ -1,3 +1,10 @@
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
+}
+
 export function esc(str: string): string {
   const el = document.createElement('span');
   el.textContent = str;
@@ -62,4 +69,4 @@ export const SUGGESTED_HASHTAGS = [
 
 export const LINKEDIN_TARGET = 1500;
 export const PAGE_SIZE = 10;
-export const APP_VERSION = '160';
+export const APP_VERSION = '170';

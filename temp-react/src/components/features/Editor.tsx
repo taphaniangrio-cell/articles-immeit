@@ -2,10 +2,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '../../stores/appStore';
 import { articleApi, generateApi, imagesApi } from '../../lib/api';
 import { StatusBadge } from '../ui/Badge';
-import { formatHashtags, SUGGESTED_HASHTAGS, LINKEDIN_TARGET, formatForLinkedIn } from '../../lib/utils';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Modal } from '../ui/Modal';
+import { formatHashtags, SUGGESTED_HASHTAGS, LINKEDIN_TARGET, formatForLinkedIn, cn } from '../../lib/utils';
 import { useToast } from '../../contexts/ToastContext';
 import { useAutoSave } from '../../hooks/useAutoSave';
-import { Modal } from '../ui/Modal';
+import { ArrowLeft, Save, Check, Copy, Eye, Sparkles, Trash2, Archive, RotateCcw, Plus, FileText } from 'lucide-react';
 import type { Article, NewsItem } from '../../types';
 
 export function Editor({ article, onBack }: { article: Article | null; onBack: () => void }) {
@@ -245,19 +248,19 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   };
 
   const regenSuggestions = [
-    { label: '⚡ Accroche', text: 'Rends l\'accroche plus percutante' },
-    { label: '🌍 Exemple local', text: 'Ajoute un exemple concret africain' },
-    { label: '✂️ Raccourcir', text: 'Raccourcis de 20%' },
-    { label: '🎓 Plus expert', text: 'Rends le ton plus expert' },
-    { label: '📣 CTA fort', text: 'Améliore l\'appel à l\'action final' },
+    { label: 'Accroche', text: 'Rends l\'accroche plus percutante' },
+    { label: 'Exemple local', text: 'Ajoute un exemple concret africain' },
+    { label: 'Raccourcir', text: 'Raccourcis de 20%' },
+    { label: 'Plus expert', text: 'Rends le ton plus expert' },
+    { label: 'CTA fort', text: 'Améliore l\'appel à l\'action final' },
   ];
 
   if (!article && !editingId) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-400">
+      <div className="flex-1 flex items-center justify-center text-text-muted">
         <div className="text-center">
-          <div className="text-5xl mb-4">📄</div>
-          <p>Sélectionnez un article</p>
+          <FileText size={40} className="mx-auto mb-3 opacity-40" />
+          <p className="text-sm">Sélectionnez un article</p>
         </div>
       </div>
     );
@@ -266,20 +269,26 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   return (
     <div className="flex-1 flex flex-col min-w-0">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-gray-200 bg-white">
-        <button onClick={onBack} className="text-gray-400 hover:text-gray-600 text-sm">← Retour</button>
-        <input value={titre} onChange={e => { setTitre(e.target.value); markDirty(); }} placeholder="Titre interne…" className="flex-1 text-lg font-semibold border-none outline-none bg-transparent" />
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface-elevated shrink-0">
+        <button onClick={onBack} className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer">
+          <ArrowLeft size={18} />
+        </button>
+        <input value={titre} onChange={e => { setTitre(e.target.value); markDirty(); }} placeholder="Titre interne…"
+          className="flex-1 text-base font-semibold border-none outline-none bg-transparent text-text-primary placeholder:text-text-muted" />
         <StatusBadge status={statut} />
       </div>
 
       {/* Status bar */}
       {statut !== 'archive' && (
-        <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs">
+        <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-surface border-b border-border-light text-xs">
           {['brouillon', 'en_revision', 'valide', 'publie'].map((s, i) => (
             <React.Fragment key={s}>
-              {i > 0 && <span className="text-gray-300">→</span>}
-              <span className={`flex items-center gap-1 ${statut === s ? 'text-[#0A66C2] font-medium' : statut === 'publie' ? 'text-green-600' : 'text-gray-400'}`}>
-                {s === statut && '●'} {s === 'publie' ? '✓' : ''} {s.replace('_', ' ')}
+              {i > 0 && <span className="text-text-muted">→</span>}
+              <span className={cn(
+                "flex items-center gap-1",
+                statut === s ? 'text-primary font-medium' : statut === 'publie' ? 'text-success' : 'text-text-muted'
+              )}>
+                {statut === s && '●'} {s.replace('_', ' ')}
               </span>
             </React.Fragment>
           ))}
@@ -289,146 +298,199 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
       {/* Body */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Images */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <Card className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-gray-500 uppercase">Illustrations</span>
+            <span className="text-xs font-medium text-text-muted uppercase">Illustrations</span>
             <div className="flex gap-1">
-              <button onClick={() => setImageSearchOpen(true)} className="text-xs px-2 py-1 bg-gray-100 rounded-md hover:bg-gray-200">+ Ajouter</button>
+              <button onClick={() => setImageSearchOpen(true)}
+                className="text-xs px-2 py-1 bg-surface-hover rounded-md hover:bg-surface-active text-text-secondary transition-colors cursor-pointer">
+                <Plus size={12} className="inline" /> Ajouter
+              </button>
               {selectedImage >= 0 && (
                 <button onClick={() => {
                   setImages(prev => prev.filter((_, i) => i !== selectedImage));
                   setSelectedImage(-1);
                   markDirty();
-                }} className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded-md hover:bg-red-100">🗑</button>
+                }} className="text-xs px-2 py-1 bg-danger-light text-danger rounded-md hover:bg-danger/10 transition-colors cursor-pointer">
+                  <Trash2 size={12} />
+                </button>
               )}
             </div>
           </div>
           <div className="flex gap-2 overflow-x-auto">
             {images.length === 0 ? (
-              <p className="text-xs text-gray-400">Aucune illustration</p>
+              <p className="text-xs text-text-muted">Aucune illustration</p>
             ) : (
               images.map((img, i) => (
-                <img key={i} src={img.thumbnail || img.url} alt="" className={`h-20 rounded-lg cursor-pointer border-2 transition-all ${selectedImage === i ? 'border-[#0A66C2]' : 'border-transparent hover:border-gray-300'}`} onClick={() => setSelectedImage(i)} />
+                <img key={i} src={img.thumbnail || img.url} alt=""
+                  className={cn(
+                    "h-20 rounded-lg cursor-pointer border-2 transition-all",
+                    selectedImage === i ? 'border-primary' : 'border-transparent hover:border-gray-300'
+                  )}
+                  onClick={() => setSelectedImage(i)} />
               ))
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Accroches */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <Card className="p-4">
           <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
             {(['a', 'b'] as const).map(letter => (
-              <label key={letter} className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${accrocheActive === letter ? 'border-[#0A66C2] bg-blue-50/50' : 'border-gray-200 hover:border-gray-300'}`}>
+              <label key={letter} className={cn(
+                "p-3 rounded-xl border-2 cursor-pointer transition-all",
+                accrocheActive === letter ? 'border-primary bg-primary-50/50' : 'border-border hover:border-gray-300'
+              )}>
                 <div className="flex items-center gap-2 mb-2">
-                  <input type="radio" name="accroche" checked={accrocheActive === letter} onChange={() => handleAccrocheSelect(letter)} className="accent-[#0A66C2]" />
+                  <input type="radio" name="accroche" checked={accrocheActive === letter} onChange={() => handleAccrocheSelect(letter)} className="accent-primary" />
                   <span className="text-xs font-medium">{letter === 'a' ? 'Directe / Choc' : 'Question / Réflexion'}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${letter === 'a' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{letter === 'a' ? 'A' : 'B'}</span>
+                  <span className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded-full",
+                    letter === 'a' ? 'bg-primary-100 text-primary' : 'bg-purple-100 text-purple-700'
+                  )}>{letter === 'a' ? 'A' : 'B'}</span>
                 </div>
-                <textarea value={letter === 'a' ? accrocheA : accrocheB} onChange={e => { letter === 'a' ? setAccrocheA(e.target.value) : setAccrocheB(e.target.value); markDirty(); }} className="w-full text-sm border-0 outline-none resize-none bg-transparent" rows={2} placeholder="Accroche…" />
+                <textarea value={letter === 'a' ? accrocheA : accrocheB}
+                  onChange={e => { letter === 'a' ? setAccrocheA(e.target.value) : setAccrocheB(e.target.value); markDirty(); }}
+                  className="w-full text-sm border-0 outline-none resize-none bg-transparent text-text-primary placeholder:text-text-muted" rows={2} placeholder="Accroche…" />
               </label>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Corps */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <label className="text-xs font-medium text-gray-500 uppercase mb-2 block">Corps de l'article</label>
-          <textarea value={corps} onChange={e => { setCorps(e.target.value); markDirty(); }} className="w-full min-h-[320px] text-sm border-0 outline-none resize-none" placeholder="Rédigez l'article ici…" />
-          <div className="flex justify-end gap-4 text-xs text-gray-400 mt-2">
-            <span className={charCount > 3000 ? 'text-red-600' : charCount > 2900 ? 'text-yellow-600' : ''}>{charCount} / 3000 car.</span>
+        <Card className="p-4">
+          <label className="text-xs font-medium text-text-muted uppercase mb-2 block">Corps de l'article</label>
+          <textarea value={corps} onChange={e => { setCorps(e.target.value); markDirty(); }}
+            className="w-full min-h-[320px] text-sm border-0 outline-none resize-none text-text-primary placeholder:text-text-muted" placeholder="Rédigez l'article ici…" />
+          <div className="flex justify-end gap-4 text-xs text-text-muted mt-2">
+            <span className={charCount > 3000 ? 'text-danger' : charCount > 2900 ? 'text-warning' : ''}>{charCount} / 3000 car.</span>
             <span>{wordCount} mots ({Math.round(wordCount / LINKEDIN_TARGET * 100)}% cible LinkedIn)</span>
           </div>
-        </div>
+        </Card>
 
         {/* Hashtags */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <label className="text-xs font-medium text-gray-500 uppercase mb-2 block">Hashtags</label>
-          <input value={hashtags} onChange={e => { setHashtags(e.target.value); markDirty(); }} placeholder="#maintenance #GMAO" className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0A66C2]" />
+        <Card className="p-4">
+          <label className="text-xs font-medium text-text-muted uppercase mb-2 block">Hashtags</label>
+          <input value={hashtags} onChange={e => { setHashtags(e.target.value); markDirty(); }} placeholder="#maintenance #GMAO"
+            className="w-full text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 bg-white text-text-primary placeholder:text-text-muted transition-colors" />
           <div className="flex flex-wrap gap-1 mt-2">
             {SUGGESTED_HASHTAGS.map(h => (
-              <button key={h} onClick={() => { if (!hashtags.includes(h)) { setHashtags(prev => `${prev} ${h}`.trim()); markDirty(); } }} className="text-xs px-2 py-1 bg-gray-100 rounded-full hover:bg-gray-200 text-gray-600">{h}</button>
+              <button key={h} onClick={() => { if (!hashtags.includes(h)) { setHashtags(prev => `${prev} ${h}`.trim()); markDirty(); } }}
+                className="text-xs px-2 py-1 bg-surface-hover rounded-full hover:bg-surface-active text-text-secondary transition-colors cursor-pointer">{h}</button>
             ))}
           </div>
-        </div>
+        </Card>
 
         {/* Meta panel */}
         <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <label className="text-xs font-medium text-gray-500 uppercase block mb-1">Source</label>
+          <Card className="p-4">
+            <label className="text-xs font-medium text-text-muted uppercase block mb-1">Source</label>
             {source ? (
-              <div className="text-sm text-gray-700 font-medium">{source}</div>
+              <div className="text-sm text-text-primary font-medium">{source}</div>
             ) : (
-              <input value={source} onChange={e => { setSource(e.target.value); markDirty(); }} placeholder="Ajouter une source…" className="w-full text-sm border-0 outline-none bg-transparent text-gray-400" />
+              <input value={source} onChange={e => { setSource(e.target.value); markDirty(); }} placeholder="Ajouter une source…"
+                className="w-full text-sm border-0 outline-none bg-transparent text-text-muted" />
             )}
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <label className="text-xs font-medium text-gray-500 uppercase block mb-1">IA / Modèle</label>
-            <div className="text-sm text-gray-600">{iaInfo || '—'}</div>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4 col-span-full">
-            <label className="text-xs font-medium text-gray-500 uppercase block mb-1">Dates</label>
-            <div className="text-sm text-gray-600">{dates || '—'}</div>
-          </div>
+          </Card>
+          <Card className="p-4">
+            <label className="text-xs font-medium text-text-muted uppercase block mb-1">IA / Modèle</label>
+            <div className="text-sm text-text-secondary">{iaInfo || '—'}</div>
+          </Card>
+          <Card className="p-4 col-span-full">
+            <label className="text-xs font-medium text-text-muted uppercase block mb-1">Dates</label>
+            <div className="text-sm text-text-secondary">{dates || '—'}</div>
+          </Card>
         </div>
       </div>
 
       {/* Action bar */}
-      <div className="flex items-center justify-between p-3 border-t border-gray-200 bg-white shrink-0">
+      <div className="flex items-center justify-between p-3 border-t border-border bg-surface-elevated shrink-0">
         <div className="flex flex-wrap gap-2">
-          <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-[#0A66C2] text-white rounded-lg text-sm font-medium hover:bg-[#084a8f] disabled:opacity-50">
-            {saving ? '⏳' : '↓'} Enregistrer
-          </button>
-          <button onClick={handleValidate} disabled={statut !== 'brouillon' && statut !== 'en_revision'} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-30">✓ Valider</button>
-          <button onClick={handlePublish} className="px-4 py-2 bg-[#0A66C2]/10 text-[#0A66C2] rounded-lg text-sm font-medium hover:bg-[#0A66C2]/20">⌘ Copier LinkedIn</button>
-          <button onClick={() => setPreviewOpen(true)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">👁 Aperçu</button>
-          <button onClick={() => setRegenOpen(true)} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700">✦ Régénérer</button>
+          <Button onClick={handleSave} disabled={saving} loading={saving} size="sm">
+            <Save size={14} />
+            Enregistrer
+          </Button>
+          <Button variant="success" onClick={handleValidate} disabled={statut !== 'brouillon' && statut !== 'en_revision'} size="sm">
+            <Check size={14} />
+            Valider
+          </Button>
+          <Button variant="secondary" onClick={handlePublish} size="sm">
+            <Copy size={14} />
+            Copier LinkedIn
+          </Button>
+          <Button variant="ghost" onClick={() => setPreviewOpen(true)} size="sm">
+            <Eye size={14} />
+            Aperçu
+          </Button>
+          <Button variant="secondary" onClick={() => setRegenOpen(true)} size="sm">
+            <Sparkles size={14} />
+            Régénérer
+          </Button>
         </div>
         <div className="flex gap-2">
           {statut === 'archive' ? (
-            <button onClick={handleRestore} className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800">Restaurer</button>
+            <Button variant="ghost" onClick={handleRestore} size="sm">
+              <RotateCcw size={14} />
+              Restaurer
+            </Button>
           ) : (
-            <button onClick={handleArchive} className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800">Archiver</button>
+            <Button variant="ghost" onClick={handleArchive} size="sm">
+              <Archive size={14} />
+              Archiver
+            </Button>
           )}
-          <button onClick={handleDelete} className="px-3 py-2 text-sm text-red-600 hover:text-red-800">Supprimer</button>
+          <Button variant="ghost" onClick={handleDelete} size="sm" className="text-danger hover:text-danger hover:bg-danger-light">
+            <Trash2 size={14} />
+            Supprimer
+          </Button>
         </div>
       </div>
 
       {/* Preview modal */}
-      <Modal open={previewOpen} onClose={() => setPreviewOpen(false)} title="👁 Aperçu LinkedIn">
-        <div className="prose prose-sm max-w-none">
-          {images[0] && <img src={images[0].url} alt="" className="w-full rounded-lg mb-4 max-h-64 object-cover" />}
-          <div className="whitespace-pre-wrap text-sm">{formatForLinkedIn(corps)}</div>
-          {hashtags && <p className="mt-4 text-[#0A66C2]">{formatHashtags(hashtags)}</p>}
+      <Modal open={previewOpen} onClose={() => setPreviewOpen(false)} title="Aperçu LinkedIn" size="lg">
+        <div className="space-y-4">
+          {images[0] && <img src={images[0].url} alt="" className="w-full rounded-xl max-h-64 object-cover" />}
+          <div className="whitespace-pre-wrap text-sm text-text-primary leading-relaxed">{formatForLinkedIn(corps)}</div>
+          {hashtags && <p className="text-primary font-medium">{formatHashtags(hashtags)}</p>}
         </div>
       </Modal>
 
       {/* Regen modal */}
-      <Modal open={regenOpen} onClose={() => setRegenOpen(false)} title="✦ Régénérer l'article">
+      <Modal open={regenOpen} onClose={() => setRegenOpen(false)} title="Régénérer l'article">
         <div className="space-y-3">
-          <textarea value={regenFeedback} onChange={e => setRegenFeedback(e.target.value)} className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-[#0A66C2]" rows={3} placeholder="Indiquez vos consignes de modification..." />
+          <textarea value={regenFeedback} onChange={e => setRegenFeedback(e.target.value)}
+            className="w-full border border-border rounded-xl p-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 bg-white text-text-primary placeholder:text-text-muted transition-colors"
+            rows={3} placeholder="Indiquez vos consignes de modification..." />
           <div className="flex flex-wrap gap-2">
             {regenSuggestions.map(s => (
-              <button key={s.label} onClick={() => setRegenFeedback(s.text)} className="text-xs px-3 py-1.5 bg-gray-100 rounded-full hover:bg-gray-200">{s.label}</button>
+              <button key={s.label} onClick={() => setRegenFeedback(s.text)}
+                className="text-xs px-3 py-1.5 bg-surface-hover rounded-full hover:bg-surface-active text-text-secondary transition-colors cursor-pointer">{s.label}</button>
             ))}
           </div>
-          <button onClick={handleRegen} disabled={generating || !regenFeedback} className="w-full py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-30">
+          <Button onClick={handleRegen} disabled={generating || !regenFeedback} loading={generating} className="w-full">
+            <Sparkles size={14} />
             {generating ? 'Génération...' : 'Confirmer la régénération'}
-          </button>
+          </Button>
         </div>
       </Modal>
 
       {/* Image search modal */}
-      <Modal open={imageSearchOpen} onClose={() => { setImageSearchOpen(false); setImageResults([]); setImageQuery(''); }} title="Rechercher une image">
+      <Modal open={imageSearchOpen} onClose={() => { setImageSearchOpen(false); setImageResults([]); setImageQuery(''); }} title="Rechercher une image" size="lg">
         <div className="space-y-3">
           <div className="flex gap-2">
-            <input value={imageQuery} onChange={e => setImageQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleImageSearch()} placeholder="Rechercher..." className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none" />
-            <button onClick={handleImageSearch} className="px-4 py-2 bg-[#0A66C2] text-white rounded-lg text-sm">Chercher</button>
+            <input value={imageQuery} onChange={e => setImageQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleImageSearch()}
+              placeholder="Rechercher..."
+              className="flex-1 h-9 px-3 text-sm border border-border rounded-lg bg-white placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/10 focus:outline-none transition-colors" />
+            <Button onClick={handleImageSearch}>Chercher</Button>
           </div>
           <div className="grid grid-cols-3 gap-2 max-h-80 overflow-y-auto">
             {imageResults.map((img, i) => (
-              <button key={i} onClick={() => { setImages(prev => [...prev, { url: img.url, thumbnail: img.thumbnail, photographer: img.photographer, photographer_url: img.photographer_url, alt: img.alt }]); setImageSearchOpen(false); setImageResults([]); setImageQuery(''); markDirty(); }} className="group relative">
-                <img src={img.thumbnail} alt="" className="w-full h-24 object-cover rounded-lg" />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg" />
+              <button key={i} onClick={() => {
+                setImages(prev => [...prev, { url: img.url, thumbnail: img.thumbnail, photographer: img.photographer, photographer_url: img.photographer_url, alt: img.alt }]);
+                setImageSearchOpen(false); setImageResults([]); setImageQuery(''); markDirty();
+              }} className="group relative cursor-pointer">
+                <img src={img.thumbnail} alt="" className="w-full h-24 object-cover rounded-xl" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-xl" />
               </button>
             ))}
           </div>

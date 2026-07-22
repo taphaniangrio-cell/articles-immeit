@@ -6,7 +6,7 @@ function getColor(colorMap: Record<string, string> | string[] | undefined, label
   return colorMap[label] || '#ddd';
 }
 
-export function GaugeChart({ value, max = 100, label, color = '#0A66C2' }: { value: number; max?: number; label: string; color?: string }) {
+export function GaugeChart({ value, max = 100, label, color = '#2563EB' }: { value: number; max?: number; label: string; color?: string }) {
   const pct = max > 0 ? Math.min(value / max, 1) : 0;
   const arcLen = Math.PI * 44;
   const offset = arcLen * (1 - pct);
@@ -14,13 +14,13 @@ export function GaugeChart({ value, max = 100, label, color = '#0A66C2' }: { val
   return (
     <div className="flex flex-col items-center">
       <svg width="130" height="120" viewBox="0 0 130 120">
-        <path d="M 15 65 A 44 44 0 0 1 115 65" fill="none" stroke="#e5e7eb" strokeWidth="16" strokeLinecap="round" />
+        <path d="M 15 65 A 44 44 0 0 1 115 65" fill="none" stroke="#E2E8F0" strokeWidth="16" strokeLinecap="round" />
         {pct > 0 && (
           <path d="M 15 65 A 44 44 0 0 1 115 65" fill="none" stroke={color} strokeWidth="16" strokeLinecap="round" strokeDasharray={arcLen} strokeDashoffset={offset} />
         )}
-        <text x="65" y="48" textAnchor="middle" fontSize="28" fontWeight="800" fill="#374151">{Math.round(pct * 100)}%</text>
+        <text x="65" y="48" textAnchor="middle" fontSize="28" fontWeight="800" fill="#0F172A">{Math.round(pct * 100)}%</text>
       </svg>
-      <span className="text-xs text-gray-500 mt-1">{label}</span>
+      <span className="text-xs text-text-muted mt-1">{label}</span>
     </div>
   );
 }
@@ -31,11 +31,11 @@ export function BarChart({ data, colorMap, onFilterClick }: { data: { label: str
     <div className="space-y-1.5">
       {data.map(d => (
         <div key={d.label} className={`flex items-center gap-2 ${onFilterClick ? 'cursor-pointer hover:opacity-80' : ''}`} onClick={() => onFilterClick?.(d.label)}>
-          <span className="text-xs text-gray-600 w-20 md:w-32 truncate shrink-0">{d.label}</span>
-          <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(d.count / maxCount) * 100}%`, backgroundColor: colorMap?.[d.label] || '#0A66C2' }} />
+          <span className="text-xs text-text-secondary w-20 md:w-32 truncate shrink-0">{d.label}</span>
+          <div className="flex-1 bg-surface-hover rounded-full h-5 overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(d.count / maxCount) * 100}%`, backgroundColor: colorMap?.[d.label] || '#2563EB' }} />
           </div>
-          <span className="text-xs text-gray-500 w-8 text-right shrink-0">{d.count}</span>
+          <span className="text-xs text-text-muted w-8 text-right shrink-0">{d.count}</span>
         </div>
       ))}
     </div>
@@ -70,16 +70,16 @@ export function DonutChart({ data, colorMap, onFilterClick }: { data: { label: s
           );
         })}
         <circle cx={cx} cy={cy} r={r * 0.55} fill="white" />
-        <text x={cx} y={cy - 3} textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="bold" fill="#374151">{total > 0 ? total : '—'}</text>
-        <text x={cx} y={cy + 9} textAnchor="middle" dominantBaseline="central" fontSize="7" fill="#9CA3AF">total</text>
+        <text x={cx} y={cy - 3} textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="bold" fill="#0F172A">{total > 0 ? total : '—'}</text>
+        <text x={cx} y={cy + 9} textAnchor="middle" dominantBaseline="central" fontSize="7" fill="#94A3B8">total</text>
       </svg>
       <div className="w-full mt-1 space-y-1">
         {data.map((d, i) => (
-          <div key={`${d.label}-${i}`} className={`flex items-center gap-1.5 text-[10px] text-gray-500 ${onFilterClick ? 'cursor-pointer hover:opacity-80' : ''}`} onClick={() => onFilterClick?.(d.label)}>
+          <div key={`${d.label}-${i}`} className={`flex items-center gap-1.5 text-[10px] text-text-muted ${onFilterClick ? 'cursor-pointer hover:opacity-80' : ''}`} onClick={() => onFilterClick?.(d.label)}>
             <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getColor(colorMap, d.label, i) }} />
             <span className="truncate flex-1">{d.label}</span>
-            <span className="font-medium">{total > 0 ? Math.round((d.count / total) * 100) : 0}%</span>
-            <span className="text-gray-400">{d.count}</span>
+            <span className="font-medium text-text-secondary">{total > 0 ? Math.round((d.count / total) * 100) : 0}%</span>
+            <span className="text-text-muted">{d.count}</span>
           </div>
         ))}
       </div>
@@ -103,8 +103,8 @@ export function LineChart({ data, maxMonth, minMonth, average }: { data: { month
       <svg viewBox={`0 0 ${svgW} ${h + labelH}`} className="w-full" preserveAspectRatio="xMidYMid meet">
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0A66C2" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#0A66C2" stopOpacity="0" />
+            <stop offset="0%" stopColor="#2563EB" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
           </linearGradient>
         </defs>
         <polygon fill={`url(#${gradId})`} points={`${edgePad},${h} ${points} ${edgePad + innerW},${h}`} />
@@ -114,22 +114,22 @@ export function LineChart({ data, maxMonth, minMonth, average }: { data: { month
             <text x={edgePad - 2} y={yScale(average) + 10} fontSize="7" fill="#F59E0B" fontWeight="600" textAnchor="end">{average}</text>
           </>
         )}
-        <polyline fill="none" stroke="#0A66C2" strokeWidth="2" points={points} />
+        <polyline fill="none" stroke="#2563EB" strokeWidth="2" points={points} />
         {data.map((d, i) => {
           const isMax = maxMonth && d.month === maxMonth;
           const isMin = minMonth && d.month === minMonth;
-          const color = isMax ? '#16A34A' : isMin ? '#DC2626' : '#0A66C2';
+          const color = isMax ? '#10B981' : isMin ? '#EF4444' : '#2563EB';
           const r = isMax || isMin ? 4.5 : 3;
           return <circle key={i} cx={edgePad + i * pw} cy={yScale(d.count)} r={r} fill={color} />;
         })}
         {data.map((d, i) => {
           const isMax = maxMonth && d.month === maxMonth;
           const isMin = minMonth && d.month === minMonth;
-          const color = isMax ? '#16A34A' : isMin ? '#DC2626' : '#374151';
+          const color = isMax ? '#10B981' : isMin ? '#EF4444' : '#0F172A';
           return <text key={`v${i}`} x={edgePad + i * pw} y={yScale(d.count) - 7} textAnchor="middle" fontSize="10" fontWeight="bold" fill={color}>{d.count}</text>;
         })}
         {data.map((d, i) => (
-          <text key={`l${i}`} x={edgePad + i * pw} y={h + 12} textAnchor="middle" fontSize="9" fill="#9CA3AF">{d.month}</text>
+          <text key={`l${i}`} x={edgePad + i * pw} y={h + 12} textAnchor="middle" fontSize="9" fill="#94A3B8">{d.month}</text>
         ))}
       </svg>
     </div>

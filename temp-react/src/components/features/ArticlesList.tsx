@@ -3,7 +3,9 @@ import { useStore } from '../../stores/appStore';
 import { articleApi } from '../../lib/api';
 import { StatusBadge } from '../ui/Badge';
 import { SkeletonCard } from '../ui/Skeleton';
-import { PAGE_SIZE, fmtDate } from '../../lib/utils';
+import { Button } from '../ui/Button';
+import { PAGE_SIZE, fmtDate, cn } from '../../lib/utils';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Article } from '../../types';
 
 export function ArticlesList({ onSelect }: { onSelect: (article: Article | null) => void }) {
@@ -20,17 +22,17 @@ export function ArticlesList({ onSelect }: { onSelect: (article: Article | null)
   const totalPages = Math.ceil(totalArticles / PAGE_SIZE);
 
   return (
-    <div className="w-80 shrink-0 border-r border-gray-200 bg-gray-50/50 flex flex-col max-md:w-full max-md:border-r-0">
-      <div className="p-3 border-b border-gray-100 bg-white">
-        <button
-          onClick={() => onSelect(null)}
-          className="w-full py-2.5 bg-[#0A66C2] text-white rounded-xl text-sm font-semibold hover:bg-[#084a8f] active:scale-[0.98] transition-all shadow-sm shadow-[#0A66C2]/20"
-        >
-          + Nouvel article
-        </button>
+    <div className="w-80 shrink-0 border-r border-border bg-surface flex flex-col max-md:w-full max-md:border-r-0">
+      {/* Header */}
+      <div className="p-3 border-b border-border-light bg-surface-elevated">
+        <Button onClick={() => onSelect(null)} className="w-full" size="md">
+          <Plus size={16} />
+          Nouvel article
+        </Button>
       </div>
 
-      <div className="flex gap-1 p-2 overflow-x-auto border-b border-gray-100 bg-white">
+      {/* Filter tabs */}
+      <div className="flex gap-1 p-2 overflow-x-auto border-b border-border-light bg-surface-elevated">
         {[
           { key: '', label: 'Tous' },
           { key: 'brouillon', label: 'Brouillon' },
@@ -42,20 +44,24 @@ export function ArticlesList({ onSelect }: { onSelect: (article: Article | null)
           <button
             key={tab.key}
             onClick={() => setFilter(tab.key as any)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-              filter === tab.key ? 'bg-[#0A66C2] text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
-            }`}
+            className={cn(
+              "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all cursor-pointer",
+              filter === tab.key
+                ? 'bg-primary text-white shadow-xs'
+                : 'bg-surface-hover text-text-secondary hover:bg-surface-active hover:text-text-primary'
+            )}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+      {/* Article list */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {loading ? (
           Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
         ) : articles.length === 0 ? (
-          <p className="text-center text-gray-400 text-sm py-8">Aucun article trouvé</p>
+          <p className="text-center text-text-muted text-sm py-8">Aucun article trouvé</p>
         ) : (
           articles.map(a => (
             <ArticleCard key={a.id} article={a} active={editingId === a.id} onClick={() => onSelect(a)} />
@@ -63,22 +69,23 @@ export function ArticlesList({ onSelect }: { onSelect: (article: Article | null)
         )}
       </div>
 
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between p-3 border-t border-gray-100 bg-white text-sm">
+        <div className="flex items-center justify-between p-3 border-t border-border-light bg-surface-elevated text-sm">
           <button
             disabled={currentPage <= 1}
             onClick={() => setCurrentPage(currentPage - 1)}
-            className="px-3 py-1.5 text-xs rounded-lg disabled:opacity-30 bg-gray-100 hover:bg-gray-200 transition-colors"
+            className="p-1.5 rounded-md border border-border disabled:opacity-30 hover:bg-surface-hover transition-colors cursor-pointer"
           >
-            ← Précédent
+            <ChevronLeft size={14} />
           </button>
-          <span className="text-xs text-gray-500 font-medium">Page {currentPage} / {totalPages} ({totalArticles})</span>
+          <span className="text-xs text-text-muted font-medium">Page {currentPage} / {totalPages} ({totalArticles})</span>
           <button
             disabled={currentPage >= totalPages}
             onClick={() => setCurrentPage(currentPage + 1)}
-            className="px-3 py-1.5 text-xs rounded-lg disabled:opacity-30 bg-gray-100 hover:bg-gray-200 transition-colors"
+            className="p-1.5 rounded-md border border-border disabled:opacity-30 hover:bg-surface-hover transition-colors cursor-pointer"
           >
-            Suivant →
+            <ChevronRight size={14} />
           </button>
         </div>
       )}
@@ -91,32 +98,36 @@ function ArticleCard({ article, active, onClick }: { article: Article; active: b
   return (
     <button
       onClick={onClick}
-      className={`group w-full text-left rounded-xl transition-all duration-200 outline-none ${
+      className={cn(
+        "group w-full text-left rounded-xl transition-all duration-150 outline-none",
         active
-          ? 'bg-gradient-to-r from-[#0A66C2]/8 to-blue-50 border-l-4 border-l-[#0A66C2] border border-[#0A66C2]/30 shadow-md shadow-[#0A66C2]/10 pl-4 pr-3 py-3'
-          : 'bg-white border border-gray-100 hover:border-gray-200 hover:shadow-sm hover:bg-gray-50/50 pl-4 pr-3 py-3'
-      }`}
+          ? 'bg-primary-50 border-l-4 border-l-primary border border-primary-200 shadow-xs pl-4 pr-3 py-3'
+          : 'bg-surface-elevated border border-border hover:border-gray-300 hover:shadow-xs pl-4 pr-3 py-3'
+      )}
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className={`text-sm font-semibold leading-snug truncate transition-colors ${
-          active ? 'text-[#0A66C2]' : 'text-gray-800 group-hover:text-gray-900'
-        }`}>
+        <h3 className={cn(
+          "text-sm font-semibold leading-snug truncate transition-colors",
+          active ? 'text-primary' : 'text-text-primary group-hover:text-primary'
+        )}>
           {article.titre_interne || 'Sans titre'}
         </h3>
-        {active && <span className="shrink-0 w-2 h-2 rounded-full bg-[#0A66C2] animate-pulse mt-1.5" />}
+        {active && <span className="shrink-0 w-2 h-2 rounded-full bg-primary animate-pulse mt-1.5" />}
       </div>
       {excerpt && (
-        <p className={`text-xs mt-1.5 line-clamp-1 transition-colors ${
-          active ? 'text-[#0A66C2]/60' : 'text-gray-400'
-        }`}>
+        <p className={cn(
+          "text-xs mt-1.5 line-clamp-1 transition-colors",
+          active ? 'text-primary/60' : 'text-text-muted'
+        )}>
           {excerpt}…
         </p>
       )}
       <div className="flex items-center justify-between mt-2.5">
         <StatusBadge status={article.statut} />
-        <span className={`text-[10px] transition-colors ${
-          active ? 'text-[#0A66C2]/50' : 'text-gray-300'
-        }`}>
+        <span className={cn(
+          "text-[10px] transition-colors",
+          active ? 'text-primary/50' : 'text-text-muted'
+        )}>
           {fmtDate(article.date_creation)}
         </span>
       </div>

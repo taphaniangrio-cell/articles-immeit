@@ -1,17 +1,51 @@
-const statusMap: Record<string, { label: string; color: string; dot: string }> = {
-  brouillon: { label: 'Brouillon', color: 'bg-gray-100 text-gray-700', dot: 'bg-gray-400' },
-  en_revision: { label: 'En révision', color: 'bg-blue-50 text-blue-700', dot: 'bg-blue-500' },
-  valide: { label: 'Validé', color: 'bg-green-50 text-green-700', dot: 'bg-green-500' },
-  publie: { label: 'Publié', color: 'bg-purple-50 text-purple-700', dot: 'bg-purple-500' },
-  archive: { label: 'Archivé', color: 'bg-orange-50 text-orange-700', dot: 'bg-orange-400' },
+import { cn } from '../../lib/utils';
+
+type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'muted';
+
+const variantStyles: Record<BadgeVariant, string> = {
+  default: 'bg-gray-100 text-gray-700',
+  primary: 'bg-primary-50 text-primary',
+  success: 'bg-success-light text-emerald-700',
+  warning: 'bg-warning-light text-amber-700',
+  danger: 'bg-danger-light text-red-700',
+  muted: 'bg-surface-hover text-text-secondary',
+};
+
+interface BadgeProps {
+  variant?: BadgeVariant;
+  dot?: boolean;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function Badge({ variant = 'default', dot, children, className }: BadgeProps) {
+  return (
+    <span className={cn(
+      'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium',
+      variantStyles[variant],
+      className
+    )}>
+      {dot && <span className={cn('w-1.5 h-1.5 rounded-full', variant === 'success' && 'bg-success', variant === 'warning' && 'bg-warning', variant === 'danger' && 'bg-danger', variant === 'primary' && 'bg-primary', variant === 'muted' && 'bg-text-muted', variant === 'default' && 'bg-gray-400')} />}
+      {children}
+    </span>
+  );
+}
+
+type Status = 'brouillon' | 'en_revision' | 'valide' | 'publie' | 'archive';
+
+const statusConfig: Record<string, { label: string; variant: BadgeVariant }> = {
+  brouillon: { label: 'Brouillon', variant: 'muted' },
+  en_revision: { label: 'En révision', variant: 'primary' },
+  valide: { label: 'Validé', variant: 'success' },
+  publie: { label: 'Publié', variant: 'warning' },
+  archive: { label: 'Archivé', variant: 'danger' },
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const s = statusMap[status] || { label: status, color: 'bg-gray-100 text-gray-700', dot: 'bg-gray-400' };
+  const config = statusConfig[status] || { label: status, variant: 'default' as BadgeVariant };
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${s.color}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-      {s.label}
-    </span>
+    <Badge variant={config.variant} dot>
+      {config.label}
+    </Badge>
   );
 }
