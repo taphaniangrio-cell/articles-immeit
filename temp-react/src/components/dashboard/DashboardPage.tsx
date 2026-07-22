@@ -686,7 +686,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
       })) return false;
     }
     return true;
-  }), [items, statusField, natureField, typeField, siteField, demandeurField, bancField, searchableFields, dateField, normFilterStatus, normNature, normType, normSite, normDemandeur, normBanc, normSearch, filterStartDk, filterEndDk, filterDateDepot]);
+  }), [items, statusField, natureField, typeField, siteField, demandeurField, bancField, searchableFields, dateField, normFilterStatus, normNature, normType, normSite, normDemandeur, normBanc, normSearch, filterStartDk, filterEndDk, filterDateDepot, filterMonth]);
 
   const isFiltered = filterStatus !== '' || filterSearch !== '' || filterNature !== '' || filterType !== '' || filterSite !== '' || filterDemandeur !== '' || filterBanc.length > 0 || filterDateDepot.length > 0 || filterMonth !== '' || (dateStart !== '' && dateStart !== defaultDateStart) || (dateEnd !== '' && dateEnd !== defaultDateEnd);
   const stats = useMemo(() => filteredItems.length > 0 && headers.length > 0 ? computeStats(headers, filteredItems, dateStartMs, dateEndMs) : null, [headers, filteredItems, dateStartMs, dateEndMs]);
