@@ -391,12 +391,23 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
   const [filterDemandeur, setFilterDemandeur] = useState('');
   const [filterBanc, setFilterBanc] = useState<string[]>([]);
   const [filterDateDepot, setFilterDateDepot] = useState<string[]>([]);
-  const [filterMonth, setFilterMonth] = useState('');
   const [tablePage, setTablePage] = useState(0);
   const userAdjustedDates = useRef(false);
   const PAGE_SIZE = 50;
 
-  useEffect(() => { setTablePage(0); }, [filterStatus, filterSearch, filterNature, filterSite, filterType, filterDemandeur, filterBanc, filterDateDepot, filterMonth, dateStart, dateEnd]);
+  // Derive selected month from date inputs
+  const selectedMonth = useMemo(() => {
+    if (!dateStart || !dateEnd || dateStart === defaultDateStart && dateEnd === defaultDateEnd) return '';
+    const s = dateStart.split('-');
+    const e = dateEnd.split('-');
+    if (s[0] === e[0] && s[1] === e[1]) {
+      const lastDay = new Date(+s[0], +s[1], 0).getDate();
+      if (+s[2] === 1 && +e[2] === lastDay) return `${s[0]}-${s[1]}`;
+    }
+    return '';
+  }, [dateStart, dateEnd, defaultDateStart, defaultDateEnd]);
+
+  useEffect(() => { setTablePage(0); }, [filterStatus, filterSearch, filterNature, filterSite, filterType, filterDemandeur, filterBanc, filterDateDepot, dateStart, dateEnd]);
 
   // Load cache instantly on mount, then fetch fresh data in background
   useEffect(() => {
@@ -452,19 +463,14 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
 
   // Sync date range when month is selected from chart
   useEffect(() => {
-    if (!filterMonth) {
-      // Restore defaults when month is deselected
-      setDateStart(defaultDateStart);
-      setDateEnd(defaultDateEnd);
-      return;
-    }
-    const [y, m] = filterMonth.split('-').map(Number);
+    if (!selectedMonth) return;
+    const [y, m] = selectedMonth.split('-').map(Number);
     const first = `${y}-${String(m).padStart(2, '0')}-01`;
     const lastDay = new Date(y, m, 0).getDate();
     const last = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
     setDateStart(first);
     setDateEnd(last);
-  }, [filterMonth, defaultDateStart, defaultDateEnd]);
+  }, [selectedMonth]);
 
   const refreshData = useCallback(async (silent = false) => {
     setRefreshLoading(true);
@@ -717,7 +723,6 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
     setFilterDemandeur('');
     setFilterBanc([]);
     setFilterDateDepot([]);
-    setFilterMonth('');
     userAdjustedDates.current = false;
     setDateStart(defaultDateStart);
     setDateEnd(defaultDateEnd);
@@ -905,7 +910,17 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
                   const maxLabel = best ? fmtMonth(best.month) : undefined;
                   const minLabel = worst && best && worst.month !== best.month ? fmtMonth(worst.month) : undefined;
                   const avgCompleted = completedOnly.length > 0 ? Math.round(completedOnly.reduce((s, m) => s + m.count, 0) / completedOnly.length) : undefined;
-                  return <LineChart data={stats.monthlyTrend.map(m => ({ month: fmtMonth(m.month), count: m.count, key: m.month }))} maxMonth={maxLabel} minMonth={minLabel} average={avgCompleted} selectedMonth={filterMonth || undefined} onMonthClick={(mk) => setFilterMonth(prev => prev === mk ? '' : mk)} />;
+                  return <LineChart data={stats.monthlyTrend.map(m => ({ month: fmtMonth(m.month), count: m.count, key: m.month }))} maxMonth={maxLabel} minMonth={minLabel} average={avgCompleted} selectedMonth={selectedMonth || undefined} onMonthClick={(mk) => {
+                    if (selectedMonth === mk) {
+                      setDateStart(defaultDateStart);
+                      setDateEnd(defaultDateEnd);
+                    } else {
+                      const [y, m] = mk.split('-').map(Number);
+                      const lastDay = new Date(y, m, 0).getDate();
+                      setDateStart(`${y}-${String(m).padStart(2, '0')}-01`);
+                      setDateEnd(`${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`);
+                    }
+                  }} />;
                 })()}
               </div>
               <div className="flex-1 space-y-3 pt-1">
