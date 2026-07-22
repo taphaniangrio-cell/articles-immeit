@@ -762,7 +762,6 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
             size="sm"
             onClick={() => refreshData()}
             disabled={refreshLoading || syncLoading}
-            loading={refreshLoading}
           >
             <RefreshCw size={14} className={refreshLoading ? 'animate-spin' : ''} />
             {refreshLoading ? 'Actualisation…' : 'Actualiser'}
@@ -771,9 +770,8 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
             size="sm"
             onClick={handleSync}
             disabled={syncLoading}
-            loading={syncLoading}
           >
-            <RotateCw size={14} />
+            <RotateCw size={14} className={syncLoading ? 'animate-spin' : ''} />
             {syncLoading ? 'Sync…' : 'Sync'}
           </Button>
         </div>
