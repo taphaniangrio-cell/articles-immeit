@@ -494,10 +494,8 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
 
   const handleSync = async () => {
     setSyncLoading(true);
-    showToast('Synchronisation lancée…', 'info');
     try {
-      const result = await dashboardApi.sync();
-      showToast(result.message || 'Synchronisation terminée', 'success');
+      await dashboardApi.sync();
       // Refresh after a short delay to let background sync finish
       setTimeout(async () => {
         try {
@@ -505,7 +503,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
           setDashboardData(data);
           localStorage.setItem('immeit_dash_cache', JSON.stringify({ ...data, _cachedAt: Date.now() }));
           setUpdateInfo('À l\'instant');
-          showToast('Données mises à jour', 'success');
+          showToast('Données synchronisées', 'success');
         } catch {} finally {
           setSyncLoading(false);
         }
