@@ -506,11 +506,12 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
           localStorage.setItem('immeit_dash_cache', JSON.stringify({ ...data, _cachedAt: Date.now() }));
           setUpdateInfo('À l\'instant');
           showToast('Données mises à jour', 'success');
-        } catch {}
+        } catch {} finally {
+          setSyncLoading(false);
+        }
       }, 5000);
     } catch (e: any) {
       showToast(e.message || 'Erreur de synchronisation', 'error');
-    } finally {
       setSyncLoading(false);
     }
   };
