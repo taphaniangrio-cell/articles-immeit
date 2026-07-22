@@ -4,7 +4,7 @@ import { Topbar } from './Topbar';
 import { cn } from '../../lib/utils';
 
 export function Shell({ title, children }: { title?: string; children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem('immeit_sidebar_collapsed') === 'true');
+  const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem('immeit_sidebar_collapsed') !== 'true');
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
