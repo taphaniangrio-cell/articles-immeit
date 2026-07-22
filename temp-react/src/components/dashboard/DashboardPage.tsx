@@ -448,7 +448,7 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
     const today = new Date().toISOString().slice(0, 10);
     setDateEnd(today);
     setDefaultDateEnd(today);
-  }, [dashboardData, dateStart]);
+  }, [dashboardData]);
 
   // Sync date range when month is selected from chart
   useEffect(() => {
