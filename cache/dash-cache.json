@@ -48271,10 +48271,10 @@
       "date_dernire_maj_immeit": "46226",
       "conformit__la_premire_diffusion": "Oui",
       "stockage_adveso": "Non concerné",
-      "stockage": "Non",
+      "stockage": "Oui",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• RAS",
-      "etat_davance_de_la_demande": "Validée par P2M : A solder par IMMEIT",
+      "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "OK pour stockage",
       "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
@@ -48305,7 +48305,7 @@
       "demandeurs": "Hervé CHARAVEL",
       "gestionnaire_demandes": "Moustapha NIANG",
       "type_de_demande": "Contrôle des documents de maintenance",
-      "nature_de_la_demande": "",
+      "nature_de_la_demande": "Préventive",
       "nbe_gerico_apex": "1039744",
       "nom_du_banc_nom_entreprise": "EMBASE MOTORISEE MUR",
       "priodicit": "PREV1",
@@ -48317,10 +48317,10 @@
       "date_dernire_maj_immeit": "46226",
       "conformit__la_premire_diffusion": "Oui",
       "stockage_adveso": "Non concerné",
-      "stockage": "Non",
+      "stockage": "Oui",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• RAS",
-      "etat_davance_de_la_demande": "Validée par P2M : A solder par IMMEIT",
+      "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "OK pour stockage",
       "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
@@ -48346,9 +48346,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-23T13:59:49.280Z",
+  "syncedAt": "2026-07-23T14:25:22.922Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
-  "lastModifiedBy": "HERVE CHARAVEL (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-23T13:56:55Z"
+  "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)",
+  "lastModifiedDateTime": "2026-07-23T14:13:39Z"
 }
