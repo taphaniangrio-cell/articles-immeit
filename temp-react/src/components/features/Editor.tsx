@@ -226,7 +226,7 @@ export function Editor({ article, onBack, onDelete }: { article: Article | null;
         provider: localStorage.getItem('immeit_ai_provider') || undefined,
         model: localStorage.getItem(`immeit_ai_model_${localStorage.getItem('immeit_ai_provider')}`) || undefined,
       });
-      const a = res;
+      const a = res.article || res;
       if (a.titre_interne) setTitre(a.titre_interne);
       if (a.accroche_a) setAccrocheA(a.accroche_a);
       if (a.accroche_b) setAccrocheB(a.accroche_b);
