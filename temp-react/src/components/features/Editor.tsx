@@ -11,7 +11,7 @@ import { useAutoSave } from '../../hooks/useAutoSave';
 import { ArrowLeft, Save, Check, Copy, Eye, Sparkles, Trash2, Archive, RotateCcw, Plus, FileText, Image as ImageIcon, ExternalLink, RefreshCw } from 'lucide-react';
 import type { Article } from '../../types';
 
-export function Editor({ article, onBack }: { article: Article | null; onBack: () => void }) {
+export function Editor({ article, onBack, onDelete }: { article: Article | null; onBack: () => void; onDelete?: (deletedId: number) => void }) {
   const { editingId, setEditingId, isDirty, setDirty, loadArticles } = useStore();
   const { showToast } = useToast();
 
@@ -192,10 +192,15 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     if (!editingId || !confirm('Supprimer définitivement cet article ?')) return;
     try {
       await articleApi.delete(editingId);
+      const deletedId = editingId;
       setEditingId(null);
       showToast('Article supprimé', 'info');
       loadArticles();
-      onBack();
+      if (onDelete) {
+        onDelete(deletedId);
+      } else {
+        onBack();
+      }
     } catch (e: any) {
       showToast(e.message || 'Erreur lors de la suppression', 'error');
     }
@@ -577,6 +582,9 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
 
             {/* Post Content */}
             <div className="px-4 py-3">
+              {titre && (
+                <p className="text-[13px] font-bold text-slate-900 mb-2 leading-snug">{titre}</p>
+              )}
               <div className="whitespace-pre-wrap text-[13px] text-slate-800 leading-[1.6] font-sans">
                 {formatForLinkedIn(corps)}
               </div>

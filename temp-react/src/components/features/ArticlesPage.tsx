@@ -83,11 +83,24 @@ export function ArticlesPage() {
     autoSelectedRef.current = false;
   };
 
+  const handleDelete = useCallback((deletedId: number) => {
+    const idx = articles.findIndex(a => a.id === deletedId);
+    const remaining = articles.filter(a => a.id !== deletedId);
+    if (remaining.length === 0) {
+      setSelected(null);
+      setEditingId(null);
+      autoSelectedRef.current = false;
+    } else {
+      const nextIdx = idx > 0 ? idx - 1 : 0;
+      setSelected(remaining[nextIdx]);
+    }
+  }, [articles, setEditingId]);
+
   return (
     <>
       <div className="flex h-[calc(100vh-6rem)] max-md:h-auto max-md:flex-col bg-white rounded-3xl border border-slate-200/80 shadow-lg overflow-hidden">
         <ArticlesList onSelect={handleSelect} />
-        <Editor article={selected} onBack={handleBack} />
+        <Editor article={selected} onBack={handleBack} onDelete={handleDelete} />
       </div>
 
       <Modal open={newsModal} onClose={() => setNewsModal(false)} title="Studio Générateur IA" size="lg">
