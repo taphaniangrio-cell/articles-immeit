@@ -38,7 +38,7 @@ module.exports = requireAuth(async (req, res) => {
 
     const sanitizedPrompt = customPrompt ? sanitizeInput(customPrompt) : null;
 
-    const resolvedProvider = provider || 'groq';
+    const resolvedProvider = provider || 'mistral';
     const resolvedModel = model || null;
     const generationType = sanitizedPrompt ? 'custom' : 'news';
 

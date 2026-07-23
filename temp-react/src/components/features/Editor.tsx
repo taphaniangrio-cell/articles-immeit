@@ -5,7 +5,7 @@ import { StatusBadge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Modal } from '../ui/Modal';
-import { formatHashtags, SUGGESTED_HASHTAGS, LINKEDIN_TARGET, formatForLinkedIn, cn } from '../../lib/utils';
+import { formatHashtags, SUGGESTED_HASHTAGS, LINKEDIN_TARGET, formatForLinkedIn, cn, scoreArticleQuality, scoreColor, scoreLabel } from '../../lib/utils';
 import { useToast } from '../../contexts/ToastContext';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { ArrowLeft, Save, Check, Copy, Eye, Sparkles, Trash2, Archive, RotateCcw, Plus, FileText, Image as ImageIcon, ExternalLink, RefreshCw } from 'lucide-react';
@@ -82,7 +82,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     if (lastIntegratedRef.current && newCorps.startsWith(lastIntegratedRef.current)) {
       newCorps = newCorps.substring(lastIntegratedRef.current.length).replace(/^\n+/, '');
     }
-    if (newAccroche) {
+    if (newAccroche && !newCorps.startsWith(newAccroche)) {
       newCorps = newAccroche + '\n\n' + newCorps;
     }
     lastIntegratedRef.current = newAccroche;
@@ -99,14 +99,16 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
     setTitre(article.titre_interne || '');
     setAccrocheA(article.accroche_a || '');
     setAccrocheB(article.accroche_b || '');
-    setAccrocheActive(article.accroche_active || 'a');
-    const accrocheText = (article.accroche_active === 'a' ? article.accroche_a : article.accroche_b) || '';
+    const activeLetter = article.accroche_active || 'a';
+    setAccrocheActive(activeLetter);
+    const activeAccroche = (activeLetter === 'a' ? article.accroche_a : article.accroche_b) || '';
     let body = article.corps || '';
-    if (accrocheText && body.startsWith(accrocheText)) {
-      body = body.substring(accrocheText.length).replace(/^\n+/, '');
+    if (activeAccroche && body.startsWith(activeAccroche)) {
+      body = body.substring(activeAccroche.length).replace(/^\n+/, '');
     }
-    lastIntegratedRef.current = '';
-    setCorps(body);
+    const finalBody = activeAccroche ? activeAccroche + '\n\n' + body : body;
+    lastIntegratedRef.current = activeAccroche;
+    setCorps(finalBody);
     setHashtags(article.hashtags?.join(' ') || '');
     setSource(article.source_news_source || article.source_news_titre || article.custom_subject || '');
     setIaInfo(article.ia_provider ? `${article.ia_provider} / ${article.ia_model}` : '');
@@ -141,6 +143,7 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   const charCount = corps.length;
   const wordCount = corps.split(/\s+/).filter(Boolean).length;
   const targetPercent = Math.min(100, Math.round((wordCount / LINKEDIN_TARGET) * 100));
+  const qualityScore = corps.length > 20 ? scoreArticleQuality(corps) : null;
 
   const handleSave = async () => {
     if (!editingId || saving) return;
@@ -211,24 +214,25 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   const handleRegen = async () => {
     setGenerating(true);
     try {
-      const res = await generateApi.create({
+      const res = await generateApi.preview({
         customPrompt: regenFeedback || titre,
         feedback: regenFeedback,
         provider: localStorage.getItem('immeit_ai_provider') || undefined,
         model: localStorage.getItem(`immeit_ai_model_${localStorage.getItem('immeit_ai_provider')}`) || undefined,
       });
-      const a = res.article || res;
+      const a = res;
+      if (a.titre_interne) setTitre(a.titre_interne);
       if (a.accroche_a) setAccrocheA(a.accroche_a);
       if (a.accroche_b) setAccrocheB(a.accroche_b);
       if (a.corps) setCorps(a.corps);
       if (a.hashtags) setHashtags(Array.isArray(a.hashtags) ? a.hashtags.join(' ') : a.hashtags);
       if (editingId) {
         try {
-          const mergedCorps = a.corps || corps;
           await articleApi.update(editingId, {
+            titre_interne: a.titre_interne || titre,
             accroche_a: a.accroche_a || accrocheA,
             accroche_b: a.accroche_b || accrocheB,
-            corps: mergedCorps,
+            corps: a.corps || corps,
             hashtags: formatHashtags(Array.isArray(a.hashtags) ? a.hashtags.join(' ') : (a.hashtags || hashtags)),
           });
           lastIntegratedRef.current = '';
@@ -249,10 +253,10 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
   };
 
   const regenSuggestions = [
-    { label: 'Accroche Choc', text: 'Rends l\'accroche plus percutante et captivante' },
-    { label: 'Cas Concret', text: 'Ajoute un exemple concret de GMAO industriels' },
-    { label: 'Plus Synthétique', text: 'Raccourcis le corps de 20%' },
-    { label: 'Ton Expert', text: 'Rends le ton plus technique et orienté ROI' },
+    { label: 'Accroche Choc', text: 'Rends l\'accroche plus percutante et captivante. Utilise un chiffre ou une situation contraire aux attentes. Maximum 140 caractères.' },
+    { label: 'Plus Humain', text: 'Rends le texte plus naturel : ajoute des contractions (j\'ai, c\'est, on fait), varie la longueur des phrases, et personnalise avec une observation terrain.' },
+    { label: 'Story → Lesson', text: 'Reformule en structure Story → Lesson : commence par une anecdote vécue (rencontre client, panne, observation), puis déduis la leçon.' },
+    { label: 'Données Chiffrées', text: 'Ajoute 2-3 chiffres concrets (%, coûts, durées) pour rendre le post plus crédible et mémorable.' },
   ];
 
   if (!article && !editingId) {
@@ -378,6 +382,50 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
             <span className="text-xs font-bold text-slate-600 shrink-0">{targetPercent}% cible LinkedIn</span>
           </div>
         </Card>
+
+        {/* Quality Score Card */}
+        {qualityScore && (
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-700">Score Qualité LinkedIn</span>
+                <span className={`text-sm font-extrabold ${scoreColor(qualityScore.total)}`}>
+                  {qualityScore.total}/10 — {scoreLabel(qualityScore.total)}
+                </span>
+              </div>
+              {qualityScore.total < 5 && (
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                  Risque de détection IA
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 max-md:grid-cols-2">
+              {Object.values(qualityScore.breakdown).map((item, i) => (
+                <div key={i} className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-semibold text-slate-500 truncate">{item.label.split(':')[0]}</span>
+                    <span className={`text-[10px] font-bold ${scoreColor(item.score)}`}>{item.score}/10</span>
+                  </div>
+                  <div className="bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        item.score >= 7 ? 'bg-emerald-500' : item.score >= 5 ? 'bg-amber-500' : 'bg-rose-500'
+                      }`}
+                      style={{ width: `${(item.score / 10) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {qualityScore.total < 5 && (
+              <p className="text-[11px] text-amber-700 mt-3 leading-relaxed">
+                Ce post risque d'être pénalisé par l'algorithme LinkedIn 360Brew. Ajoutez des ancrages personnels, variez la longueur des phrases, et supprimez les mots vagues.
+              </p>
+            )}
+          </Card>
+        )}
 
         {/* Media Illustrations Card */}
         <Card className="p-5">
@@ -512,33 +560,58 @@ export function Editor({ article, onBack }: { article: Article | null; onBack: (
 
       {/* LinkedIn Live Preview Modal */}
       <Modal open={previewOpen} onClose={() => setPreviewOpen(false)} title="Aperçu LinkedIn Post" size="lg">
-        <div className="bg-slate-100 p-6 rounded-2xl">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 max-w-lg mx-auto space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                IM
-              </div>
-              <div>
-                <div className="text-sm font-bold text-slate-900">IMMEIT Hub</div>
-                <div className="text-xs text-slate-500">Expertise Maintenance &amp; GMAO Industrielle</div>
+        <div className="bg-[#f3f2ef] p-6 rounded-2xl">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-md max-w-lg mx-auto overflow-hidden">
+            {/* LinkedIn Header */}
+            <div className="p-4 pb-0">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                  IM
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold text-slate-900">IMMEIT Hub</div>
+                  <div className="text-[11px] text-slate-500">Expertise Maintenance &amp; GMAO Industrielle • 1ère</div>
+                </div>
               </div>
             </div>
 
-            <div className="whitespace-pre-wrap text-sm text-slate-800 leading-relaxed font-sans">
-              {formatForLinkedIn(corps)}
+            {/* Post Content */}
+            <div className="px-4 py-3">
+              <div className="whitespace-pre-wrap text-[13px] text-slate-800 leading-[1.6] font-sans">
+                {formatForLinkedIn(corps)}
+              </div>
+
+              {hashtags && (
+                <p className="text-[13px] font-semibold text-blue-600 leading-relaxed mt-2">
+                  {formatHashtags(hashtags)}
+                </p>
+              )}
             </div>
 
-            {hashtags && (
-              <p className="text-xs font-bold text-indigo-600 leading-relaxed">
-                {formatHashtags(hashtags)}
-              </p>
-            )}
-
+            {/* Image */}
             {selectedImage >= 0 && images[selectedImage] && (
-              <div className="rounded-xl overflow-hidden border border-slate-200 aspect-video">
-                <img src={images[selectedImage].url} alt="" className="w-full h-full object-cover" />
+              <div className="border-t border-slate-100">
+                <img src={images[selectedImage].url} alt="" className="w-full object-cover max-h-64" />
               </div>
             )}
+
+            {/* LinkedIn Engagement Bar */}
+            <div className="px-4 py-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <div className="flex items-center gap-1">
+                <span>👍❤️💡</span>
+                <span>•</span>
+                <span>23 commentaires • 8 partages</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="px-4 py-1 border-t border-slate-100 flex items-center justify-around">
+              {['👍 Réagir', '💬 Commenter', '🔄 Partager', '✏️ Enregistrer'].map(action => (
+                <button key={action} className="text-[11px] font-semibold text-slate-600 hover:bg-slate-50 px-3 py-2 rounded-lg transition-colors">
+                  {action}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </Modal>
