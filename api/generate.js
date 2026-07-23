@@ -22,7 +22,7 @@ module.exports = requireAuth(async (req, res) => {
   }
 
   try {
-    const { news, feedback, provider, model, customPrompt, preview } = req.body;
+    const { news, feedback, provider, model, customPrompt, preview, regenerate, existing } = req.body;
 
     if (!customPrompt && (!news || !news.titre)) {
       return res.status(400).json({ error: 'Actualite source ou sujet libre requis' });
@@ -44,7 +44,7 @@ module.exports = requireAuth(async (req, res) => {
 
     log('info', 'generate_start', { type: generationType, provider: resolvedProvider, model: resolvedModel, preview: !!preview });
 
-    const article = await generateArticle(news, feedback || '', resolvedProvider, resolvedModel, sanitizedPrompt || null);
+    const article = await generateArticle(news, feedback || '', resolvedProvider, resolvedModel, sanitizedPrompt || null, { regenerate, existing });
 
     const titre = (article.titre_interne || '').trim();
     const corps = (article.corps || '').trim();
