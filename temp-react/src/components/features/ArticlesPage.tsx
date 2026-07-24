@@ -92,7 +92,9 @@ export function ArticlesPage() {
       autoSelectedRef.current = false;
     } else {
       const nextIdx = idx > 0 ? idx - 1 : 0;
-      setSelected(remaining[nextIdx]);
+      const next = remaining[nextIdx];
+      setEditingId(null);
+      setSelected(next);
     }
   }, [articles, setEditingId]);
 

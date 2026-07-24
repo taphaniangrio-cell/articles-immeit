@@ -191,11 +191,12 @@ export function Editor({ article, onBack, onDelete }: { article: Article | null;
   const handleDelete = async () => {
     if (!editingId || !confirm('Supprimer définitivement cet article ?')) return;
     try {
-      await articleApi.delete(editingId);
       const deletedId = editingId;
       setEditingId(null);
+      loadedRef.current = false;
+      await articleApi.delete(deletedId);
       showToast('Article supprimé', 'info');
-      loadArticles();
+      await loadArticles();
       if (onDelete) {
         onDelete(deletedId);
       } else {
