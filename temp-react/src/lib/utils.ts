@@ -65,8 +65,8 @@ export interface QualityScore {
 }
 
 const HEDGE_WORDS = /(\b(arguably|il pourrait être dit|dans certains cas|certains experts|on peut avancer|il est important de noter|il convient de souligner|force est de constater|it could be argued|in some cases|some experts believe|it is important to note)\b)/gi;
-const CONTRACTIONS = /\b(j'ai|j'ai|c'est|on fait|y'a|t'as|j'dis|c'là|n'attendez|c'est|j'suis|qu'on|l'industrie|d'arrêt|d'équipement|d'entreprise|n'est|n'a|d'autre|qu'elles|qu'il|s'est|d'un|j'ai|qu'on|d'exploitation)\b/gi;
-const PERSONAL_ANCHORS = /\b(\d{1,3}[\s]*%|il y a \d+|en \d{4}|la semaine dernière|ce mois|hier|aujourd'hui|dans mon|de mon|notre client|un client|on a vu|on a constaté|j'ai vu|j'ai compté|j'ai travaillé|on travaille avec|on accompagne)\b/gi;
+const CONTRACTIONS = /\b(j'ai|j'suis|j'pense|j'dis|j'vais|j'crois|j'vois|j'fais|c'est|c'que|c'là|c'qui|on fait|y'a|t'as|n'attendez|n'attendons|qu'on|qu'il|qu'elle|qu'elles|qu'ils|s'est|n'est|n'a|y'avait|c'était|j'avais|j'aurais|on a|on a vu|on a constaté)\b/gi;
+const PERSONAL_ANCHORS = /\b(\d{1,3}[\s]*%|il y a \d+|en \d{4}|la semaine dernière|ce mois|hier|aujourd'hui|dans mon|de mon|notre client|un client|j'ai \w+|on a \w+|on fait|on travaille avec|on accompagne|depuis \d+|pendant \d+|\d+ mois|\d+ semaines|\d+ heures|\d+ jours|\d+ ans|\d+ années)\b/gi;
 
 export function scoreArticleQuality(text: string): QualityScore {
   const words = text.split(/\s+/).filter(Boolean);
