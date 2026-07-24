@@ -48500,11 +48500,11 @@
       "date_de_traitement_immeit": "46227",
       "date_dernire_maj_immeit": "46227",
       "conformit__la_premire_diffusion": "Oui",
-      "stockage_adveso": "",
+      "stockage_adveso": "Oui",
       "stockage": "Non concerné",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• RAS \nPour stockage ADVESO: Etalonnage étalonné effectué le 16/06/2026 hors site par l'entreprise KISTLER avec le technicien Pasqualino Mulè Dirk Mahler",
-      "etat_davance_de_la_demande": "En attente validation P2M",
+      "etat_davance_de_la_demande": "Soldée par IMMEIT",
       "commentaire_p2m": "OK pour stockage",
       "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
@@ -48576,9 +48576,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-24T12:10:51.131Z",
+  "syncedAt": "2026-07-24T13:11:51.544Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
-  "lastModifiedBy": "HERVE CHARAVEL (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-24T12:05:44Z"
+  "lastModifiedBy": "IBRAHIMA KHALIL SECK (EXTERNAL)",
+  "lastModifiedDateTime": "2026-07-24T12:40:09Z"
 }
