@@ -92,7 +92,23 @@ export function Editor({ article, onBack, onDelete }: { article: Article | null;
   }, [accrocheA, accrocheB, corps, setDirty]);
 
   useEffect(() => {
-    if (!article) return;
+    if (!article) {
+      setTitre('');
+      setAccrocheA('');
+      setAccrocheB('');
+      setAccrocheActive('a');
+      setCorps('');
+      setHashtags('');
+      setSource('');
+      setIaInfo('');
+      setDates('');
+      setStatut('brouillon');
+      setImages([]);
+      setSelectedImage(-1);
+      setDirty(false);
+      loadedRef.current = false;
+      return;
+    }
     if (loadedRef.current && article.id === editingId) return;
     loadedRef.current = false;
     setEditingId(article.id);

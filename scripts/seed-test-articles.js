@@ -1,0 +1,286 @@
+#!/usr/bin/env node
+require('dotenv').config();
+const { createArticle, query } = require('../lib/db');
+
+const articles = [
+  {
+    titre_interne: 'Les capteurs vibrations m\'ont appris une leçon que j\'ai longtemps refusée',
+    accroche_a: '31 arrêts évitables en 12 mois. Un capteur à 200€ aurait tout changé. Voici ce que cette usine a découvert trop tard.',
+    accroche_b: 'On préfère payer 90 000€ de prod perdue plutôt que 5 000€ de prévention. Pourquoi on fait encore ça ?',
+    corps: `En mars 2024, j'ai visité une usine d'embouteillage en Picardie. Le directeur m'a montré une ligne arrêtée depuis 3 jours. Coût total : 90 000 euros de production perdue. Mon premier réflexe a été de demander la cause racine. Roulement en écaillage sur un convoyeur principal. Pièce à 85 euros. Arrêt de 72 heures.
+
+J'ai fouillé dans les historiques de maintenance sur 12 mois. 47 pannes non planifiées recensées. 31 d'entre elles auraient pu être anticipées grâce à des capteurs vibrations élémentaires. J'ai vérifié les fiches d'intervention. Les techniciens signalaient des bruits anormaux depuis des semaines. Mais sans mesure objective, personne n'a pris le relais.
+
+La leçon que j'ai tirée est brutale. On préfère absorber le coût des arrêts plutôt que d'investir dans la détection précoce. Un capteur vibrations basique coûte 200 euros. L'installation prend une demi-journée. Le retour se fait en moins de deux semaines quand on compte le prix moyen de chaque interruption.
+
+Six mois après mon intervention, cette même usine a équipé ses 12 machines critiques. Résultat sur le premier trimestre : zéro arrêt non planifié. Les alertes sont remontées en temps réel. Les équipes ont remplacé deux roulements avant qu'ils ne lâchent. Économie évitée : 45 000 euros.
+
+Le problème fondamental, c'est qu'on ne mesure pas ce qu'on ne voit pas. Un roulement en dégradation progressive ne produit aucun signal visible. Pas de fumée. Pas de bruit perceptible avant la rupture. Jusqu'au jour où la ligne s'immobilise et que le chef de production vous regarde avec des yeux ronds.
+
+Ce que j'y retiens désormais : la maintenance prédictive n'est pas un gadget technologique. C'est de la survie industrielle. Chaque euro investi dans la surveillance des composants critiques rapporte entre 4 et 7 euros en arrêts évités. Le calcul est vite fait sur une nappe de café.
+
+Vous comptez encore sur l'odorat et l'ouïe de vos techniciens pour détecter les pannes ?`,
+    hashtags: ['#maintenanceprédictive', '#capteurs', '#fiabilité', '#industrie', '#pannes'],
+    source_news_titre: 'Étude Afnor sur la maintenance prédictive en France',
+    source_news_url: 'https://example.com/afnor-maintenance-predicative-2024',
+    source_news_source: 'Usine Nouvelle',
+    ia_provider: 'openai', ia_model: 'gpt-4o', generation_type: 'news', statut: 'brouillon',
+  },
+  {
+    titre_interne: 'Notre GMAO cloud a planté pendant 4h — et ça nous a appris quelque chose',
+    accroche_a: 'Notre GMAO cloud a disparu 4h un lundi matin. 200 techniciens sans accès. Voici ce qu\'on a découvert.',
+    accroche_b: 'Le cloud c\'est génial 99% du temps. Mais le 1% restant peut paralyser toute votre usine.',
+    corps: `Le 14 janvier 2025, notre GMAO cloud a disparu pendant 4 heures. Panique totale dans le service maintenance. 200 techniciens répartis sur 3 sites privés d'accès à leurs ordres de travail. Les plans de maintenance annuels, les historiques d'interventions, les pièces de rechange : tout s'est évanedi d'un coup.
+
+J'ai d'abord pensé à une attaque informatique. Le service IT a confirmé qu'il n'y avait aucune intrusion. En vérifiant avec le provider, j'ai découvert la réalité : une mise à jour silencieuse du système avait coupé l'accès. Pas d'alerte préalable. Pas de fenêtre de maintenance annoncée. Rien du tout.
+
+Pendant ces 4 heures, nos équipes ont fait ce qu'elles pratiquaient avant l'arrivée du cloud : du papier. Les techniciens ont relevé les interventions sur des fiches cartonnées. Devinez quoi ? Ça a parfaitement fonctionné. Mais on a perdu la traçabilité de 12 interventions critiques. Certaines ne seront jamais documentées.
+
+La leçon retenue est claire. Un outil cloud, c'est fantastique la majeure partie du temps. Mais cette infime fraction résiduelle peut tout faire basculer si vous n'avez pas de plan de secours rodé. J'ai proposé à la direction un protocole simple : export automatique quotidien vers un fichier local chiffré. Temps de développement : 2 heures. Coût : zéro euro. Valeur en cas de panne : inestimable.
+
+Depuis cette expérience, on a subi deux incidents similaires. Les deux fois, les équipes ont basculé sur le mode dégradé sans interruption de service. Les fiches papier ont comblé le vide en attendant la restauration du système. Ce n'est pas glamour. Mais c'est redoutablement efficace.
+
+La conclusion que j'en tire est straightforward. Le cloud pour la GMAO, c'est un levier formidable de productivité et de collaboration multi-sites. Mais la résilience opérationnelle n'est pas optionnelle. Elle doit être intégrée dès le premier jour de la migration, pas ajoutée en catastrophe après la première coupure.
+
+Vous disposez d'un plan B quand votre SaaS décide de prendre vacances sans vous prévenir ?`,
+    hashtags: ['#GMAO', '#cloud', '#résilience', '#SaaS', '#maintenance'],
+    source_news_titre: 'Les incidents cloud multiplient dans l\'industrie',
+    source_news_url: 'https://example.com/incidents-cloud-gmao-industrie',
+    source_news_source: 'IT for Business',
+    ia_provider: 'anthropic', ia_model: 'claude-sonnet-4-20250514', generation_type: 'news', statut: 'brouillon',
+  },
+  {
+    titre_interne: 'J\'ai supprimé 3 réunions lean — la productivité a augmenté de 22%',
+    accroche_a: '6 heures de réunions par semaine = 125 000€/an de prod perdue. J\'ai supprimé 3 réunions. Résultat : +22%.',
+    accroche_b: 'Le gemba walk de 15 minutes remplace 3 réunions de 2h. Et les résultats sont au rendez-vous.',
+    corps: `En septembre 2025, j'ai décidé de supprimer trois réunions hebdomadaires dans une usine que j'accompagne depuis 18 mois. Le directeur de production m'a regardé comme si je venais de lui proposer de retirer les extincteurs. Trois réunions pilier de son organisation. Trois rituels qu'il considérait comme sacrés.
+
+J'ai d'abord chiffré le gaspillage. Ces réunions représentaient 6 heures par semaine. 8 participants en moyenne. Salaire horaire moyen calculé : 400 euros. Coût hebdomadaire : 2 400 euros. Annuel : 125 000 euros de temps productif consommé sans produire de valeur ajoutée directe.
+
+La première semaine sans ces cadences, j'ai observé les équipes avec attention. Les techniciens ont commencé à échanger directement entre ateliers. Les problèmes de coordination se résolvaient en dix minutes à la machine, pas en trois jours autour d'une table de réunion climatisée.
+
+En octobre, j'ai compilé les premiers résultats chiffrés. Productivité en hausse de 22%. Non-conformités en baisse de 15%. Le taux de rotation du personnel a chuté de 40% en un trimestre. Pourquoi un tel impact ? Parce que les opérateurs se sentaient enfin écoutés. Leur expertise terrain redevenait la source première des décisions.
+
+J'ai remplacé ces réunions par des gemba walks quotidiens. Quinze minutes, debout sur le poste de travail, avec les mains sales. Pas de présentation powerpoint de quarante diapositives. Juste l'observation directe, la discussion concrète, l'action immédiate. Les retours des équipes sont unanimes : c'est plus efficace et plus motivant.
+
+La résistance initiale a été considérable. Le manager pensait perdre le contrôle de son périmètre. En réalité, il a libéré du temps. Il consacre désormais 70% de ses journées sur le terrain, 30% au bureau. Avant l'opération, le ratio était exactement inverse.
+
+Ce que cette expérience m'a appris au-delà du lean : chaque réunion qui ne produit ni décision ni action concrète constitue du gaspillage pur. On l'appelle réunion lean, mais elle est souvent l'antithèse de la philosophie lean originelle de Taiichi Ohno.
+
+Combien de réunions votre usine programme-t-elle chaque semaine ?`,
+    hashtags: ['#lean', '#leanmanufacturing', '#gemba', '#productivité', '#gaspillage'],
+    source_news_titre: 'Enquête lean : les réunions freinent la performance',
+    source_news_url: 'https://example.com/lean-reunions-performance',
+    source_news_source: 'Industrie Mag',
+    ia_provider: 'openai', ia_model: 'gpt-4o-mini', generation_type: 'news', statut: 'brouillon',
+  },
+  {
+    titre_interne: 'Mon cobot a appris en 20 minutes ce qu\'un technicien met 3 mois à maîtriser',
+    accroche_a: 'Un cobot a appris en 20 minutes ce qu\'un technicien met 3 mois à maîtriser. Conformité : 99,7%.',
+    accroche_b: '35 000€ d\'investissement, 99,7% de conformité, zéro rejet des équipes. Voici mon retour sur 12 déploiements.',
+    corps: `Le mois dernier, on a installé un cobot UR10 sur la ligne d'emballage d'un site agroalimentaire implanté dans le Pas-de-Calais. J'étais personnellement sceptique sur le retour on investment. Aujourd'hui, après analyse des métriques, je suis définitivement convaincu par cette technologie collaborative.
+
+Le technicien a guidé le bras robotique physiquement pendant vingt minutes. Le cobot a mémorisé le parcours complet. Pas de programmation complexe. Pas d'interface logicielle compliquée. Simplement la main de l'opérateur qui trace la trajectoire et le robot qui apprend.
+
+Ce même parcours de manipulation, un opérateur junior met en moyenne trois mois à le maîtriser complètement. Trois mois de formation, d'erreurs d'apprentissage, de pièces rebutées. Le cobot l'a reproduit en vingt minutes, sans produire le moindre déchet. L'écart est vertigineux.
+
+J'ai comptabilisé les piècesproduites sur les quatre premières semaines. Conformité de 99,7%. Sur dix mille unités sorties de la ligne, trente reprises seulement. Avant l'installation du cobot, on enregistrait deux cents reprises par lot équivalent. L'amélioration est spectaculaire et mesurable.
+
+Le coût d'acquisition du cobot s'est élevé à trente-cinq mille euros. Le retour sur investissement s'est réalisé en huit mois. Pas parce que le robot remplace un être humain. Mais parce qu'il libère l'opérateur pour des tâches à plus forte valeur ajoutée. Le contrôle visuel, le réglage fin, la résolution d'anomalies complexes.
+
+La surprise la plus agréable concerne l'acceptation par les équipes. Les opérateurs ne perçoivent pas le cobot comme une menace pour leur emploi. Ils le considèrent comme un outil qui les affranchit des gestes répétitifs et physiquement éprouvants. Le moral a nettement改善é sur cette ligne.
+
+J'ai accompagné douze déploiements de cobots cette année sur des sites variés. Les douze ont reçu un accueil favorable des équipes. Zéro situation de rejet ou de conflit social. La clé du succès réside dans l'implication des opérateurs dès le premier jour du projet.
+
+La robotique collaborative n'est plus réservée aux grands groupes. Les PME de moins de cinquante salariés peuvent désormais y accéder. Le seuil d'entrée a baissé de 45% en trois ans. C'est une révolution silencieuse qui transforme l'atelier français.
+
+Votre usine a-t-elle déjà expérimenté la collaboration homme-machine sur ses lignes de production ?`,
+    hashtags: ['#cobot', '#robotique', '#collaboratif', '#agroalimentaire', '#ROI'],
+    source_news_titre: 'Le marché des cobots explose en France',
+    source_news_url: 'https://example.com/cobot-marche-france-2026',
+    source_news_source: 'Robotique & Technologies',
+    ia_provider: 'google', ia_model: 'gemini-2.0-flash', generation_type: 'news', statut: 'brouillon',
+  },
+  {
+    titre_interne: 'J\'ai vu un site industriel infecté en 11 minutes — pas de firewall, pas de chance',
+    accroche_a: '11 minutes. C\'est le temps qu\'il a fallu pour paralyser 4 lignes de production.',
+    accroche_b: '60% des PME industrielles n\'ont pas de cybersécurité OT. J\'ai vu un site tomber en 11 minutes.',
+    corps: `En novembre 2025, j'étais présent sur un site industriel quand le réseau opérationnel a été compromis. Onze minutes. C'est le laps de temps exact entre le premier signal d'alerte et la paralysie complète de quatre lignes de fabrication. J'ai regardé les écrans de supervision s'éteindre un à un.
+
+L'intrusion est entrée par un poste de travail Windows non patché dans le bureau administratif. De ce point d'entrée, elle a franchi le pont reliant le réseau informatique au réseau de contrôle sans aucune segmentation. Le pare-feu между ними ? Il n'existait tout simplement pas. Deux réseaux distincts théoriquement, mais reliés par un câble Ethernet visible à l'œil nu.
+
+J'ai observé les techniciens débrancher manuellement les commutateurs réseau pour isoler le système de supervision. Quarante-cinq minutes de travail physique intensif. Pendant ce laps de temps, les machines tournaient à vide, produisant des déchets. Vingt mille euros de matière première gaspillée.
+
+Ce qui m'a le plus alarmé lors de mon audit post-incident : l'absence totale de documentation réseau. Personne ne savait quelles automates étaient connectées à quels switchs. On a dû tracer les câbles physiquement, un par un, pour reconstituer la topographie. Trois jours de travail supplémentaire.
+
+Depuis cet épisode, on a déployé trois mesures fondamentales. Segmentation réseau IT/OT avec des VLAN dédiés. Inventaire exhaustif des équipements connectés. Mise à jour mensuelle planifiée des postes critiques. Coût cumulé de ces actions : quinze mille euros. L'économie potentielle évitée se chiffre en millions.
+
+Le réglement européen NIS2 imposait déjà ces exigences depuis 2024. Pourtant, en 2026, soixante pour cent des PME industrielles françaises n'ont toujours pas établi de plan de cybersécurité pour leurs réseaux de contrôle. J'ai personnellement constaté cette lacune chez la majorité de mes clients cette année.
+
+La cyber-résilience des systèmes industriels n'est plus une option discrétionnaire. C'est une obligation réglementaire et une question de survie économique. Chaque jour sans protection constitue une exposition aux risques majeurs.
+
+Votre réseau de contrôle est-il véritablement isolé d'Internet ?`,
+    hashtags: ['#cybersécurité', '#OT', '#NIS2', '#SCADA', '#industrie'],
+    source_news_titre: 'Record d\'attaques contre les réseaux industriels',
+    source_news_url: 'https://example.com/attaques-ot-record-2026',
+    source_news_source: 'ZDNet',
+    ia_provider: 'openai', ia_model: 'gpt-4o', generation_type: 'news', statut: 'brouillon',
+  },
+  {
+    titre_interne: 'On a relocalisé 40% de nos pièces — le délai livraison est passé de 12 à 3 semaines',
+    accroche_a: 'Délai livraison : 12 semaines → 3 semaines. Surcoût : 18%. Bilan réel : +12% de rentabilité.',
+    accroche_b: 'On a relocalisé 40% de nos pièces en Europe. Le résultat m\'a surpris — et pas que sur les délais.',
+    corps: `En juin 2025, on a lancé un programme ambitieux de nearshoring pour quarante pour cent de nos composants critiques. Aujourd'hui, je peux affirmer sans hésitation que c'est la meilleure décision stratégique prise par l'entreprise cette année. Les résultats dépassent nos prévisions initiales.
+
+Avant cette relocalisation, nos pièces mécaniques provenaient exclusivement de Chine. Délai moyen de livraison : douze semaines. Quand une panne urgente nécessitait un remplacement, on patientait trois mois. Coût d'attente estimé : huit mille euros par jour d'immobilisation machine. Un calcul qui rendait le directeur financier nerveux.
+
+On a identifié quatre fournisseurs compétents en Pologne, au Portugal et en Espagne. Le délai de livraison est tombé à trois semaines. Trois semaines au lieu de douze. L'impact sur notre réactivité opérationnelle est transformateur. On peut désormais répondre aux urgences en un temps raisonnable.
+
+J'ai chiffré le surcoût d'approchement réel : dix-huit pour cent en moyenne par composant. Mais quand j'intègre au calcul le stock de sécurité réduit, les arrêts évités et la diminution des返工 liées aux défauts qualité, le bilan financiers' invertit. On est en réalité positif de douze pour cent.
+
+La surprise la plus appréciable concerne la qualité intrinsèque des pièces européennes. Le taux de défaut est de z virgule trois pour cent contre deux virgule un pour cent pour les composants asiatiques. Moins de reprises en atelier. Moins de stress pour les équipes qualité. Moins de retards en cascade.
+
+Ce que j'aurais aimé savoir avant de démarrer : le nearshoring ne se réalise pas en trois mois. Il a fallu neuf mois pour auditer les fournisseurs potentiels, négocier les contrats, valider les échantillons et adapter les processus internes. La patience est la vertu cardinale de ce type de projet.
+
+On a conservé soixante pour cent de nos approvisionnements asiatiques pour les pièces non critiques. Le modèle hybride s'avère être l'approche la plus pertinente. Chaque source d'approvisionnement trouve sa place optimale dans la chaîne.
+
+Vous avez déjà évalué le potentiel de relocalisation de vos composants industriels critiques ?`,
+    hashtags: ['#nearshoring', '#supplychain', '#relocalisation', '#résilience', '#Europe'],
+    source_news_titre: 'Le nearshoring industriel prend de l\'ampleur',
+    source_news_url: 'https://example.com/nearshoring-industriel-2026',
+    source_news_source: 'Supply Chain Magazine',
+    ia_provider: 'mistral', ia_model: 'mistral-large-latest', generation_type: 'news', statut: 'brouillon',
+  },
+  {
+    titre_interne: 'L\'usine que j\'ai visitée tourne à l\'hydrogène vert depuis 8 mois — voici les vrais chiffres',
+    accroche_a: '95% de CO2 en moins. Zéro arrêt énergétique. ROI en 2,5 ans. Voici ce que j\'ai vu.',
+    accroche_b: 'L\'hydrogène vert a baissé de 60% en 3 ans. Une aciérie du Nord tourne déjà dessus.',
+    corps: `En janvier 2026, j'ai obtenu l'autorisation de visiter une aciérie située dans le Nord de la France qui fonctionne entièrement à l'hydrogène vert depuis huit mois. Le directeur général m'a ouvert toutes les portes, y compris celles des fours et des salles de contrôle. Ce que j'y ai vu m'a profondément marqué.
+
+Les chiffres certifiés par un organisme tiers m'ont frappé immédiatement. Réduction de quatre-vingt-quinze pour cent des émissions de CO2 par rapport à l'ancien combustible fossile. Pas une projection théorique. Des mesures continues sur huit mois de fonctionnement sans interruption significative.
+
+Le coût de production de l'hydrogène vert a chuté de soixante pour cent en trois ans grâce aux progrès des électrolyseurs nouvelle génération. L'usine produit sa propre énergie carbonée via l'électrolyse de l'eau. Zéro dépendance au gaz naturel. Zéro vulnérabilité aux fluctuations des marchés mondiaux.
+
+J'ai compté les arrêts liés à l'approvisionnement énergétique sur la période observée : zéro. Avant la conversion, l'aciérie subissait les variations tarifaires du gaz. Certains mois, la facture augmentait de trente pour cent sans préavis. Désormais, la maîtrise du coût énergétique est totale et prévisible.
+
+L'investissement initial s'est élevé à quatre virgule deux millions d'euros. L'économie annuelle réalisée est de un virgule huit million. Le retour sur investissement s'établit à deux ans et demi. Le directeur m'a confié avec un sourire : "J'aurais dû lancer ce projet il y a trois ans. C'est le retard qui m'a coûté le plus cher."
+
+Le seul véritable défi technique concerne le stockage de l'hydrogène. Cette molécule prend de la place. L'aciérie a dû construire un réservoir de cinq cents mètres cubes. Mais ça, c'est un problème d'ingénierie résoluble. Pas un problème de faisabilité fondamentale.
+
+La transition énergétique industrielle n'est plus un concept théorique ni une promesse politique lointaine. C'est une réalité opérationnelle qui génère de la valeur économique tangible. Et ça, c'est le message que je veux faire passer à chaque usine que j'accompagne.
+
+Votre site de production a-t-il évalué sérieusement l'hydrogène vert pour alimenter ses procédés thermiques ?`,
+    hashtags: ['#hydrogène', '#vert', '#décarbonation', '#acier', '#énergie'],
+    source_news_titre: 'L\'hydrogène vert industrialisé pour la première fois',
+    source_news_url: 'https://example.com/hydrogene-vert-acier-nord',
+    source_news_source: 'France Info',
+    ia_provider: 'openai', ia_model: 'o3-mini', generation_type: 'news', statut: 'brouillon',
+  },
+  {
+    titre_interne: 'J\'ai vu une pièce Airbus imprimée en titane — elle pèse 40% de moins',
+    accroche_a: '1 200 pièces imprimées en titane pour l\'A320neo. Poids : -40%. Gaspillage : -90%.',
+    accroche_b: 'J\'ai vu les pièces Airbus imprimées en 3D. Le gaspillage a chuté de 90%.',
+    corps: `En février 2026, le constructeur aéronautique m'a invité à visiter son atelier d'impression 3D métal situé dans le sud-ouest de la France. Ce que j'y ai observé a profondément modifié ma perception de la fabrication industrielle. Pas par la sophistication technologique. Par les résultats concrets.
+
+Les pièces imprimées en titane pèsent quarante pour cent de moins que les pièces usinées traditionnellement à partir de blocs massifs. Sur un avion commercial, cette réduction de poids représente des tonnes. Des tonnes de kérosène économisées sur la durée de vie de l'appareil. Un impact environnemental et financier considérable.
+
+J'ai compté le nombre de références validées par l'autorité de certification pour l'A320neo : douze cents pièces. Pas un prototype expérimental. Pas un banc d'essai laboratoire. Une véritable production en série industrielle. Le cap historique a été franchi.
+
+Le gaspillage de matière première a diminué de quatre-vingt-dix pour cent. Là où l'usinage traditionnel retirait soixante-dix pour cent du bloc de titane sous forme de copeaux, l'impression 3D dépose uniquement la matière nécessaire pour constituer la forme finale. Un chiffre qui m'a profondément interpellé sur le gaspillage passé.
+
+Ce que les observateurs extérieurs ne visualisent pas facilement : le stockage virtuel des pièces de rechange. Airbus conserve les fichiers numériques tridimensionnels de chaque référence. Quand un avion nécessite un composant de remplacement, on l'imprimera en quarante-huit heures. Fini l'entreposage de milliers de références physiques coûteuses.
+
+Le coût de production par pièce reste encore vingt-cinq pour cent supérieur à l'usinage conventionnel. Mais quand j'intègre au calcul la réduction du poids, la diminution du stock physique et la rapidité de fabrication d'urgence, le bilan devient nettement positif sur le cycle de vie complet.
+
+On se situe au tout début de cette transformation radicale. Dans cinq ans, la moitié des composants non structuraux seront probablement produits par soudage de poudre métallique. C'est ma conviction professionnelle after douze ans d'expérience dans la fabrication additive.
+
+Votre secteur d'activité a-t-il déjà franchi le pas de l'impression 3D métal pour ses composants techniques ?`,
+    hashtags: ['#impression3D', '#titane', '#Airbus', '#aéronautique', '#fabrication'],
+    source_news_titre: 'Airbus franchit le cap de la production série en 3D',
+    source_news_url: 'https://example.com/airbus-impression-3d-serie',
+    source_news_source: 'La Tribune',
+    ia_provider: 'anthropic', ia_model: 'claude-opus-4-20250514', generation_type: 'news', statut: 'brouillon',
+  },
+  {
+    titre_interne: 'On a réduit les défauts de 67% en changeant UNE seule chose dans le process',
+    accroche_a: '12% de défauts → 4%. Un seul capteur à 800€. 67% de réduction. Voici l\'expérience.',
+    accroche_b: 'On voulait changer les machines. On a changé UNE seule chose. Le résultat m\'a stupéfié.',
+    corps: `En avril 2025, un client m'a contacté en état de panique avancée. Douze pour cent de taux de défaut sur une ligne de fraisage de précision. Douze pour cent, c'est un niveau catastrophique pour un atelier qui affiche habituellement trois pour cent. La direction évoquait déjà le remplacement complet de l'ensemble des centres d'usinage.
+
+Le premier jour sur site, j'ai compté méthodiquement les pièces défectueuses à la sortie de la ligne. Cent vingt-sept composants non conformes sur mille cinquante produits. J'ai ensuite demandé à observer les opérateurs pendant leurs rotations. Ce que j'ai constaté m'a ouvert les yeux sur la source réelle du problème.
+
+Les techniciens relevaient les paramètres de coupe à l'œil nu. Pas de capteur de mesure en temps réel. Pas d'affichage numérique. Ils ajustaient la vitesse de rotation et la profondeur de passe selon leur ressenti personnel. Leur expérience est incontestable. Mais le ressenti ne remplace pas la donnée objective quand la tolérance est inférieire au dixième de millimètre.
+
+On a installé un capteur de couple électromagnétique sur l'arbre de coupe principal. Prix d'acquisition : huit cents euros. Le dispositif mesurait la force exercée lors du fraisage en continu. Quand le couple déviait de plus de cinq pour cent par rapport à la consigne, un voyant alertait l'opérateur. Correction immédiate possible.
+
+Résultat mesuré après trois mois de fonctionnement. Le taux de non-conformité est passé de douze pour cent à quatre pour cent. Soixante-sept pour cent de réduction. Un seul capteur. Huit cents euros d'investissement. Le retour sur investissement s'est réalisé en quatorze jours.
+
+La leçon que je retiens de cette intervention est fondamentale. On cherche systématiquement des solutions sophistiquées et coûteuses. Or, la réponse se cache fréquemment sous nos yeux. Un capteur élémentaire. Un affichage clair. Une alerte visuelle. Trois éléments simples qui transforment radicalement la performance.
+
+Le contrôle qualité ne devrait pas se limiter à un audit a posteriori sur un échantillon. C'est un pilotage en temps réel du process qui fait la différence entre la performance et la médiocrité.
+
+Votre système de détection des défauts est-il réactif ou proactif ?`,
+    hashtags: ['#qualité', '#contrôle', '#défauts', '#capteur', '#process'],
+    source_news_titre: 'L\'inspection en temps réel révolutionne le contrôle qualité',
+    source_news_url: 'https://example.com/controle-qualite-temps-reel',
+    source_news_source: 'Quality Magazine',
+    ia_provider: 'google', ia_model: 'gemini-2.5-pro-preview-05-06', generation_type: 'custom',
+    custom_subject: 'Réduction des défauts par le contrôle en temps réel', statut: 'brouillon',
+  },
+  {
+    titre_interne: 'On formait nos techniciens 3 jours par an — voici pourquoi on est passés à 30',
+    accroche_a: '3 jours de formation par an = 45 jours d\'arrêt. On est passé à 30 jours. Résultat : -35% d\'arrêts.',
+    accroche_b: 'J\'ai compté 80% d\'oublis en 2 semaines après une formation en salle. La solution ? 25 jours terrain.',
+    corps: `En 2024, j'ai réalisé un diagnostic approfondi des compétences dans huit sites industriels différents. Le constat final était uniformément alarmant. Les techniciens de maintenance recevaient en moyenne trois jours de formation par an. Trois jours pour maintenir des compétences sur des équipements de plus en plus complexes.
+
+Sur ces trois journées dédiées, deux se déroulaient en salle de classe et une seule sur le terrain. Le ratio était parfaitement inversé par rapport aux besoins réels. Les apprenants acquéraient la théorie sans jamais toucher aux automates, aux pompes ou aux réducteurs. Résultat prévisible : ils oubliaient quatre-vingts pour cent du contenu enseigné en moins de quinze jours.
+
+J'ai proposé à la direction un programme ambitieux. Trente jours de formation par an et par technicien, dont vingt-cinq sur le terrain. Le directeur des opérations m'a répondu avec scepticisme. "On ne peut pas arrêter les lignes pendant trente jours." J'ai rétorqué. "Vous arrêtez déjà quarante-cinq jours à cause des pannes évitables. Choisissez votre arrêt."
+
+La première année du programme, on a formé les équipes aux diagnostics vibrations, à la thermographie infrarouge et à l'analyse spectrale d'huile. Trois disciplines qui couvrent ensemble quatre-vingts pour cent des défaillances mécaniques observées en milieu industriel.
+
+J'ai comptabilisé les résultats à l'issue des douze premiers mois. Réduction de trente-cinq pour cent des arrêts non planifiés. Diminution de vingt-huit pour cent du budget pièces de rechange. Le taux de satisfaction des opérateurs est passé de six sur dix à neuf sur dix. Les gens se sentent compétents. C'est un besoin humain fondamental.
+
+Le retour sur investissement de la formation s'établit à quatre virgule cinq euros récupérés pour chaque euro dépensé. Sur un effectif de deux cents techniciens, l'économie annuelle réalisée atteint huit cent mille euros. Le calcul financier est implacable et ne souffre aucune contestation.
+
+Ce que cette expérience m'a enseigné au-delà du bilan comptable : la formation n'est pas une charge à réduire. C'est le meilleur levier de performance dont dispose une usine. Chaque jour de compétence acquise se traduit en heures de production gagnées.
+
+Combien de jours de formation par an vos techniciens de maintenance reçoivent-ils réellement ?`,
+    hashtags: ['#formation', '#compétences', '#techniciens', '#fiabilité', '#investissement'],
+    source_news_titre: 'Le déficit de formation technique pèse sur la productivité',
+    source_news_url: 'https://example.com/formation-techniciens-productivite',
+    source_news_source: 'Industry Magazine',
+    ia_provider: 'openai', ia_model: 'gpt-4o', generation_type: 'custom',
+    custom_subject: 'Formation des techniciens de maintenance et impact sur la fiabilité', statut: 'brouillon',
+  },
+];
+
+(async () => {
+  console.log('Connexion à la base de données...\n');
+  try {
+    const countBefore = await query('SELECT COUNT(*) FROM articles');
+    console.log(`Articles avant seed: ${countBefore.rows[0].count}\n`);
+  } catch (e) {
+    console.error('Erreur connexion DB:', e.message);
+    process.exit(1);
+  }
+
+  let created = 0;
+  for (let i = 0; i < articles.length; i++) {
+    try {
+      const article = await createArticle(articles[i]);
+      created++;
+      console.log(`✓ [${i + 1}/${articles.length}] Article #${article.id} créé — "${article.titre_interne.slice(0, 60)}..."`);
+    } catch (e) {
+      console.error(`✗ [${i + 1}/${articles.length}] Erreur : ${e.message}`);
+    }
+  }
+
+  try {
+    const countAfter = await query('SELECT COUNT(*) FROM articles');
+    console.log(`\nArticles après seed: ${countAfter.rows[0].count}`);
+  } catch {}
+
+  console.log(`\nTerminé ! ${created}/${articles.length} articles créés.`);
+  process.exit(0);
+})();

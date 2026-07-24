@@ -379,10 +379,11 @@ export function DashboardPage({ showToast, setView }: { showToast: (msg: string,
   const [syncLoading, setSyncLoading] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
   const [updateInfo, setUpdateInfo] = useState('Chargement...');
-  const [dateStart, setDateStart] = useState('');
-  const [dateEnd, setDateEnd] = useState(new Date().toISOString().slice(0, 10));
-  const [defaultDateStart, setDefaultDateStart] = useState('');
-  const [defaultDateEnd, setDefaultDateEnd] = useState('');
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const [dateStart, setDateStart] = useState(todayISO);
+  const [dateEnd, setDateEnd] = useState(todayISO);
+  const [defaultDateStart, setDefaultDateStart] = useState(todayISO);
+  const [defaultDateEnd, setDefaultDateEnd] = useState(todayISO);
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
   const [filterNature, setFilterNature] = useState('');
