@@ -146,6 +146,7 @@ module.exports = requireAuth(async (req, res) => {
     if (err.message.includes('indisponible') || err.message.includes('404')) {
       return res.status(400).json({ error: 'Modele indisponible. Selectionne un autre modele.' });
     }
-    return res.status(500).json({ error: 'Erreur lors de la generation. Reessaie.' });
+    const detail = err.message || 'Erreur inconnue';
+    return res.status(500).json({ error: 'Erreur lors de la generation. Reessaie.', detail });
   }
 });
