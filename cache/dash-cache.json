@@ -48505,11 +48505,11 @@
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• RAS \nPour stockage ADVESO: Etalonnage étalonné effectué le 16/06/2026 hors site par l'entreprise KISTLER avec le technicien Pasqualino Mulè Dirk Mahler",
       "etat_davance_de_la_demande": "En attente validation P2M",
-      "commentaire_p2m": "",
-      "conformit_de_la_demande": "",
+      "commentaire_p2m": "OK pour stockage",
+      "conformit_de_la_demande": "Oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
       "explication_en_cas_de_nonconformit": "",
-      "date_de_validation_p2m": "",
+      "date_de_validation_p2m": "46227",
       "dure_de_traitement_jours_1": "0",
       "echance_contractuelle_jours_1": "2",
       "ecart_de_traitement_jour_1": "-2",
@@ -48576,9 +48576,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-24T11:09:53.738Z",
+  "syncedAt": "2026-07-24T12:10:51.131Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
-  "lastModifiedBy": "SIDOINE ISSA SIGA DIATTA (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-24T11:00:09Z"
+  "lastModifiedBy": "HERVE CHARAVEL (EXTERNAL)",
+  "lastModifiedDateTime": "2026-07-24T12:05:44Z"
 }
