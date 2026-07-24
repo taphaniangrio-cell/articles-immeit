@@ -133,7 +133,7 @@ module.exports = requireAuth(async (req, res) => {
       }
     });
   } catch (err) {
-    log('error', 'generate_error', { error: err.message });
+    log('error', 'generate_error', { error: err.message, stack: err.stack?.slice(0, 500) });
     if (err.message === 'QUOTA') {
       return res.status(429).json({ error: 'Quota API depasse. Reessaie plus tard ou change de fournisseur.' });
     }
