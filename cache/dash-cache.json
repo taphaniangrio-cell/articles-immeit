@@ -45882,12 +45882,12 @@
       "stockage": "Non",
       "mise__jour_kpi": "Non",
       "remarque_immeit": "• Rapport jugé conforme alors que l'unique opération réalisée est non-conforme [Test sécurité arrêt(s) d'urgence (1Op)] avec comme commentaire \"Arrêt d'urgence télécommande ne fonctionne pas, cablage non existant ( câblage spécifique MTS ) il y a un connecteur dédié pour mais rien de branché\"",
-      "etat_davance_de_la_demande": "En modification Prestataire de maintenance",
-      "commentaire_p2m": "10/07/2026: En discussion avec ROP\n20/07/2026: relance INDUS pour nouvelle version ZIP",
-      "conformit_de_la_demande": "",
+      "etat_davance_de_la_demande": "Validée par P2M : A solder par IMMEIT",
+      "commentaire_p2m": "10/07/2026: En discussion avec ROP\n20/07/2026: relance INDUS pour nouvelle version ZIP\n24/07/2026: Nouvelle version conforme > OK pour stockage",
+      "conformit_de_la_demande": "oui",
       "date_dvaluation_en_cas_de_non_conformit": "",
       "explication_en_cas_de_nonconformit": "",
-      "date_de_validation_p2m": "",
+      "date_de_validation_p2m": "46227",
       "dure_de_traitement_jours_1": "0",
       "echance_contractuelle_jours_1": "2",
       "ecart_de_traitement_jour_1": "-2",
@@ -48484,9 +48484,9 @@
       "ecart_dheure_contractuel": "#REF!"
     }
   ],
-  "syncedAt": "2026-07-24T06:40:33.595Z",
+  "syncedAt": "2026-07-24T08:07:02.140Z",
   "source": "delegated_silent",
   "_rawCount": 1887,
-  "lastModifiedBy": "IBRAHIMA KHALIL SECK (EXTERNAL)",
-  "lastModifiedDateTime": "2026-07-23T16:58:06Z"
+  "lastModifiedBy": "MOUSTAPHA NIANG (EXTERNAL)",
+  "lastModifiedDateTime": "2026-07-24T08:06:50Z"
 }
